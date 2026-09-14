@@ -1,0 +1,9 @@
+# Aurora 游戏启动器依赖
+# 安装： python -m pip install -r requirements.txt
+#
+# pywebview 在 Windows 上使用 Edge WebView2 内核（Win11 自带运行时；
+# Win10 若未安装，程序会自动回退到 Qt 内核）。
+pywebview>=5.0
+
+# 可选：仅 tools/ 下的自检脚本需要（生成图标、截图分析）
+# Pillow>=10.0

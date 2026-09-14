@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aurora</title>
+<script>
+/* 资源带版本号：WebView2 会忽略 no-store，必须自己破缓存 */
+window.__ASSET_V = Date.now().toString(36);
+document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '">');
+</script>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ 背景层 ============ -->
+  <div id="bg-root" aria-hidden="true">
+    <div class="bg-layer" id="bg-a"><div class="bg-img"></div></div>
+    <div class="bg-layer" id="bg-b"><div class="bg-img"></div></div>
+    <div id="bg-scrim"></div>
+    <div id="bg-vignette"></div>
+  </div>
+
+  <!-- ============ 拖放提示层 ============ -->
+  <div id="dropHint" class="drop-hint" hidden>
+    <div class="drop-card glass">
+      <svg viewBox="0 0 24 24" class="ic"><path d="M12 16V4M7.5 8.5L12 4l4.5 4.5"/><path d="M4 15v3.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V15"/></svg>
+      <b>松开即可导入</b>
+      <span>支持 .exe / .bat，也可以直接拖入游戏文件夹</span>
+    </div>
+  </div>
+
+  <!-- ============ 顶部工具条 ============ -->
+  <header id="toolbar" class="glass" data-drag>
+    <div class="brand">
+      <div class="brand-text">
+        <b>Aurora</b>
+        <i>游戏启动器</i>
+      </div>
+    </div>
+
+    <div class="search" data-nodrag>
+      <svg viewBox="0 0 24 24" class="ic"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <input id="searchInput" type="search" placeholder="搜索游戏库" autocomplete="off" spellcheck="false">
+      <button class="clear" id="searchClear" hidden>
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="toolbar-right" data-nodrag>
+      <button class="icon-btn" id="btnSort" title="排序方式">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M4 7h16M6.5 12h11M9.5 17h5"/></svg>
+      </button>
+      <button class="icon-btn" id="btnSettings" title="外观设置">
+        <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.1M12 18.7v2.1M4.8 7.8l1.8 1.1M17.4 15.1l1.8 1.1M4.8 16.2l1.8-1.1M17.4 8.9l1.8-1.1"/></svg>
+      </button>
+      <div class="win-btns">
+        <button class="wbtn" id="btnMin" title="最小化">
+          <svg viewBox="0 0 12 12"><path d="M2.4 6h7.2"/></svg>
+        </button>
+        <button class="wbtn" id="btnMax" title="最大化">
+          <svg viewBox="0 0 12 12"><rect x="2.6" y="2.6" width="6.8" height="6.8" rx="1.6"/></svg>
+        </button>
+        <button class="wbtn wclose" id="btnClose" title="关闭">
+          <svg viewBox="0 0 12 12"><path d="M3.2 3.2l5.6 5.6M8.8 3.2L3.2 8.8"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ 主舞台 ============ -->
+  <main id="stage">
+    <!-- 空状态 -->
+    <section id="empty" class="empty glass" hidden>
+      <div class="empty-art">
+        <svg viewBox="0 0 64 64"><path d="M14 22h36a6 6 0 016 6v18a6 6 0 01-6 6H14a6 6 0 01-6-6V28a6 6 0 016-6z"/><path d="M22 34v8M18 38h8M40 36.5h.01M46 42h.01"/><path d="M22 22l3.4-6h13.2L42 22"/></svg>
+      </div>
+      <h2>游戏库还是空的</h2>
+      <p>导入任意 <b>.exe</b>，Aurora 会自动用文件名或所在文件夹名去匹配游戏简介与背景图。</p>
+      <button class="btn primary lg" id="btnImport2">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>
+        <span>选择可执行文件</span>
+      </button>
+      <div class="empty-hint">也可以把 exe 或游戏文件夹拖到这里</div>
+    </section>
+
+    <!-- 大厅：单行大封面横滑 -->
+    <section id="hall" hidden>
+      <button class="btn glass-btn get-pill" id="btnGetGames">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M12 4v10M8 10l4 4 4-4"/><path d="M5 17.5V19a1 1 0 001 1h12a1 1 0 001-1v-1.5"/></svg>
+        <span>获取游戏</span>
+      </button>
+      <div class="hall-viewport" id="hallViewport">
+        <div class="hall-row" id="hallRow"></div>
+      </div>
+      <div class="hall-foot" id="hallFoot" data-drag>
+        <div class="hall-info">
+          <div class="hall-name" id="hallName">—</div>
+          <div class="hall-sub" id="hallSub"></div>
+        </div>
+        <div class="hall-hint">
+          <span id="hallCount"></span>
+          <span><b>← →</b> 切换 · <b>Enter</b> 进入 · <b>双击</b> 启动 · <b>Ctrl+F</b> 搜索</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 游戏视图 -->
+    <section id="view" hidden>
+      <div class="stage-top" id="bgDragArea">
+        <div class="status-pills">
+          <span class="pill glass-s" id="pillSource" hidden></span>
+          <span class="pill glass-s live" id="pillRunning" hidden><i></i>运行中</span>
+        </div>
+      </div>
+
+      <button class="btn glass-btn back-pill" id="btnBack">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M14.5 6l-6 6 6 6"/></svg>
+        <span>返回</span>
+      </button>
+
+      <div class="info-card glass" data-nodrag>
+        <div class="info-head">
+          <img id="gLogo" class="g-logo" alt="" hidden>
+          <h1 id="gTitle">—</h1>
+        </div>
+        <div class="chips" id="gChips"></div>
+        <p id="gDesc" class="desc"></p>
+        <button class="mini-btn" id="btnShowOriginal" hidden>显示原文</button>
+        <div class="info-foot">
+          <button class="btn play" id="btnPlay">
+            <svg viewBox="0 0 24 24" class="ic fill"><path d="M8 5.5l11 6.5-11 6.5z"/></svg>
+            <span id="playLabel">开始游戏</span>
+          </button>
+          <button class="btn glass-btn" id="btnBackgrounds">
+            <svg viewBox="0 0 24 24" class="ic"><rect x="3" y="4.5" width="18" height="15" rx="3.5"/><circle cx="8.6" cy="10" r="1.6"/><path d="M3.6 17l5-4.6 4.2 3.4 3-2.6 4.6 4"/></svg>
+            <span>背景图</span>
+          </button>
+          <button class="btn glass-btn" id="btnDetails">
+            <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.4M12 7.8h.01"/></svg>
+            <span>详情</span>
+          </button>
+          <button class="icon-btn glass-btn sq" id="btnMore" title="更多">
+            <svg viewBox="0 0 24 24" class="ic"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 加载遮罩 -->
+      <div class="fetching glass" id="fetching" hidden>
+        <div class="spinner"></div>
+        <div>
+          <b id="fetchTitle">正在搜索游戏信息…</b>
+          <span id="fetchSub">通过 Steam 商店匹配简介与背景图</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ 背景选择面板 ============ -->
+  <div id="bgPanel" class="sheet glass" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>背景图</h3>
+        <span id="bgCount" class="sub"></span>
+      </div>
+      <button class="icon-btn" id="bgClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="bg-grid" id="bgGrid"></div>
+    <div class="bg-zoom">
+      <div class="set-row">
+        <label>缩放</label>
+        <input type="range" id="bgZoom" min="100" max="300" step="1">
+        <span id="bgZoomVal">100%</span>
+      </div>
+      <div class="bg-zoom-foot">
+        <span class="hint">用滑杆调整缩放（100%–300%）</span>
+        <button class="mini-btn" id="bgViewReset">复位</button>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn glass-btn full" id="btnLocalBg">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M4 16.5V7.2A2.2 2.2 0 016.2 5h11.6A2.2 2.2 0 0120 7.2v9.3a2.2 2.2 0 01-2.2 2.2H6.2A2.2 2.2 0 014 16.5z"/><path d="M4.5 16l4.7-4.3 3.9 3.2 2.9-2.4L19.5 16"/></svg>
+        <span>从本地选择图片…</span>
+      </button>
+      <button class="btn glass-btn full" id="btnResetBg"><span>恢复默认</span></button>
+    </div>
+  </div>
+
+  <!-- ============ 详情面板 ============ -->
+  <div id="detailPanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3 id="dTitle">详情</h3>
+        <span id="dSub" class="sub"></span>
+      </div>
+      <button class="icon-btn" id="detailClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+
+  <!-- ============ 候选匹配面板 ============ -->
+  <div id="matchPanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>选择正确的条目</h3>
+        <span class="sub">候选来自已启用的资料源，换个关键词可以重新搜索</span>
+      </div>
+      <button class="icon-btn" id="matchClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="match-search">
+      <input id="matchQuery" type="text" placeholder="例如 千恋万花 / サノバウィッチ / Sabbat of the Witch" spellcheck="false">
+      <button class="btn glass-btn" id="matchRetry" hidden>重试</button>
+      <button class="btn glass-btn" id="matchGo">搜索</button>
+    </div>
+    <div class="match-links" id="matchLinks"></div>
+    <div class="match-list" id="matchList"></div>
+  </div>
+
+  <!-- ============ 资料源管理 ============ -->
+  <div id="sourcePanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>资料源</h3>
+        <span class="sub">从上到下依次尝试，命中即用；可开关、调序、增删</span>
+      </div>
+      <button class="icon-btn" id="sourceClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="source-list" id="sourceList"></div>
+
+    <div class="source-form" id="sourceForm" hidden>
+      <div class="set-row">
+        <label>名称</label>
+        <input id="srcName" type="text" placeholder="例如 我的资料站" spellcheck="false">
+      </div>
+      <div class="set-row">
+        <label>类型</label>
+        <select id="srcKind">
+          <option value="api">JSON 接口源（可搜索并读取信息）</option>
+          <option value="link">只跳转搜索（用浏览器打开）</option>
+        </select>
+      </div>
+      <div class="set-row">
+        <label>搜索地址</label>
+        <input id="srcUrl" type="text" placeholder="https://example.com/api/search?q={query}" spellcheck="false">
+      </div>
+      <div id="srcApiFields">
+        <div class="set-row">
+          <label>结果路径</label>
+          <input id="srcResults" type="text" placeholder="data.list（留空表示整个响应就是列表）" spellcheck="false">
+        </div>
+        <div class="set-row tall">
+          <label>字段映射</label>
+          <textarea id="srcFields" rows="5" spellcheck="false"
+            placeholder='{"id":"id","name":"name_cn||name","description":"summary","cover":"images.large","screenshots":"screenshots[*].url","developers":"developers[*].name","release_date":"date","url":"url"}'></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn glass-btn" id="srcCancel">取消</button>
+        <button class="btn primary" id="srcSave">保存并测试</button>
+      </div>
+    </div>
+
+    <div class="sheet-foot">
+      <button class="btn glass-btn full" id="srcAdd">+ 添加自定义源</button>
+    </div>
+  </div>
+
+  <!-- ============ 更多菜单 ============ -->
+  <div id="moreMenu" class="menu glass" data-nodrag hidden>
+    <button data-act="favorite" id="menuFavorite">加入收藏</button>
+    <button data-act="rename">重命名…</button>
+    <button data-act="name-reset" id="menuNameReset" hidden>恢复自动命名</button>
+    <button data-act="cover">更换封面…</button>
+    <button data-act="icon">设置自定义图标…</button>
+    <button data-act="icon-reset" id="menuIconReset" hidden>恢复默认图标</button>
+    <div class="menu-sep"></div>
+    <button data-act="reveal">打开所在文件夹</button>
+    <button data-act="args">设置启动参数</button>
+    <button data-act="research">重新搜索游戏信息</button>
+    <button data-act="translate">翻译简介</button>
+    <button data-act="store">打开资料来源页面</button>
+    <div class="menu-sep"></div>
+    <button data-act="remove" class="danger">从库中移除</button>
+  </div>
+
+  <!-- ============ 排序菜单 ============ -->
+  <div id="sortMenu" class="menu glass" data-nodrag hidden>
+    <button data-sort="default">默认顺序</button>
+    <button data-sort="favorite">收藏优先</button>
+    <button data-sort="name">按名称</button>
+    <button data-sort="recent">最近玩过</button>
+    <button data-sort="playtime">按时长</button>
+  </div>
+
+  <!-- ============ 末尾方块的二选一菜单 ============ -->
+  <div id="addMenu" class="menu glass" data-nodrag hidden>
+    <button data-add-act="import">导入本地游戏…</button>
+    <button data-add-act="get">获取游戏…</button>
+  </div>
+
+  <!-- ============ 封面选择 ============ -->
+  <div id="coverPanel" class="sheet glass" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>更换封面</h3>
+        <span class="sub">点一张图即可用作列表与窗口图标旁的封面</span>
+      </div>
+      <button class="icon-btn" id="coverClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="bg-grid" id="coverGrid"></div>
+    <div class="sheet-foot">
+      <button class="btn glass-btn full" id="btnLocalCover">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M4 16.5V7.2A2.2 2.2 0 016.2 5h11.6A2.2 2.2 0 0120 7.2v9.3a2.2 2.2 0 01-2.2 2.2H6.2A2.2 2.2 0 014 16.5z"/><path d="M4.5 16l4.7-4.3 3.9 3.2 2.9-2.4L19.5 16"/></svg>
+        <span>从本地选择图片…</span>
+      </button>
+      <button class="btn glass-btn full" id="btnCoverReset"><span>恢复默认封面</span></button>
+    </div>
+  </div>
+
+  <!-- ============ Steam 库扫描 ============ -->
+  <div id="steamPanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>Steam 游戏库</h3>
+        <span class="sub" id="steamSub">读取本机 Steam 清单，导入时直接按 appid 取资料</span>
+      </div>
+      <button class="icon-btn" id="steamClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="steam-tools">
+      <button class="mini-btn" id="steamAll">全选</button>
+      <button class="mini-btn" id="steamNone">全不选</button>
+      <span class="hint" id="steamPickHint"></span>
+    </div>
+    <div class="steam-list" id="steamList"></div>
+    <div class="sheet-foot">
+      <button class="btn primary full" id="steamImport" disabled>导入选中的游戏</button>
+    </div>
+  </div>
+
+  <!-- ============ 获取游戏（下载大厅） ============ -->
+  <div id="getPanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>获取游戏</h3>
+        <span class="sub">资源站用默认浏览器打开；下载完放进下面的目录就会自动入库</span>
+      </div>
+      <button class="icon-btn" id="getClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="get-search">
+      <input id="getQuery" type="text" placeholder="关键词（可选；站点地址里带 {query} 时会用它去搜索）" spellcheck="false">
+    </div>
+
+    <div class="get-block">
+      <div class="get-row-line">
+        <span class="get-label">资源站</span>
+        <div class="get-chips" id="getSites"></div>
+        <button class="mini-btn" id="getAddSite">＋ 添加站点</button>
+      </div>
+      <div class="get-hint">点站点名用默认浏览器打开；带 <b>{query}</b> 的地址会拼上上面的关键词。
+        本站不做任何自动抓取或代下载，下载与登录都在浏览器里由你自己完成。</div>
+      <div class="source-form" id="getSiteForm" hidden>
+        <div class="set-row">
+          <label>名称</label>
+          <input id="getSiteName" type="text" placeholder="例如 TouchGal" spellcheck="false">
+        </div>
+        <div class="set-row">
+          <label>地址</label>
+          <input id="getSiteUrl" type="text" placeholder="https://example.com/search?query={query}" spellcheck="false">
+        </div>
+        <div class="modal-foot">
+          <button class="btn glass-btn" id="getSiteCancel">取消</button>
+          <button class="btn primary" id="getSiteSave">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="get-block">
+      <div class="get-row-line">
+        <span class="get-label">下载目录</span>
+        <span class="get-path" id="getDir">—</span>
+        <button class="mini-btn" id="getChangeDir">选择…</button>
+        <button class="mini-btn" id="getOpenDir">打开</button>
+      </div>
+      <div class="get-row-line">
+        <label class="get-toggle"><input type="checkbox" id="getWatch" class="switch sm"><span>自动导入</span></label>
+        <label class="get-toggle"><input type="checkbox" id="getExtract" class="switch sm"><span>自动解压</span></label>
+        <button class="mini-btn" id="getScan">立即扫描</button>
+        <span class="get-hint" id="getDirHint"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 简介翻译设置 ============ -->
+  <div id="translatePanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>简介翻译</h3>
+        <span class="sub">把非中文的游戏简介翻成简体中文；优先用 LLM 接口，失败时回退到免费接口</span>
+      </div>
+      <button class="icon-btn" id="translateClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="set-row">
+      <label>导入后自动翻译</label>
+      <input type="checkbox" id="setTransEnabled" class="switch">
+    </div>
+    <div class="set-row">
+      <label>翻译方式</label>
+      <select id="setTransProvider">
+        <option value="auto">自动（LLM 优先，免费兜底）</option>
+        <option value="llm">仅 LLM 接口</option>
+        <option value="free">仅免费接口</option>
+      </select>
+    </div>
+    <div class="set-row">
+      <label>接口地址</label>
+      <input type="text" id="setTransBase" placeholder="https://api.deepseek.com" spellcheck="false">
+    </div>
+    <div class="set-row">
+      <label>API Key</label>
+      <input type="password" id="setTransKey" placeholder="留空则只用免费接口" spellcheck="false">
+    </div>
+    <div class="set-row">
+      <label>模型</label>
+      <input type="text" id="setTransModel" placeholder="deepseek-chat" spellcheck="false">
+    </div>
+    <div class="set-row">
+      <label>显示原文</label>
+      <input type="checkbox" id="setShowOriginal" class="switch">
+    </div>
+    <div class="sheet-foot">
+      <button class="btn glass-btn" id="transTest"><span>测试接口</span></button>
+      <span class="hint" id="transStatus">Key 仅保存在本机 data/library.json</span>
+    </div>
+  </div>
+
+  <!-- ============ 设置 ============ -->
+  <div id="settingsPanel" class="menu glass wide-menu" data-nodrag hidden>
+    <div class="set-row">
+      <label>毛玻璃强度</label>
+      <input type="range" id="setBlur" min="0" max="60" step="1">
+      <span id="setBlurVal"></span>
+    </div>
+    <div class="set-row">
+      <label>背景暗化</label>
+      <input type="range" id="setScrim" min="0" max="80" step="1">
+      <span id="setScrimVal"></span>
+    </div>
+    <div class="set-row">
+      <label>强调色</label>
+      <input type="color" id="setAccent">
+      <span></span>
+    </div>
+    <div class="set-row">
+      <label>玻璃饱和</label>
+      <input type="range" id="setSat" min="80" max="300" step="5">
+      <span id="setSatVal"></span>
+    </div>
+    <div class="set-row">
+      <label>背景缓慢缩放</label>
+      <input type="checkbox" id="setKen" class="switch">
+    </div>
+    <div class="set-row">
+      <label>简介语言</label>
+      <select id="setLang">
+        <option value="schinese">简体中文</option>
+        <option value="english">English</option>
+      </select>
+    </div>
+    <div class="set-row">
+      <label>多源补图</label>
+      <input type="checkbox" id="setMerge" class="switch">
+    </div>
+    <div class="set-row">
+      <label>关闭到托盘</label>
+      <input type="checkbox" id="setTray" class="switch">
+    </div>
+    <div class="menu-sep"></div>
+    <button class="menu-row" id="btnSources">
+      <span>管理资料源…</span>
+      <span class="menu-hint" id="sourcesHint"></span>
+    </button>
+    <button class="menu-row" id="btnSteamScan">
+      <span>扫描 Steam 游戏库…</span>
+      <span class="menu-hint">一键导入</span>
+    </button>
+    <button class="menu-row" id="btnRefreshAll">
+      <span>重新抓取全部信息</span>
+      <span class="menu-hint" id="refreshHint"></span>
+    </button>
+    <button class="menu-row" id="btnTranslateAll">
+      <span>翻译全部简介</span>
+      <span class="menu-hint" id="translateHint"></span>
+    </button>
+    <button class="menu-row" id="btnTranslateSettings">
+      <span>简介翻译设置…</span>
+      <span class="menu-hint">LLM / 免费接口</span>
+    </button>
+    <button class="menu-row" id="btnExport">
+      <span>导出游戏库…</span>
+      <span class="menu-hint">备份 / 迁移</span>
+    </button>
+    <button class="menu-row" id="btnImportLib">
+      <span>导入游戏库…</span>
+      <span class="menu-hint">合并去重</span>
+    </button>
+    <div class="menu-sep"></div>
+    <div class="keys-hint">
+      <b>快捷键</b>
+      <span>Ctrl+F 搜索 · ↑↓ 切换游戏 · Enter 启动/结束 · Esc 关闭面板</span>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="modal" class="modal" hidden>
+    <div class="modal-card glass">
+      <h3 id="modalTitle">提示</h3>
+      <p id="modalBody"></p>
+      <input id="modalInput" type="text" hidden>
+      <div class="modal-presets" id="modalPresets" hidden></div>
+      <div class="modal-foot">
+        <button class="btn glass-btn" id="modalCancel">取消</button>
+        <button class="btn primary" id="modalOk">确定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 缩放热区 -->
+  <div class="rz rz-n" data-edge="n"></div>
+  <div class="rz rz-s" data-edge="s"></div>
+  <div class="rz rz-w" data-edge="w"></div>
+  <div class="rz rz-e" data-edge="e"></div>
+  <div class="rz rz-nw" data-edge="nw"></div>
+  <div class="rz rz-ne" data-edge="ne"></div>
+  <div class="rz rz-sw" data-edge="sw"></div>
+  <div class="rz rz-se" data-edge="se"></div>
+
+  <div id="boot" class="boot">
+    <div class="spinner"></div>
+  </div>
+</div>
+<script>
+window.__auroraErrors = [];
+window.addEventListener("error", (e) =>
+  window.__auroraErrors.push((e.message || "") + " @" + (e.filename || "") + ":" + (e.lineno || "")));
+window.addEventListener("unhandledrejection", (e) =>
+  window.__auroraErrors.push("unhandled: " + String((e.reason && e.reason.message) || e.reason)));
+</script>
+<script>
+(function () {
+  var s = document.createElement("script");
+  s.src = "app.js?v=" + (window.__ASSET_V || Date.now());
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+==============================================================================
+1) 路径 -> 查询名
+==============================================================================
+  D:\SteamLibrary\steamapps\common\ELDEN RING\Game\eldenring.exe
+    candidates = ['ELDEN RING']
+    strong     = ['ELDEN RING']
+  D:\Games\Cyberpunk 2077\bin\x64\Cyberpunk2077.exe
+    candidates = ['Cyberpunk2077', 'Cyberpunk']
+    strong     = ['Cyberpunk2077', 'Cyberpunk']
+  E:\Games\Black Myth Wukong\b1\Binaries\Win64\b1-Win64-Shipping.exe
+    candidates = ['Black Myth Wukong', 'b1']
+    strong     = ['Black Myth Wukong']
+  D:\Hades\Hades.exe
+    candidates = ['Hades']
+    strong     = ['Hades']
+  D:\Games\Stardew Valley\Stardew Valley.exe
+    candidates = ['Stardew Valley']
+    strong     = ['Stardew Valley']
+  D:\Games\Hollow Knight\Hollow Knight.exe
+    candidates = ['Hollow Knight']
+    strong     = ['Hollow Knight']
+  D:\Games\Baldurs Gate 3\bin\bg3.exe
+    candidates = ['Baldurs Gate 3', 'bg3']
+    strong     = ['Baldurs Gate 3']
+  E:\Games\It Takes Two\ItTakesTwo.exe
+    candidates = ['It Takes Two']
+    strong     = ['It Takes Two']
+  D:\Games\黑神话悟空\b1\b1.exe
+    candidates = ['黑神话悟空', 'b1']
+    strong     = ['黑神话悟空']
+  D:\Games\The Witcher 3 Wild Hunt\bin\x64\witcher3.exe
+    candidates = ['witcher3', 'The Witcher 3 Wild Hunt']
+    strong     = ['witcher3', 'The Witcher 3 Wild Hunt']
+
+==============================================================================
+2) 多源搜索与匹配
+==============================================================================
+  OK   'ELDEN RING' -> steam:1245620 'ELDEN RING' score=1.0 (0.0s)
+  OK   'Cyberpunk2077' -> steam:1091500 'Cyberpunk 2077' score=1.0 (0.0s)
+  OK   'Black Myth Wukong' -> steam:2358720 'Black Myth: Wukong' score=1.0 (0.0s)
+  OK   'Hades' -> steam:1145360 'Hades' score=1.0 (0.0s)
+  OK   'Stardew Valley' -> steam:413150 'Stardew Valley' score=1.0 (0.0s)
+  OK   'Hollow Knight' -> steam:367520 'Hollow Knight' score=1.0 (0.0s)
+  OK   'Baldurs Gate 3' -> steam:1086940 "Baldur's Gate 3" score=1.0 (0.0s)
+  OK   'It Takes Two' -> steam:1426210 'It Takes Two' score=1.0 (0.0s)
+  OK   '黑神话悟空' -> steam:2358720 '黑神话：悟空' score=1.0 (2.7s)
+  OK   'witcher3' -> steam:292030 'The Witcher 3: Wild Hunt - Complete Edition' score=0.8375 (0.0s)
+
+==============================================================================
+3) 详情与背景图候选
+==============================================================================
+  来源: steam:1245620   https://store.steampowered.com/app/1245620/
+  名称: 艾尔登法环   (中文名 艾尔登法环 / 原名 )
+  开发商: ['FromSoftware, Inc.']   发行: 2022 年 2 月 24 日   类型: ['动作', '角色扮演']
+  简介: 艾尔登法环是以正统黑暗奇幻世界为舞台的动作RPG游戏。 走进辽阔的场景与地下迷宫探索未知，挑战困难重重的险境，享受克服困境时的成就感吧。 不仅如此，登场角色之间的利害关系谱成的群像剧，更是不容错过。...
+  封面: https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900.jpg
+  LOGO: https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/logo.png
+  背景候选 17 张:
+    [hero      ] 官方封面图            https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_hero.jpg
+    [hero      ] 官方封面图 · 柔焦       https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_hero_blur.jpg
+    [hero      ] 商店页面背景           https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/page_bg_generated_v6b.jpg
+    [art       ] 原始背景             https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/page_bg_raw.jpg
+    [art       ] 商店背景             https://store.akamai.steamstatic.com/images/storepagebackground/app/1245620
+    [header    ] 头图               https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/header.jpg
+    [screenshot] 截图 1             https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_943bf6fe62352757d9070c1d33e50b92fe8539f1.1920x1080.jpg
+    [screenshot] 截图 2             https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/ss_dcdac9e4b26ac0ee5248bfd2967d764fd00cdb42.1920x1080.jpg
+
+  来源: steam:1091500   https://store.steampowered.com/app/1091500/
+  名称: 赛博朋克 2077   (中文名 赛博朋克 2077 / 原名 )
+  开发商: ['CD PROJEKT RED']   发行: 2020 年 12 月 9 日   类型: ['角色扮演']
+  简介: 《赛博朋克 2077》是一款开放世界动作冒险 RPG 游戏。故事发生在暗黑未来的夜之城，一座五光十色、危机四伏的超级大都会，权力更迭和无尽的身体改造是这里不变的主题。...
+  封面: https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_600x900.jpg
+  LOGO: https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/logo.png
+  背景候选 29 张:
+    [hero      ] 官方封面图            https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_hero.jpg
+    [hero      ] 官方封面图 · 柔焦       https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/library_hero_blur.jpg
+    [hero      ] 商店页面背景           https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/page_bg_generated_v6b.jpg
+    [art       ] 原始背景             https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/644eb087007768417a847e52c38eeaf34b57fd12/page_bg_raw.jpg
+    [art       ] 商店背景             https://store.akamai.steamstatic.com/images/storepagebackground/app/1091500
+    [header    ] 头图               https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/4e88035f3a75e69e0ef2005fc611a7fafcb227e1/header_schinese.jpg
+    [screenshot] 截图 1             https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_2f649b68d579bf87011487d29bc4ccbfdd97d34f.1920x1080.jpg
+    [screenshot] 截图 2             https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1091500/ss_0e64170751e1ae20ff8fdb7001a8892fd48260e7.1920x1080.jpg
+
+匹配成功 10/10

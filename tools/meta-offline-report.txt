@@ -1,0 +1,18 @@
+name        = 艾尔登法环
+description = 艾尔登法环是以正统黑暗奇幻世界为舞台的动作RPG游戏。 走进辽阔的场景与地下迷宫探索未知，挑战困难重重的险境，享受克服困...
+cover       = https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900.jpg
+cover_chain = 14 项
+   1. https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900.jpg
+   2. https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_600x900_2x.jpg
+   3. https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/capsule_616x353.jpg
+   4. https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg
+   5. https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/capsule_231x87.jpg
+   6. https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_hero.jpg
+logo        = https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/logo.png
+images      = 17 张
+   [hero      ] 官方封面图            thumb=.com/steam/apps/1245620/library_hero.jpg
+   [hero      ] 官方封面图 · 柔焦       thumb=steam/apps/1245620/library_hero_blur.jpg
+   [hero      ] 商店页面背景           thumb=m/apps/1245620/page_bg_generated_v6b.jpg
+   [art       ] 原始背景             thumb=ssets/steam/apps/1245620/page_bg_raw.jpg
+   [art       ] 商店背景             thumb=m/images/storepagebackground/app/1245620
+developers  = ['FromSoftware, Inc.']  genres=['动作', '角色扮演']

@@ -1,0 +1,24 @@
+Aurora 简介翻译自检
+================================================
+
+[语言检测]
+  OK  want=zh    got=zh    <- '主播女孩重度依赖是一款多结局ADV。'
+  OK  want=en    got=en    <- 'It was about 100 years ago, in the'
+  OK  want=ja    got=ja    <- 'これはテストです。とても面白い物語。'
+  OK  want=empty got=empty <- ''
+  OK  want=other got=other <- '12345 !!!'
+
+[needs_translation]
+  OK  False (want False)
+  OK  True (want True)
+
+[provider 链路 / 免费接口]
+  provider=free changed=True lang=en (0.00s)
+  text: 故事讲述了一个年轻的剑客，他必须保护自己的家乡免受入侵军队的袭击。
+
+[缓存]
+  二次调用 0.001s -> 命中缓存
+
+[provider 链路 / LLM 接口] 跳过（未设置 AURORA_TRANSLATE_KEY）
+
+结论: 全部通过

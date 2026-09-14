@@ -1,0 +1,42 @@
+# ---------- Python 运行产物 ----------
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+
+# ---------- 打包输出（PyInstaller） ----------
+_build/
+build/
+dist/
+*.spec
+
+# ---------- 可执行文件与压缩包（体积大，建议走 Releases） ----------
+Aurora.exe
+*.exe
+*.zip
+*.7z
+
+# ---------- 运行时数据：游戏库 / 缓存 / 日志 / WebView2 用户数据 ----------
+data/
+*.log
+*.log.*
+
+# 用户素材同步到 web 目录后的副本（原图在 data/ 下）
+gl/web/userbg/
+gl/web/usercovers/
+gl/web/usericon/
+
+# ---------- 调试与测试产物 ----------
+tools/*.png
+tools/*.jpg
+tools/*-report.json
+.cache/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
