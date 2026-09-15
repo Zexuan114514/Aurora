@@ -1,0 +1,36 @@
+Aurora 转区启动自检
+====================================================
+
+[本机 Locale Emulator]
+  未安装（下面用伪造目录测逻辑）
+  候选目录数：19
+
+[四件套校验]
+  OK  完整目录通过校验
+  OK  缺 LoaderDll.dll 必须判失败  missing:LoaderDll.dll
+  OK  空路径判失败  empty
+  OK  文件名不对判失败  wrong-file
+  OK  detect() 能识别指定路径
+
+[LEConfig.xml 解析]
+  OK  读到两条带 Guid 的配置  2 条：日本語 (日本) / 繁體中文
+  OK  无 Guid 的条目被跳过
+  OK  配置名与区域都对
+
+[启动命令]
+  OK  指定配置 -> -runas <GUID>  C:\Users\HuHu1\Desktop\Tasks\v4.1\Aurora\_sandbox\locale-fake\Locale Emulator\LEProc.exe -runas {11111111-1111-1111-1111-111111111111} C:\games\jp\otonari.exe -n 5
+  OK  未指定配置 -> -run  C:\Users\HuHu1\Desktop\Tasks\v4.1\Aurora\_sandbox\locale-fake\Locale Emulator\LEProc.exe -run C:\games\jp\otonari.exe
+
+[PE 位数]
+  OK  System32 的 exe 判为 64 位  {'ok': True, 'machine': 34404, 'bits': 64, 'arch': 'x64'}
+  OK  SysWOW64 的 exe 判为 32 位  {'ok': True, 'machine': 332, 'bits': 32, 'arch': 'x86'}
+  OK  非 PE 文件不误判  {'ok': False, 'error': 'bad-header'}
+
+[api._locale_command]
+  OK  未装 LE：返回 no-le 且不拼命令  no-le
+  OK  指定伪造 LE 后按 -runas 启动  locale | ['C:\\Users\\HuHu1\\Desktop\\Tasks\\v4.1\\Aurora\\_sandbox\\locale-fake\\Locale Emulator\\LEProc.exe', '-runas', '{11111111-1111-1111-1111-111111111111}', 'C:\\games\\jp\\otonari.exe']
+  OK  目标不是 exe：返回 unsupported-target  unsupported-target
+  OK  没开转区的游戏不拼命令
+  OK  设置页拿到完整状态  available=True profiles=2
+
+结论: 全部通过

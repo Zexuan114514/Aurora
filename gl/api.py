@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import json
 import queue
 import shutil
 import threading
@@ -11,7 +12,7 @@ from pathlib import Path
 
 import webview
 
-from . import config, detect, downloads, process, steamlib, translate, winapi
+from . import config, detect, downloads, locale, netproxy, process, steamlib, translate, winapi
 from .sources import SourceManager
 from .store import Library
 
@@ -89,10 +90,14 @@ def _public(game: dict, pm: process.ProcessManager) -> dict:
         "session_started_at": int(self._pm.started_at(game["id"])) if running else 0,
         "play_pid": int(game.get("play_pid") or 0) if running else 0,
         "play_time": int(play),
+        "play_count": int(game.get("play_count") or 0),
+        "sessions": (game.get("sessions") or [])[-5:],
         "last_played": game.get("last_played", 0),
         "favorite": bool(game.get("favorite")),
         "missing": not exe.exists(),
         "launch_args": game.get("launch_args") or "",
+        "locale_enabled": bool(game.get("locale_enabled")),
+        "locale_guid": game.get("locale_guid") or "",
     }
 
 
@@ -120,6 +125,9 @@ class Api:
             status_fn=lambda payload: self._emit("downloads:status", payload),
         )
         self._downloads.start()
+        # 网络：让 gl.sources.net 知道当前用哪条代理路线
+        netproxy.set_settings_provider(lambda: self._library.settings)
+        self._pm.set_callbacks(on_found=self._on_game_found, on_exit=self._on_game_exit)
         self._recover_sessions()
 
     # ------------------------------------------------------------------ #
@@ -334,6 +342,117 @@ class Api:
                 "count": res.get("imported") or 0,
             })
         return {"ok": bool(res.get("ok")), **res}
+
+    # ------------------------------------------------------------------ #
+    # 转区启动（Locale Emulator）
+    # ------------------------------------------------------------------ #
+    def get_locale_status(self) -> dict:
+        settings = self._library.settings
+        state = locale.status(str(settings.get("le_proc_path") or ""))
+        state["ok"] = True
+        state["default_enabled"] = bool(settings.get("locale_default"))
+        return state
+
+    def set_locale_option(self, key: str, value) -> dict:
+        if key == "locale_default":
+            self._library.set_setting("locale_default", bool(value))
+        elif key == "le_proc_path":
+            path = str(value or "").strip()
+            if path:
+                ok, err = locale.validate(path)
+                if not ok:
+                    return {"ok": False, "error": err}
+            self._library.set_setting("le_proc_path", path)
+        else:
+            return {"ok": False, "error": "bad-key"}
+        return self.get_locale_status()
+
+    def pick_locale_proc(self) -> dict:
+        if self._window is None:
+            return {"ok": False, "error": "no-window"}
+        result = self._window.create_file_dialog(
+            webview.OPEN_DIALOG,
+            allow_multiple=False,
+            file_types=("Locale Emulator (LEProc.exe)", "所有文件 (*.*)"),
+        )
+        if not result:
+            return {"ok": False, "cancelled": True}
+        path = result[0] if isinstance(result, (list, tuple)) else result
+        return self.set_locale_option("le_proc_path", path)
+
+    def set_game_locale(self, game_id: str, enabled: bool, guid: str = "") -> dict:
+        """单个游戏的转区开关与配置。"""
+        game = self._library.get(game_id)
+        if not game:
+            return {"ok": False, "error": "no-game"}
+        updated = self._library.update(game_id, locale_enabled=bool(enabled),
+                                       locale_guid=str(guid or "").strip())
+        if updated:
+            self._emit("game:updated", _public(updated, self._pm))
+        return {"ok": bool(updated), "game": _public(updated, self._pm) if updated else None}
+
+    # ------------------------------------------------------------------ #
+    # 网络：代理状态与连通性
+    # ------------------------------------------------------------------ #
+    def get_network_status(self) -> dict:
+        return netproxy.describe()
+
+    def set_proxy_option(self, key: str, value) -> dict:
+        if key == "proxy_mode":
+            mode = str(value or "auto").lower()
+            if mode not in ("auto", "direct", "manual"):
+                return {"ok": False, "error": "bad-mode"}
+            self._library.set_setting("proxy_mode", mode)
+        elif key == "proxy_url":
+            url = str(value or "").strip()
+            if url and not netproxy._normalize(url):
+                return {"ok": False, "error": "bad-url"}
+            self._library.set_setting("proxy_url", url)
+        elif key == "proxy_fallback":
+            self._library.set_setting("proxy_fallback", bool(value))
+        else:
+            return {"ok": False, "error": "bad-key"}
+        return netproxy.describe()
+
+    def test_network(self) -> dict:
+        """逐个试一下关键端点，把「连不上」变成看得见的结果。"""
+        from .sources import net
+
+        probes = (
+            ("Steam 商店", "https://store.steampowered.com/api/storesearch/?term=neko&cc=CN&l=schinese",
+             "GET", None),
+            ("Steam 图片", "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/library_hero.jpg",
+             "GET", None),
+            ("VNDB", "https://api.vndb.org/kana/vn", "POST",
+             {"filters": ["search", "=", "eden"], "fields": "id", "results": 1}),
+            ("Bangumi", "https://api.bgm.tv/search/subject/eden?type=4&responseGroup=small",
+             "GET", None),
+            ("翻译接口", "https://api.mymemory.translated.net/get?q=hello&langpair=en%7Czh-CN",
+             "GET", None),
+        )
+        results = []
+        for name, url, method, body in probes:
+            started = time.time()
+            try:
+                payload = json.dumps(body).encode("utf-8") if body else None
+                headers = {"Content-Type": "application/json"} if body else None
+                net.fetch(url, method=method, body=payload, headers=headers,
+                          timeout=10, attempts=1)
+                results.append({"name": name, "ok": True,
+                                "detail": f"{int((time.time() - started) * 1000)} ms"})
+            except Exception as exc:
+                results.append({"name": name, "ok": False,
+                                "detail": f"{type(exc).__name__}: {str(exc)[:70]}"})
+        route = netproxy.current()
+        return {"ok": True, "proxy": route["proxy"], "source": route["source"],
+                "results": results}
+
+    def open_data_dir(self) -> dict:
+        try:
+            os.startfile(str(config.DATA_DIR))  # noqa: S606
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+        return {"ok": True, "dir": str(config.DATA_DIR)}
 
     def minimize_to_tray(self) -> bool:
         """关窗前调用：托盘可用且用户开了这个设置时，藏起来并返回 True。"""
@@ -1235,7 +1354,8 @@ class Api:
         game = self._library.get(game_id)
         if not game:
             return {"ok": False, "error": "no-game"}
-        result = self._pm.start(game)
+        launcher, locale_note = self._locale_command(game)
+        result = self._pm.start(game, launcher=launcher)
         if result.get("ok"):
             now = int(time.time())
             self._library.touch_played(game_id)
@@ -1244,12 +1364,52 @@ class Api:
                 game_id,
                 play_started_at=int(result.get("started_at") or now),
                 play_pid=int(result.get("pid") or 0),
+                play_launcher_pid=int(result.get("pid") or 0),
                 play_heartbeat=now,
+                play_count=int(game.get("play_count") or 0) + 1,
             )
             self._start_heartbeat()
-            self._watch(game_id)
-            self._emit("game:running", {"id": game_id, "pid": result.get("pid")})
+            self._emit("game:running", {"id": game_id, "pid": result.get("pid"),
+                                        "locale": locale_note})
         return result
+
+    def _locale_command(self, game: dict) -> tuple[list[str] | None, str]:
+        """按游戏的转区设置决定启动方式；返回 (启动命令, 说明)。"""
+        if not game.get("locale_enabled"):
+            return None, ""
+        proc = locale.detect(str(self._library.settings.get("le_proc_path") or ""))
+        if not proc:
+            return None, "no-le"
+        exe = str(game.get("exe") or "")
+        if Path(exe).suffix.lower() != ".exe":
+            return None, "unsupported-target"
+        guid = str(game.get("locale_guid") or "").strip()
+        return locale.build_command(proc, exe, guid=guid), ("locale" if guid else "locale-default")
+
+    def _on_game_found(self, game_id: str, pid: int) -> None:
+        """找到游戏本体进程：把它记下来，启动器重启后也能重新接管。"""
+        if not game_id or not pid:
+            return
+        self._library.update(game_id, play_pid=int(pid))
+
+    def _on_game_exit(self, game_id: str, seconds: float) -> None:
+        """会话结束：结算时长、记一条会话历史、清掉会话标记。"""
+        game = self._library.get(game_id)
+        if not game:
+            return
+        now = int(time.time())
+        started = int(game.get("play_started_at") or 0) or int(now - seconds)
+        history = list(game.get("sessions") or [])
+        history.append({"started_at": started, "ended_at": now, "seconds": int(seconds)})
+        self._library.update(
+            game_id,
+            play_started_at=0, play_pid=0, play_launcher_pid=0, play_heartbeat=0,
+            sessions=history[-50:],
+        )
+        self._library.touch_played(game_id, seconds)
+        updated = self._library.get(game_id)
+        if updated:
+            self._emit("game:stopped", _public(updated, self._pm))
 
     def stop(self, game_id: str) -> dict:
         result = self._pm.stop(game_id)
@@ -1257,25 +1417,6 @@ class Api:
         if game:
             self._emit("game:updated", _public(game, self._pm))
         return result
-
-    def _watch(self, game_id: str) -> None:
-        def worker() -> None:
-            entry = self._pm._running.get(game_id)
-            if not entry:
-                return
-            try:
-                entry["proc"].wait()
-            except Exception:
-                pass
-            seconds = self._pm.play_seconds(game_id)
-            self._pm._finalize(game_id)
-            self._library.update(game_id, play_started_at=0, play_pid=0, play_heartbeat=0)
-            self._library.touch_played(game_id, seconds)
-            game = self._library.get(game_id)
-            if game:
-                self._emit("game:stopped", _public(game, self._pm))
-
-        threading.Thread(target=worker, daemon=True).start()
 
     #: 运行中每隔多少秒把「还活着」写一次盘（用于崩溃/被强关时估算时长）
     HEARTBEAT_SECONDS = 30
@@ -1319,7 +1460,8 @@ class Api:
                 continue
             beat = int(game.get("play_heartbeat") or 0) or started
             seconds = max(0, min(beat, now) - started)
-            self._library.update(game["id"], play_started_at=0, play_pid=0, play_heartbeat=0)
+            self._library.update(game["id"], play_started_at=0, play_pid=0,
+                                 play_launcher_pid=0, play_heartbeat=0)
             if seconds >= self.HEARTBEAT_SECONDS:
                 self._library.touch_played(game["id"], seconds)
                 config.log(f"recovered {seconds}s playtime for {game['id']}")

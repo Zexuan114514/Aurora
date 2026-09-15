@@ -17,8 +17,14 @@ ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "_build"
 VENV = BUILD / "venv"
 DIST = BUILD / "dist"
+STAGE = BUILD / "web-stage"
 ICON = ROOT / "gl" / "assets" / "aurora.ico"
 TARGET = ROOT / "Aurora.exe"
+
+#: 真正要打进 exe 的前端文件。gl/web 下的 userbg / usercovers / usericon 是
+#: 用户自己的素材副本（运行时由 gl/config.py 从 data/ 重新同步），绝不能进发布包
+WEB_FILES = ("index.html", "app.css", "app.js")
+WEB_USER_DIRS = ("userbg", "usercovers", "usericon")
 
 # 这些包在 Anaconda 里常被间接扫到，但本项目完全用不上，排除掉能显著减小体积/避免 hook 报错
 EXCLUDES = [
@@ -53,6 +59,20 @@ def ensure_builder() -> Path:
     return python
 
 
+def stage_web() -> Path:
+    """把前端源码复制到干净的暂存目录，避免把用户素材一起打进 exe。"""
+    shutil.rmtree(STAGE, ignore_errors=True)
+    STAGE.mkdir(parents=True, exist_ok=True)
+    for name in WEB_FILES:
+        source = ROOT / "gl" / "web" / name
+        if not source.is_file():
+            raise FileNotFoundError(f"缺少前端文件：{source}")
+        shutil.copy2(source, STAGE / name)
+    for name in WEB_USER_DIRS:      # 目录结构保留，运行时再往里同步用户素材
+        (STAGE / name).mkdir(exist_ok=True)
+    return STAGE
+
+
 def build(python: Path) -> int:
     if not ICON.exists():
         print("缺少图标，先运行 python tools\\make_icon.py")
@@ -61,12 +81,13 @@ def build(python: Path) -> int:
         shutil.rmtree(folder, ignore_errors=True)
     spec = BUILD / "Aurora.spec"
     spec.unlink(missing_ok=True)
+    web = stage_web()
 
     args = [
         str(python), "-m", "PyInstaller",
         "--noconfirm", "--clean", "--onefile", "--windowed", "--name", "Aurora",
         "--icon", str(ICON),
-        "--add-data", f"{ROOT / 'gl' / 'web'};gl/web",
+        "--add-data", f"{web};gl/web",
         "--add-data", f"{ROOT / 'gl' / 'assets'};gl/assets",
         "--collect-data", "webview",
         "--hidden-import", "webview.platforms.winforms",

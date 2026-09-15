@@ -307,6 +307,141 @@ def main() -> int:
                  bool(saved.get("ok")) and str(reloaded_dir) == str(target_dir), str(reloaded_dir))
             api.set_download_option("download_dir", str(TEST_DATA / "downloads"))
 
+            # 3.8 设置页：整页 + 六个页签
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.5)
+            settings = probe(window, """
+              const v = document.getElementById('settingsView');
+              const r = v.getBoundingClientRect();
+              return JSON.stringify({
+                open: !v.hidden,
+                tabs: [...v.querySelectorAll('#setNav .set-tab')].map(t => t.dataset.pane),
+                panes: [...v.querySelectorAll('.set-pane')].map(p => p.dataset.pane),
+                on: (v.querySelector('.set-pane.on') || {}).dataset?.pane,
+                hallHidden: document.getElementById('hall').hidden,
+                inside: r.bottom <= innerHeight + 1 && r.top >= -1 && r.right <= innerWidth + 1});
+            """)
+            step("设置页能打开且盖住大厅",
+                 settings.get("open") and settings.get("hallHidden")
+                 and len(settings.get("tabs") or []) == 6
+                 and settings.get("tabs") == settings.get("panes")
+                 and settings.get("inside"), settings)
+
+            # 3.9 网络页：控件读到状态，测试按钮能出结果
+            window.evaluate_js(
+                "document.querySelector('#setNav .set-tab[data-pane=net]').click()")
+            time.sleep(1.0)
+            tab_net = probe(window, """
+              const on = document.querySelector('#settingsView .set-pane.on');
+              return JSON.stringify({
+                pane: on && on.dataset.pane,
+                mode: document.getElementById('setProxyMode').value,
+                fallback: document.getElementById('setProxyFallback').checked,
+                status: document.getElementById('netStatus').textContent});
+            """)
+            step("设置页能切到网络页并读到代理状态",
+                 tab_net.get("pane") == "net"
+                 and tab_net.get("mode") in ("auto", "direct", "manual")
+                 and "当前生效" in (tab_net.get("status") or ""), tab_net)
+
+            window.evaluate_js("document.getElementById('netTest').click()")
+            rows_n = 0
+            for _ in range(30):
+                time.sleep(1.0)
+                rows_n = probe(window,
+                               "return document.querySelectorAll('#netResults .net-line').length;")
+                if isinstance(rows_n, int) and rows_n >= 5:
+                    break
+            step("网络测试按钮列出五个端点", isinstance(rows_n, int) and rows_n >= 5,
+                 f"{rows_n} 行", skipped=net_down)
+
+            # 3.10 转区页：未装 LE 也要能显示状态、不抛错
+            window.evaluate_js(
+                "document.querySelector('#setNav .set-tab[data-pane=locale]').click()")
+            time.sleep(1.6)
+            tab_locale = probe(window, """
+              const on = document.querySelector('#settingsView .set-pane.on');
+              return JSON.stringify({
+                pane: on && on.dataset.pane,
+                status: document.getElementById('leStatus').textContent,
+                path: document.getElementById('setLePath').value,
+                def: document.getElementById('setLocaleDefault').checked,
+                download: !!document.getElementById('setLeDownload')});
+            """)
+            step("设置页能切到转区页（未装 LE 也不报错）",
+                 tab_locale.get("pane") == "locale"
+                 and bool(tab_locale.get("status"))
+                 and "正在检测" not in (tab_locale.get("status") or "")
+                 and "失败" not in (tab_locale.get("status") or "")
+                 and tab_locale.get("download"), tab_locale)
+
+            window.evaluate_js(
+                "document.dispatchEvent(new KeyboardEvent('keydown',"
+                "{key:'Escape',bubbles:true}))")
+            time.sleep(1.3)
+            back_hall = probe(window, """
+              return JSON.stringify({
+                settings: !document.getElementById('settingsView').hidden,
+                hall: !document.getElementById('hall').hidden,
+                focus: (document.querySelector('#hallRow .gi.focus') || {}).dataset?.id});
+            """)
+            step("Esc 关设置回大厅且焦点没变",
+                 (not back_hall.get("settings")) and back_hall.get("hall")
+                 and back_hall.get("focus") == game_id, back_hall)
+
+            # 3.11 更多菜单 → 转区启动面板
+            window.evaluate_js("document.getElementById('btnMore').click()")
+            time.sleep(1.0)
+            window.evaluate_js("document.querySelector('#moreMenu [data-act=locale]').click()")
+            time.sleep(1.6)
+            locale_panel = probe(window, """
+              const p = document.getElementById('localePanel');
+              const r = p.getBoundingClientRect();
+              return JSON.stringify({
+                open: p.classList.contains('open'),
+                items: document.getElementById('locProfile').options.length,
+                status: document.getElementById('locStatus').textContent,
+                sub: document.getElementById('locSub').textContent,
+                inside: r.bottom <= innerHeight + 1 && r.top >= -1});
+            """)
+            step("更多菜单能开转区面板",
+                 locale_panel.get("open") and (locale_panel.get("items") or 0) >= 1
+                 and bool(locale_panel.get("status")) and locale_panel.get("inside"),
+                 locale_panel)
+
+            window.evaluate_js("document.getElementById('locSwitch').click()")
+            time.sleep(1.4)
+            on_row = api._library.get(game_id)
+            step("转区开关写进游戏记录", bool(on_row.get("locale_enabled")),
+                 f"locale_enabled={on_row.get('locale_enabled')}")
+
+            window.evaluate_js("document.getElementById('locSwitch').click()")
+            time.sleep(1.4)
+            off_row = api._library.get(game_id)
+            step("转区开关能再关掉", not off_row.get("locale_enabled"),
+                 f"locale_enabled={off_row.get('locale_enabled')}")
+            window.evaluate_js(
+                "document.getElementById('localePanel').classList.remove('open')")
+
+            # 3.12 转区兜底：本机没装 LE 也要照常启动，只提示一句
+            api.set_game_locale(game_id, True, "")
+            api.set_launch_args(game_id, "-n 30 127.0.0.1")
+            fallback_launch = api.launch(game_id)
+            time.sleep(2.0)
+            toast_state = probe(window, """
+              return JSON.stringify({text: document.getElementById('toast').textContent,
+                                     running: !document.getElementById('pillRunning').hidden});
+            """)
+            toast_text = toast_state.get("text") or ""
+            step("开启转区后照常启动 + 有转区提示",
+                 bool(fallback_launch.get("ok")) and api._pm.is_running(game_id)
+                 and toast_state.get("running")
+                 and ("Locale Emulator" in toast_text or "转区" in toast_text), toast_state)
+            api.stop(game_id)
+            api.set_game_locale(game_id, False, "")
+            api.set_launch_args(game_id, "-n 30 127.0.0.1")
+            time.sleep(1.5)
+
             # 3.6 双击封面直接启动（用 ping 冒充常驻进程）
             api.set_launch_args(game_id, "-n 30 127.0.0.1")
             window.evaluate_js(

@@ -33,6 +33,7 @@ tools/*.png
 tools/*.jpg
 tools/*-report.json
 .cache/
+_sandbox/
 
 # ---------- 编辑器 / 系统 ----------
 .vscode/

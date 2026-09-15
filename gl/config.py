@@ -94,6 +94,13 @@ DEFAULT_SETTINGS = {
          "url": "https://www.kungal.com/galgame"},
         {"id": "site-dlsite", "name": "DLsite", "url": "https://www.dlsite.com/"},
     ],
+    # 转区启动（Locale Emulator）
+    "le_proc_path": "",          # 用户指定的 LEProc.exe（留空则自动探测）
+    "locale_default": False,     # 新导入的游戏默认开启转区
+    # 网络：代理路线
+    "proxy_mode": "auto",        # auto | direct | manual
+    "proxy_url": "",             # manual 时的代理地址
+    "proxy_fallback": True,      # 走代理失败时自动试一次直连
 }
 
 USER_AGENT = (

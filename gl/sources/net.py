@@ -14,7 +14,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from .. import config
+from .. import config, netproxy
 
 _SSL_CTX = ssl.create_default_context()
 _ORIGINAL_GETADDRINFO = socket.getaddrinfo
@@ -58,13 +58,36 @@ def _ipv4_only() -> None:
     socket.getaddrinfo = getaddrinfo
 
 
+_OPENERS: dict[str, object] = {}
+
+
+def _opener(proxy: str):
+    """按代理路线缓存 opener（ProxyHandler 不便宜，别每次请求都建）。"""
+    if proxy not in _OPENERS:
+        _OPENERS[proxy] = netproxy.build_opener(proxy, _SSL_CTX)
+    return _OPENERS[proxy]
+
+
+def _request(request, timeout: float, proxy: str) -> bytes:
+    with _opener(proxy).open(request, timeout=timeout) as resp:
+        raw = resp.read()
+        if resp.headers.get("Content-Encoding") == "gzip":
+            raw = gzip.decompress(raw)
+        return raw
+
+
 def fetch(url: str, method: str = "GET", body: bytes | None = None,
           headers: dict | None = None, timeout: float = 9.0, attempts: int = 3,
           ua: str | None = None) -> bytes:
     _ipv4_only()
+    route = netproxy.current()
+    proxy = route.get("proxy") or ""
     last: Exception | None = None
-    for attempt in range(attempts):
-        request = urllib.request.Request(
+
+    def new_request() -> urllib.request.Request:
+        """每次尝试都要新建：走代理的尝试会改写 Request 的 host/selector，
+        复用同一个对象会让后续「直连重试」照样打在代理上。"""
+        return urllib.request.Request(
             url,
             method=method,
             data=body,
@@ -76,16 +99,23 @@ def fetch(url: str, method: str = "GET", body: bytes | None = None,
                 **(headers or {}),
             },
         )
+
+    for attempt in range(attempts):
         try:
-            with urllib.request.urlopen(request, timeout=timeout, context=_SSL_CTX) as resp:
-                raw = resp.read()
-                if resp.headers.get("Content-Encoding") == "gzip":
-                    raw = gzip.decompress(raw)
-                return raw
+            return _request(new_request(), timeout, proxy)
         except Exception as exc:
             last = exc
             if attempt < attempts - 1:
                 time.sleep(0.5 * (attempt + 1))
+    # 走代理失败 → 按设置再试一次直连（代理规则坏掉时能自救）
+    if proxy and route.get("fallback", True):
+        try:
+            result = _request(new_request(), timeout, "")
+            config.log(f"proxy failed, direct retry ok: {url.split('?')[0]}")
+            return result
+        except Exception as exc:
+            last = exc
+            config.log(f"proxy failed, direct retry failed: {url.split('?')[0]}")
     _note_failure()
     raise last if last else RuntimeError("fetch failed")
 

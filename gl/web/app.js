@@ -37,9 +37,13 @@
     getQuery: $("getQuery"), getDir: $("getDir"),
     getDirHint: $("getDirHint"), getWatch: $("getWatch"), getExtract: $("getExtract"),
     getSites: $("getSites"), addMenu: $("addMenu"),
-    translatePanel: $("translatePanel"), translateHint: $("translateHint"),
+    localePanel: $("localePanel"),
+    translateHint: $("translateHint"),
     showOriginal: $("btnShowOriginal"),
-    moreMenu: $("moreMenu"), settings: $("settingsPanel"),
+    moreMenu: $("moreMenu"),
+    settingsView: $("settingsView"), setNav: $("setNav"),
+    netStatus: $("netStatus"), netResults: $("netResults"),
+    leStatus: $("leStatus"), leProfiles: $("leProfiles"),
     toast: $("toast"),
     dropHint: $("dropHint"),
     modal: $("modal"), modalTitle: $("modalTitle"), modalBody: $("modalBody"),
@@ -50,6 +54,8 @@
     games: [],
     focus: null,          // 焦点游戏的 id（大厅与游戏页共用），导入块为 "__add__"
     page: "hall",         // hall | game
+    settingsOpen: false,
+    settingsTab: "look",
     settings: {},
     sources: [],
     filter: "",
@@ -150,6 +156,15 @@
 
   const sessionSeconds = (game) =>
     game.session_started_at ? Math.floor(Date.now() / 1000) - game.session_started_at : 0;
+
+  /* 会话历史里的时间戳（秒）-> 2026-09-15 21:30 */
+  const stamp = (ts) => {
+    const d = new Date((Number(ts) || 0) * 1000);
+    if (!ts) return "—";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
+      + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
 
   function hashHue(text) {
     let h = 0;
@@ -310,6 +325,7 @@
     const badges = [];
     if (game.running) badges.push('<span class="gi-badge run">●</span>');
     if (game.favorite) badges.push('<span class="gi-badge fav">★</span>');
+    if (game.locale_enabled) badges.push('<span class="gi-badge loc">JP</span>');
     if (game.missing) badges.push('<span class="gi-badge warn">!</span>');
     else if (game.metadata_state === "notfound") badges.push('<span class="gi-badge warn">?</span>');
     return `<button class="gi${game.id === state.focus ? " focus" : ""}${
@@ -523,6 +539,7 @@
     if (year) bits.push(chip(year));
     g.genres.slice(0, 2).forEach((x) => bits.push(chip(x)));
     if (g.metacritic) bits.push(chip(`Metacritic ${g.metacritic}`, true));
+    if (g.locale_enabled) bits.push(chip("转区启动"));
     if (g.play_time > 0) bits.push(chip(`已玩 ${hours(g.play_time)}`));
     if (g.running) {
       bits.push(`<span class="chip accent" id="chipLive">运行中 · <b>${clock(sessionSeconds(g))}</b></span>`);
@@ -568,6 +585,51 @@
   function render() {
     renderHall();
     renderGameContent();
+    if (state.settingsOpen) {
+      el.hall.hidden = true;
+      el.view.hidden = true;
+      el.empty.hidden = true;
+      el.settingsView.hidden = false;
+    }
+  }
+
+  /* ---------------------------------------------------------- 设置页 */
+  function setSettingsTab(name) {
+    state.settingsTab = name || "look";
+    for (const tab of el.setNav.querySelectorAll(".set-tab")) {
+      tab.classList.toggle("on", tab.dataset.pane === state.settingsTab);
+    }
+    for (const pane of el.settingsView.querySelectorAll(".set-pane")) {
+      pane.classList.toggle("on", pane.dataset.pane === state.settingsTab);
+    }
+  }
+
+  async function openSettings(tab) {
+    state.settingsOpen = true;
+    closeAll();
+    render();
+    setSettingsTab(tab || state.settingsTab);
+    await refreshSettingsPanes();
+  }
+
+  function closeSettings() {
+    state.settingsOpen = false;
+    el.settingsView.hidden = true;
+    render();
+  }
+
+  async function refreshSettingsPanes() {
+    $("aboutVersion").textContent = state.version || "—";
+    try {
+      const info = await call("bootstrap");
+      $("aboutDataDir").textContent = info.data_dir || "—";
+      state.settings = info.settings || state.settings;
+      state.version = info.version || state.version;
+      $("aboutVersion").textContent = state.version || "—";
+      applySettingsToUi();
+    } catch (_) { /* 离线也要能开设置 */ }
+    refreshNetworkPane();
+    refreshLocalePane();
   }
 
   /* ---------------------------------------------------------- 背景面板 */
@@ -646,7 +708,9 @@
       ["类型", g.genres.join("、")],
       ["特性", g.categories.slice(0, 5).join("、")],
       ["评分", g.rating],
+      ["启动次数", g.play_count ? `${g.play_count} 次` : ""],
       ["累计游玩", g.play_time ? hours(g.play_time) : ""],
+      ["转区启动", g.locale_enabled ? "已开启" : ""],
       ["匹配关键词", g.query_used],
       ["启动参数", g.launch_args],
       ["来源页面", g.source_url ? `<a data-url="${esc(g.source_url)}">打开</a>` : ""],
@@ -662,10 +726,21 @@
            ${imgHtml("", [img.thumb, img.url])}<i>${esc(img.label || "")}</i>
          </button>`).join("")}</div>` : "";
 
+    const sessions = (g.sessions || []).slice(-5).reverse();
+    const history = (g.play_count || g.play_time || sessions.length) ? `
+       <h4>游玩记录 <span class="hint">启动 ${g.play_count || 0} 次${
+         g.play_time ? ` · 累计 ${hours(g.play_time)}` : ""}</span></h4>
+       ${sessions.length
+         ? `<div class="session-list">${sessions.map((s) => `
+             <div class="session-row"><span>${esc(stamp(s.started_at))}</span><b>${clock(s.seconds)}</b></div>`)
+             .join("")}</div>`
+         : '<p class="hint">还没有结束过的会话，游戏跑完一次就会记在这里。</p>'}` : "";
+
     el.detailBody.innerHTML =
       `<p>${esc(detailBody(g) || "暂无简介。")}</p>
        <h4>详细信息</h4>
        <dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join("")}</dl>
+       ${history}
        ${shotWall}`;
   }
 
@@ -992,8 +1067,9 @@
     closePanel(el.bgPanel); closePanel(el.detailPanel); closePanel(el.matchPanel);
     closePanel(el.sourcePanel);
     closePanel(el.coverPanel); closePanel(el.steamPanel);
-    closePanel(el.translatePanel); closePanel(el.getPanel);
-    el.moreMenu.hidden = true; el.settings.hidden = true;
+    closePanel(el.localePanel);
+    closePanel(el.getPanel);
+    el.moreMenu.hidden = true;
     el.sortMenu.hidden = true;
     el.addMenu.hidden = true;
   };
@@ -1127,6 +1203,129 @@
   }
 
   /* ---------------------------------------------------------- 设置 UI */
+  /* ---------------------------------------------------------- 设置：网络 */
+  async function refreshNetworkPane() {
+    try {
+      const net = await call("get_network_status");
+      if (!net || !net.ok) return;
+      $("setProxyMode").value = net.mode || "auto";
+      $("setProxyUrl").value = net.url || "";
+      $("setProxyFallback").checked = net.fallback !== false;
+      el.netStatus.textContent = net.proxy
+        ? `当前生效：${net.proxy}（来源：${net.source}）`
+        : `当前生效：直连（来源：${net.source || "系统设置"}）`;
+    } catch (err) {
+      el.netStatus.textContent = "读取代理设置失败：" + err.message;
+    }
+  }
+
+  function renderNetResults(rows) {
+    el.netResults.innerHTML = (rows || []).map((row) => `
+      <div class="net-line${row.ok ? " ok" : ""}">
+        <i class="dot"></i><span class="name">${esc(row.name)}</span>
+        <span class="detail">${esc(row.detail || "")}</span>
+      </div>`).join("");
+  }
+
+  async function testNetwork() {
+    const btn = $("netTest");
+    btn.disabled = true;
+    el.netResults.innerHTML = '<div class="net-line"><i class="dot"></i><span class="name">正在测试…</span></div>';
+    try {
+      const res = await call("test_network");
+      renderNetResults((res && res.results) || []);
+      if (res && res.proxy) {
+        el.netStatus.textContent = `当前生效：${res.proxy}（来源：${res.source}）`;
+      }
+    } catch (err) {
+      renderNetResults([{ name: "测试失败", ok: false, detail: err.message }]);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ---------------------------------------------------------- 设置：转区启动 */
+  const LE_URL = "https://github.com/xupefei/Locale-Emulator/releases";
+
+  async function refreshLocalePane() {
+    try {
+      const st = await call("get_locale_status");
+      state.locale = st || {};
+      const proc = (st && st.proc) || "";
+      $("setLePath").value = proc;
+      $("setLocaleDefault").checked = !!(st && st.default_enabled);
+      if (st && st.available) {
+        el.leStatus.textContent = `已检测到 Locale Emulator：${proc}`;
+      } else if (proc) {
+        el.leStatus.textContent = "指定的 LEProc.exe 不可用（缺少运行时文件），请重新选择。";
+      } else {
+        el.leStatus.textContent = "未检测到 Locale Emulator。装好后点「重新检测」，或手动指定 LEProc.exe。";
+      }
+      const profiles = (st && st.profiles) || [];
+      el.leProfiles.innerHTML = profiles.length
+        ? profiles.map((row) => `<span class="src-badge">${esc(row.name || row.guid)}</span>`).join("")
+        : (st && st.available
+            ? '<span class="hint">没有读到 LEConfig.xml 里的全局配置，转区时会用 LE 的默认配置。</span>'
+            : "");
+    } catch (err) {
+      el.leStatus.textContent = "检测失败：" + err.message;
+    }
+  }
+
+  /* ---------------------------------------------------------- 转区启动面板（单个游戏） */
+  async function renderLocalePanel(game) {
+    const g = game || currentGame();
+    if (!g) return null;
+    $("locSub").textContent = `${g.name} · 转区后以日文区域运行`;
+    $("locSwitch").checked = !!g.locale_enabled;
+    let st = state.locale || {};
+    try {
+      st = (await call("get_locale_status")) || st;
+      state.locale = st;
+    } catch (_) { /* 离线也要能开面板 */ }
+    const profiles = st.profiles || [];
+    const sel = $("locProfile");
+    sel.innerHTML = '<option value="">LE 默认配置</option>'
+      + profiles.map((p) =>
+          `<option value="${esc(p.guid)}">${esc(p.name || p.guid)}</option>`).join("");
+    sel.value = g.locale_guid || "";
+    sel.disabled = !st.available;
+    const note = $("locStatus");
+    if (st.available) {
+      note.textContent = profiles.length
+        ? `已检测到 Locale Emulator：${st.proc}`
+        : `已检测到 Locale Emulator：${st.proc}（没读到 LEConfig.xml，将使用 LE 的默认配置）`;
+    } else if (st.proc) {
+      note.textContent = "指定的 LEProc.exe 不可用（缺少 LoaderDll.dll / LocaleEmulator.dll 等运行时文件），请重新指定。";
+    } else {
+      note.textContent = "没有检测到 Locale Emulator。装好并指定 LEProc.exe 后这里就会生效；"
+        + "没装也不影响启动，只是会按系统区域运行（日文原版可能出现乱码）。";
+    }
+    return st;
+  }
+
+  async function openLocalePanel() {
+    const g = currentGame();
+    if (!g) return;
+    closeAll();
+    await renderLocalePanel(g);
+    openPanel(el.localePanel);
+  }
+
+  /* 写回单个游戏的转区开关与配置 */
+  async function saveGameLocale(enabled, guid) {
+    const g = currentGame();
+    if (!g) return;
+    const res = await call("set_game_locale", g.id, !!enabled, guid || "");
+    if (!res || !res.ok) { toast("保存转区设置失败"); return; }
+    if (res.game) Object.assign(g, res.game);
+    render();
+    const usable = state.locale && state.locale.available;
+    toast(enabled
+      ? (usable ? "已开启转区启动" : "已开启：装好 Locale Emulator 后即可生效")
+      : "已关闭转区启动");
+  }
+
   function applySettingsToUi() {
     const s = state.settings;
     document.documentElement.style.setProperty("--blur", (s.blur ?? 30) + "px");
@@ -1437,6 +1636,8 @@
       $("menuIconReset").hidden = !(g && g.custom_icon);
       $("menuNameReset").hidden = !(g && g.name_locked);
       $("menuFavorite").textContent = g && g.favorite ? "取消收藏" : "加入收藏";
+      $("menuLocale").textContent = g && g.locale_enabled
+        ? "转区设置（已开启）…" : "转区启动…";
       el.moreMenu.hidden = !hidden;
     };
     el.moreMenu.addEventListener("click", async (e) => {
@@ -1488,6 +1689,7 @@
         if (g.source_url) call("open_url", g.source_url);
         else toast("还没有匹配到条目");
       } else if (act === "research") { doSearch(null); }
+      else if (act === "locale") { openLocalePanel(); }
       else if (act === "translate") {
         const res = await call("translate_game", g.id);
         if (!res || !res.ok) { toast("翻译启动失败"); return; }
@@ -1523,11 +1725,58 @@
     });
 
     // 设置
-    $("btnSettings").onclick = () => {
-      const hidden = el.settings.hidden;
-      closeAll();
-      el.settings.hidden = !hidden;
+    $("btnSettings").onclick = () => openSettings();
+    $("setBack").onclick = closeSettings;
+    el.setNav.addEventListener("click", (e) => {
+      const tab = e.target.closest(".set-tab");
+      if (tab) setSettingsTab(tab.dataset.pane);
+    });
+
+    // 设置 → 网络
+    $("setProxyMode").onchange = async (e) => {
+      await call("set_proxy_option", "proxy_mode", e.target.value);
+      toast(e.target.value === "direct" ? "已切换为直连" : "代理设置已保存");
+      refreshNetworkPane();
     };
+    $("setProxyUrl").onchange = async (e) => {
+      const res = await call("set_proxy_option", "proxy_url", e.target.value.trim());
+      if (res && res.ok === false) toast("代理地址无效：" + (res.error || ""));
+      refreshNetworkPane();
+    };
+    $("setProxyFallback").onchange = async (e) => {
+      await call("set_proxy_option", "proxy_fallback", e.target.checked);
+    };
+    $("netTest").onclick = testNetwork;
+
+    // 设置 → 转区启动
+    $("setLocaleDefault").onchange = async (e) => {
+      await call("set_locale_option", "locale_default", e.target.checked);
+      toast(e.target.checked ? "新导入的游戏默认开启转区" : "已关闭默认转区");
+    };
+    $("setLePick").onclick = async () => {
+      const res = await call("pick_locale_proc");
+      if (!res || res.cancelled) return;
+      if (!res.ok) { toast("这个路径不可用：" + ((res && res.error) || "")); return; }
+      await refreshLocalePane();
+      toast("已设置 Locale Emulator 路径");
+    };
+    $("setLeRefresh").onclick = refreshLocalePane;
+    $("setLeDownload").onclick = () => call("open_url", LE_URL);
+    $("btnOpenData").onclick = () => call("open_data_dir");
+
+    // 转区启动面板（单个游戏）
+    $("locClose").onclick = () => closePanel(el.localePanel);
+    $("locSwitch").onchange = (e) => saveGameLocale(e.target.checked, $("locProfile").value);
+    $("locProfile").onchange = (e) => saveGameLocale($("locSwitch").checked, e.target.value);
+    $("locPick").onclick = async () => {
+      const res = await call("pick_locale_proc");
+      if (!res || res.cancelled) return;
+      if (!res.ok) { toast("这个路径不可用：" + ((res && res.error) || "")); return; }
+      await renderLocalePanel();
+      toast("已设置 Locale Emulator 路径");
+    };
+    $("locDownload").onclick = () => call("open_url", LE_URL);
+
     $("setBlur").oninput = (e) => {
       state.settings.blur = Number(e.target.value);
       applySettingsToUi();
@@ -1569,8 +1818,6 @@
     $("btnSteamScan").onclick = openSteamPanel;
     $("btnRefreshAll").onclick = startRefreshAll;
     $("btnTranslateAll").onclick = startTranslateAll;
-    $("btnTranslateSettings").onclick = () => { closeAll(); openPanel(el.translatePanel); };
-    $("translateClose").onclick = () => closePanel(el.translatePanel);
     $("setTransEnabled").onchange = (e) => saveSetting("translate_enabled", e.target.checked);
     $("setTransProvider").onchange = (e) => saveSetting("translate_provider", e.target.value);
     $("setTransBase").onchange = (e) => saveSetting("translate_base_url", e.target.value.trim());
@@ -1816,7 +2063,6 @@
     // 全局
     document.addEventListener("click", (e) => {
       if (!e.target.closest("#moreMenu, #btnMore")) el.moreMenu.hidden = true;
-      if (!e.target.closest("#settingsPanel, #btnSettings")) el.settings.hidden = true;
       if (!e.target.closest("#sortMenu, #btnSort")) el.sortMenu.hidden = true;
       if (!e.target.closest("#addMenu, .gi-add")) el.addMenu.hidden = true;
     });
@@ -1825,11 +2071,11 @@
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || e.target?.isContentEditable;
       if (e.key === "Escape") {
         const anyOpen = [el.bgPanel, el.detailPanel, el.matchPanel, el.sourcePanel,
-                         el.coverPanel, el.steamPanel, el.translatePanel, el.getPanel]
+                         el.coverPanel, el.steamPanel, el.localePanel, el.getPanel]
           .some((p) => p.classList.contains("open"));
-        const menuOpen = !el.moreMenu.hidden || !el.settings.hidden
-          || !el.sortMenu.hidden || !el.addMenu.hidden;
+        const menuOpen = !el.moreMenu.hidden || !el.sortMenu.hidden || !el.addMenu.hidden;
         if (anyOpen || menuOpen) { closeAll(); return; }
+        if (state.settingsOpen) { closeSettings(); return; }
         if (state.page === "game") { closeGame(); return; }
       }
       if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
@@ -1884,6 +2130,28 @@
   }
 
   /* ---------------------------------------------------------- 推送事件 */
+  /* 转区启动的落点提示：LE 没装或带不动时照样启动，只说明一句 */
+  function notifyLocaleStart(mode) {
+    if (mode === "no-le") {
+      toast("没检测到 Locale Emulator，已按普通方式启动", 4600);
+    } else if (mode === "unsupported-target") {
+      toast("目标不是 32 位 exe，Locale Emulator 带不动，已按普通方式启动", 4600);
+    } else if (mode === "locale") {
+      toast("已用指定的 LE 配置转区启动");
+    } else if (mode === "locale-default") {
+      toast("已用 LE 默认配置转区启动");
+    }
+  }
+
+  /* 搜索结束却没有封面：说明图片是界面侧加载（走系统代理），同一个游戏只提醒一次 */
+  const coverHinted = new Set();
+  function hintCoverOnce(game) {
+    if (!game || !game.id || coverHinted.has(game.id)) return;
+    if (game.cover || game.custom_cover || (game.cover_sources || []).length) return;
+    coverHinted.add(game.id);
+    toast("没抓到封面：图片由界面直接加载（走系统代理），可在「设置 → 网络」测试连通性", 5400);
+  }
+
   window.__aurora = {
     emit(event, payload) {
       try {
@@ -1900,6 +2168,8 @@
           }
           delete state.busy[payload.id];
           render();
+          if (event === "game:running") notifyLocaleStart(payload.locale);
+          if (event === "game:updated" && payload.metadata_state === "ok") hintCoverOnce(payload);
           // 库里原本没有这个游戏（导入/拖放）时，把焦点挪过去并换上它的壁纸
           if (isNew && !currentGame()) setFocus(payload.id);
           // 当前游戏换了壁纸（背景面板 / 其它来源）时跟着换

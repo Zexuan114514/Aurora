@@ -51,6 +51,12 @@ class Library:
             game.setdefault("play_started_at", 0)
             game.setdefault("play_pid", 0)
             game.setdefault("play_heartbeat", 0)
+            game.setdefault("play_launcher_pid", 0)
+            game.setdefault("play_count", 0)
+            game.setdefault("sessions", [])
+            # 转区启动（Locale Emulator）
+            game.setdefault("locale_enabled", False)
+            game.setdefault("locale_guid", "")
 
     def save(self) -> None:
         with self._lock:

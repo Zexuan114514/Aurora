@@ -51,7 +51,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
       <button class="icon-btn" id="btnSort" title="排序方式">
         <svg viewBox="0 0 24 24" class="ic"><path d="M4 7h16M6.5 12h11M9.5 17h5"/></svg>
       </button>
-      <button class="icon-btn" id="btnSettings" title="外观设置">
+      <button class="icon-btn" id="btnSettings" title="设置">
         <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.1M12 18.7v2.1M4.8 7.8l1.8 1.1M17.4 15.1l1.8 1.1M4.8 16.2l1.8-1.1M17.4 8.9l1.8-1.1"/></svg>
       </button>
       <div class="win-btns">
@@ -274,6 +274,34 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     </div>
   </div>
 
+  <!-- ============ 转区启动（单个游戏） ============ -->
+  <div id="localePanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>转区启动</h3>
+        <span class="sub" id="locSub">用 Locale Emulator 以日文区域运行这个游戏</span>
+      </div>
+      <button class="icon-btn" id="locClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="loc-row">
+      <label class="get-toggle">
+        <input type="checkbox" id="locSwitch" class="switch">
+        <span>为这个游戏开启转区启动</span>
+      </label>
+    </div>
+    <div class="loc-row">
+      <span class="loc-label">LE 配置</span>
+      <select id="locProfile"></select>
+    </div>
+    <p class="set-note" id="locStatus">正在检测 Locale Emulator…</p>
+    <div class="set-actions">
+      <button class="btn glass-btn" id="locPick"><span>指定 LEProc.exe…</span></button>
+      <button class="btn glass-btn" id="locDownload"><span>打开下载页</span></button>
+    </div>
+  </div>
+
   <!-- ============ 更多菜单 ============ -->
   <div id="moreMenu" class="menu glass" data-nodrag hidden>
     <button data-act="favorite" id="menuFavorite">加入收藏</button>
@@ -285,6 +313,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     <div class="menu-sep"></div>
     <button data-act="reveal">打开所在文件夹</button>
     <button data-act="args">设置启动参数</button>
+    <button data-act="locale" id="menuLocale">转区启动…</button>
     <button data-act="research">重新搜索游戏信息</button>
     <button data-act="translate">翻译简介</button>
     <button data-act="store">打开资料来源页面</button>
@@ -406,127 +435,200 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     </div>
   </div>
 
-  <!-- ============ 简介翻译设置 ============ -->
-  <div id="translatePanel" class="sheet glass wide" data-nodrag>
-    <div class="sheet-head">
-      <div>
-        <h3>简介翻译</h3>
-        <span class="sub">把非中文的游戏简介翻成简体中文；优先用 LLM 接口，失败时回退到免费接口</span>
-      </div>
-      <button class="icon-btn" id="translateClose">
-        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  <!-- ============ 设置（整页） ============ -->
+  <section id="settingsView" hidden>
+    <div class="set-page-head" data-drag>
+      <button class="btn glass-btn" id="setBack">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M14.5 6l-6 6 6 6"/></svg>
+        <span>返回</span>
       </button>
+      <div class="set-title">
+        <h2>设置</h2>
+        <span class="sub" id="setVersionLabel"></span>
+      </div>
     </div>
-    <div class="set-row">
-      <label>导入后自动翻译</label>
-      <input type="checkbox" id="setTransEnabled" class="switch">
-    </div>
-    <div class="set-row">
-      <label>翻译方式</label>
-      <select id="setTransProvider">
-        <option value="auto">自动（LLM 优先，免费兜底）</option>
-        <option value="llm">仅 LLM 接口</option>
-        <option value="free">仅免费接口</option>
-      </select>
-    </div>
-    <div class="set-row">
-      <label>接口地址</label>
-      <input type="text" id="setTransBase" placeholder="https://api.deepseek.com" spellcheck="false">
-    </div>
-    <div class="set-row">
-      <label>API Key</label>
-      <input type="password" id="setTransKey" placeholder="留空则只用免费接口" spellcheck="false">
-    </div>
-    <div class="set-row">
-      <label>模型</label>
-      <input type="text" id="setTransModel" placeholder="deepseek-chat" spellcheck="false">
-    </div>
-    <div class="set-row">
-      <label>显示原文</label>
-      <input type="checkbox" id="setShowOriginal" class="switch">
-    </div>
-    <div class="sheet-foot">
-      <button class="btn glass-btn" id="transTest"><span>测试接口</span></button>
-      <span class="hint" id="transStatus">Key 仅保存在本机 data/library.json</span>
-    </div>
-  </div>
 
-  <!-- ============ 设置 ============ -->
-  <div id="settingsPanel" class="menu glass wide-menu" data-nodrag hidden>
-    <div class="set-row">
-      <label>毛玻璃强度</label>
-      <input type="range" id="setBlur" min="0" max="60" step="1">
-      <span id="setBlurVal"></span>
+    <div class="set-body">
+      <nav class="set-nav" id="setNav">
+        <button class="set-tab on" data-pane="look">外观</button>
+        <button class="set-tab" data-pane="meta">资料源</button>
+        <button class="set-tab" data-pane="trans">简介翻译</button>
+        <button class="set-tab" data-pane="net">网络</button>
+        <button class="set-tab" data-pane="locale">转区启动</button>
+        <button class="set-tab" data-pane="about">关于</button>
+      </nav>
+
+      <div class="set-panes">
+        <!-- 外观 -->
+        <div class="set-pane on" data-pane="look">
+          <h3>外观</h3>
+          <div class="set-row">
+            <label>毛玻璃强度</label>
+            <input type="range" id="setBlur" min="0" max="60" step="1">
+            <span id="setBlurVal"></span>
+          </div>
+          <div class="set-row">
+            <label>背景暗化</label>
+            <input type="range" id="setScrim" min="0" max="80" step="1">
+            <span id="setScrimVal"></span>
+          </div>
+          <div class="set-row">
+            <label>强调色</label>
+            <input type="color" id="setAccent">
+            <span></span>
+          </div>
+          <div class="set-row">
+            <label>玻璃饱和</label>
+            <input type="range" id="setSat" min="80" max="300" step="5">
+            <span id="setSatVal"></span>
+          </div>
+          <div class="set-row">
+            <label>背景缓慢缩放</label>
+            <input type="checkbox" id="setKen" class="switch">
+          </div>
+          <div class="set-row">
+            <label>关闭到托盘</label>
+            <input type="checkbox" id="setTray" class="switch">
+          </div>
+          <p class="set-note">这些改动会立刻生效，保存在 <code>data\library.json</code>。</p>
+        </div>
+
+        <!-- 资料源 -->
+        <div class="set-pane" data-pane="meta">
+          <h3>资料源</h3>
+          <div class="set-row">
+            <label>简介语言</label>
+            <select id="setLang">
+              <option value="schinese">简体中文</option>
+              <option value="english">English</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label>多源补图</label>
+            <input type="checkbox" id="setMerge" class="switch">
+          </div>
+          <button class="menu-row" id="btnSources">
+            <span>管理资料源…</span>
+            <span class="menu-hint" id="sourcesHint"></span>
+          </button>
+          <button class="menu-row" id="btnSteamScan">
+            <span>扫描 Steam 游戏库…</span>
+            <span class="menu-hint">一键导入</span>
+          </button>
+          <button class="menu-row" id="btnRefreshAll">
+            <span>重新抓取全部信息</span>
+            <span class="menu-hint" id="refreshHint"></span>
+          </button>
+          <p class="set-note">资料源按顺序尝试，命中即用；多源补图会把其它源的高相似度图片一并汇总。</p>
+        </div>
+
+        <!-- 简介翻译 -->
+        <div class="set-pane" data-pane="trans">
+          <h3>简介翻译</h3>
+          <p class="set-note">把非中文的游戏简介翻成简体中文；优先用 LLM 接口，失败时回退到免费接口。</p>
+          <div class="set-row">
+            <label>导入后自动翻译</label>
+            <input type="checkbox" id="setTransEnabled" class="switch">
+          </div>
+          <div class="set-row">
+            <label>翻译方式</label>
+            <select id="setTransProvider">
+              <option value="auto">自动（LLM 优先，免费兜底）</option>
+              <option value="llm">仅 LLM 接口</option>
+              <option value="free">仅免费接口</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label>接口地址</label>
+            <input type="text" id="setTransBase" placeholder="https://api.deepseek.com" spellcheck="false">
+          </div>
+          <div class="set-row">
+            <label>API Key</label>
+            <input type="password" id="setTransKey" placeholder="留空则只用免费接口" spellcheck="false">
+          </div>
+          <div class="set-row">
+            <label>模型</label>
+            <input type="text" id="setTransModel" placeholder="deepseek-chat" spellcheck="false">
+          </div>
+          <div class="set-row">
+            <label>显示原文</label>
+            <input type="checkbox" id="setShowOriginal" class="switch">
+          </div>
+          <div class="set-actions">
+            <button class="btn glass-btn" id="transTest"><span>测试接口</span></button>
+            <button class="btn glass-btn" id="btnTranslateAll"><span>翻译全部简介</span></button>
+            <span class="hint" id="translateHint"></span>
+          </div>
+          <p class="set-note" id="transStatus">Key 只保存在本机 data\library.json。</p>
+        </div>
+
+        <!-- 网络 -->
+        <div class="set-pane" data-pane="net">
+          <h3>网络</h3>
+          <p class="set-note" id="netStatus">正在读取代理设置…</p>
+          <div class="set-row">
+            <label>代理模式</label>
+            <select id="setProxyMode">
+              <option value="auto">自动（跟随系统 / 环境变量）</option>
+              <option value="direct">直连（不走代理）</option>
+              <option value="manual">手动指定</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label>代理地址</label>
+            <input type="text" id="setProxyUrl" placeholder="http://127.0.0.1:7897" spellcheck="false">
+          </div>
+          <div class="set-row">
+            <label>失败自动换路</label>
+            <input type="checkbox" id="setProxyFallback" class="switch">
+          </div>
+          <div class="set-actions">
+            <button class="btn glass-btn" id="netTest"><span>测试资料源</span></button>
+            <span class="hint" id="netHint"></span>
+          </div>
+          <div class="net-results" id="netResults"></div>
+          <p class="set-note">代理只影响 Aurora 自己发起的请求（资料、图片、翻译）；「手动」通常填 <code>http://127.0.0.1:7897</code> 这类本地代理地址。</p>
+        </div>
+
+        <!-- 转区启动 -->
+        <div class="set-pane" data-pane="locale">
+          <h3>转区启动</h3>
+          <p class="set-note" id="leStatus">正在检测 Locale Emulator…</p>
+          <div class="set-row">
+            <label>新游戏默认转区</label>
+            <input type="checkbox" id="setLocaleDefault" class="switch">
+          </div>
+          <div class="set-row">
+            <label>LEProc.exe</label>
+            <input type="text" id="setLePath" placeholder="未设置" spellcheck="false" readonly>
+            <button class="mini-btn" id="setLePick">选择…</button>
+          </div>
+          <div class="set-actions">
+            <button class="btn glass-btn" id="setLeDownload"><span>打开 Locale Emulator 下载页</span></button>
+            <button class="btn glass-btn" id="setLeRefresh"><span>重新检测</span></button>
+          </div>
+          <div class="le-profiles" id="leProfiles"></div>
+          <p class="set-note">转区是<b>按游戏</b>开启的：在大厅按「⋯ → 转区启动…」。日文原版游戏在中文系统上常出现乱码或路径报错，转区可以解决；简体中文版一般不需要开。</p>
+        </div>
+
+        <!-- 关于 -->
+        <div class="set-pane" data-pane="about">
+          <h3>关于</h3>
+          <div class="about-row"><span>版本</span><b id="aboutVersion">—</b></div>
+          <div class="about-row"><span>数据目录</span><code id="aboutDataDir">—</code></div>
+          <div class="set-actions">
+            <button class="btn glass-btn" id="btnOpenData"><span>打开数据目录</span></button>
+            <button class="btn glass-btn" id="btnExport"><span>导出游戏库…</span></button>
+            <button class="btn glass-btn" id="btnImportLib"><span>导入游戏库…</span></button>
+          </div>
+          <div class="keys-hint">
+            <b>快捷键</b>
+            <span>Ctrl+F 搜索 · ← → 切换游戏 · Enter 进入/启动 · 双击启动 · Esc 返回 · Home/End 首尾</span>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="set-row">
-      <label>背景暗化</label>
-      <input type="range" id="setScrim" min="0" max="80" step="1">
-      <span id="setScrimVal"></span>
-    </div>
-    <div class="set-row">
-      <label>强调色</label>
-      <input type="color" id="setAccent">
-      <span></span>
-    </div>
-    <div class="set-row">
-      <label>玻璃饱和</label>
-      <input type="range" id="setSat" min="80" max="300" step="5">
-      <span id="setSatVal"></span>
-    </div>
-    <div class="set-row">
-      <label>背景缓慢缩放</label>
-      <input type="checkbox" id="setKen" class="switch">
-    </div>
-    <div class="set-row">
-      <label>简介语言</label>
-      <select id="setLang">
-        <option value="schinese">简体中文</option>
-        <option value="english">English</option>
-      </select>
-    </div>
-    <div class="set-row">
-      <label>多源补图</label>
-      <input type="checkbox" id="setMerge" class="switch">
-    </div>
-    <div class="set-row">
-      <label>关闭到托盘</label>
-      <input type="checkbox" id="setTray" class="switch">
-    </div>
-    <div class="menu-sep"></div>
-    <button class="menu-row" id="btnSources">
-      <span>管理资料源…</span>
-      <span class="menu-hint" id="sourcesHint"></span>
-    </button>
-    <button class="menu-row" id="btnSteamScan">
-      <span>扫描 Steam 游戏库…</span>
-      <span class="menu-hint">一键导入</span>
-    </button>
-    <button class="menu-row" id="btnRefreshAll">
-      <span>重新抓取全部信息</span>
-      <span class="menu-hint" id="refreshHint"></span>
-    </button>
-    <button class="menu-row" id="btnTranslateAll">
-      <span>翻译全部简介</span>
-      <span class="menu-hint" id="translateHint"></span>
-    </button>
-    <button class="menu-row" id="btnTranslateSettings">
-      <span>简介翻译设置…</span>
-      <span class="menu-hint">LLM / 免费接口</span>
-    </button>
-    <button class="menu-row" id="btnExport">
-      <span>导出游戏库…</span>
-      <span class="menu-hint">备份 / 迁移</span>
-    </button>
-    <button class="menu-row" id="btnImportLib">
-      <span>导入游戏库…</span>
-      <span class="menu-hint">合并去重</span>
-    </button>
-    <div class="menu-sep"></div>
-    <div class="keys-hint">
-      <b>快捷键</b>
-      <span>Ctrl+F 搜索 · ↑↓ 切换游戏 · Enter 启动/结束 · Esc 关闭面板</span>
-    </div>
-  </div>
+  </section>
 
   <div id="toast"></div>
   <div id="modal" class="modal" hidden>

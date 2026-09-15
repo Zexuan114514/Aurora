@@ -13,7 +13,7 @@ Aurora 简介翻译自检
   OK  True (want True)
 
 [provider 链路 / 免费接口]
-  provider=free changed=True lang=en (0.00s)
+  provider=free changed=True lang=en (0.01s)
   text: 故事讲述了一个年轻的剑客，他必须保护自己的家乡免受入侵军队的袭击。
 
 [缓存]
