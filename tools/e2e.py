@@ -507,6 +507,38 @@ def main() -> int:
             api.window_cmd("toggle_maximize")
             time.sleep(1.5)
             step("还原窗口", not app_main.winapi.is_maximized(window))
+
+            # 7. 最小窗口（1040×660）下设置页与转区面板仍然完整
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.6)
+            narrow = probe(window, """
+              const v = document.getElementById('settingsView');
+              const pane = v.querySelector('.set-pane.on');
+              const nav = document.getElementById('setNav');
+              const r = v.getBoundingClientRect();
+              return JSON.stringify({
+                open: !v.hidden, vw: innerWidth, vh: innerHeight,
+                navRight: Math.round(nav.getBoundingClientRect().right),
+                paneRight: pane ? Math.round(pane.getBoundingClientRect().right) : 0,
+                inside: r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1
+                        && r.top >= -1 && r.left >= -1});
+            """)
+            step("最小窗口下设置页不溢出",
+                 narrow.get("open") and narrow.get("inside")
+                 and narrow.get("paneRight", 1e9) <= narrow.get("vw", 0),
+                 narrow)
+
+            window.evaluate_js("document.getElementById('setBack').click()")
+            time.sleep(1.2)
+            narrow_back = probe(window, """
+              return JSON.stringify({settings: !document.getElementById('settingsView').hidden,
+                                     hall: !document.getElementById('hall').hidden,
+                                     view: !document.getElementById('view').hidden,
+                                     title: (document.getElementById('gTitle') || {}).textContent});
+            """)
+            step("返回按钮能退出设置页（回到进来前的页面）",
+                 (not narrow_back.get("settings"))
+                 and (narrow_back.get("hall") or narrow_back.get("view")), narrow_back)
         except Exception as exc:  # pragma: no cover
             import traceback
 

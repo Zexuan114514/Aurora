@@ -590,6 +590,14 @@
       el.view.hidden = true;
       el.empty.hidden = true;
       el.settingsView.hidden = false;
+      return;
+    }
+    el.settingsView.hidden = true;
+    // 从设置页回来时要按当前页重新决定显示哪一屏：
+    // 上面那个分支把 view 也藏了，若不在这里恢复，游戏页会变成空白。
+    if (state.page === "game" && currentGame()) {
+      el.view.hidden = false;
+      el.hall.hidden = true;
     }
   }
 
