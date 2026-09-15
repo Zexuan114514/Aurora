@@ -51,6 +51,10 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
       <button class="icon-btn" id="btnSort" title="排序方式">
         <svg viewBox="0 0 24 24" class="ic"><path d="M4 7h16M6.5 12h11M9.5 17h5"/></svg>
       </button>
+      <div class="view-switch" id="viewSwitch">
+        <button class="vs-btn on" data-view="home" title="主页">主页</button>
+        <button class="vs-btn" data-view="categories" title="分类">分类</button>
+      </div>
       <button class="icon-btn" id="btnSettings" title="设置">
         <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.2v2.1M12 18.7v2.1M4.8 7.8l1.8 1.1M17.4 15.1l1.8 1.1M4.8 16.2l1.8-1.1M17.4 8.9l1.8-1.1"/></svg>
       </button>
@@ -86,10 +90,16 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
 
     <!-- 大厅：单行大封面横滑 -->
     <section id="hall" hidden>
-      <button class="btn glass-btn get-pill" id="btnGetGames">
-        <svg viewBox="0 0 24 24" class="ic"><path d="M12 4v10M8 10l4 4 4-4"/><path d="M5 17.5V19a1 1 0 001 1h12a1 1 0 001-1v-1.5"/></svg>
-        <span>获取游戏</span>
-      </button>
+      <div class="hall-topbar" data-nodrag>
+        <button class="btn glass-btn get-pill" id="btnGetGames">
+          <svg viewBox="0 0 24 24" class="ic"><path d="M12 4v10M8 10l4 4 4-4"/><path d="M5 17.5V19a1 1 0 001 1h12a1 1 0 001-1v-1.5"/></svg>
+          <span>获取游戏</span>
+        </button>
+        <button class="btn glass-btn scope-pill" id="scopePill" hidden title="点击清除筛选">
+          <span id="scopeLabel">全部</span>
+          <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
       <div class="hall-viewport" id="hallViewport">
         <div class="hall-row" id="hallRow"></div>
       </div>
@@ -435,6 +445,67 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     </div>
   </div>
 
+  <!-- ============ 分类工作区（整页） ============ -->
+  <section id="categoriesView" hidden>
+    <div class="cat-body">
+      <aside class="cat-nav glass">
+        <nav class="cat-list" id="catRoots"></nav>
+
+        <div class="cat-label">
+          <span>自定义分类</span>
+          <button class="cat-add" id="catNew" title="新建分类">
+            <svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <nav class="cat-list" id="catShelves"></nav>
+
+        <form class="cat-create" id="catCreate" hidden>
+          <input id="catName" type="text" maxlength="24" placeholder="分类名称，例如：悬疑推理" spellcheck="false">
+          <div class="cat-create-foot">
+            <button class="btn glass-btn" type="button" id="catCancel">取消</button>
+            <button class="btn primary" type="submit" id="catSave">创建</button>
+          </div>
+          <p class="cat-hint" id="catHint"></p>
+        </form>
+
+        <div class="cat-label"><span>按状态</span></div>
+        <nav class="cat-list" id="catStatusList"></nav>
+
+        <div class="cat-label"><span>按开发商</span></div>
+        <nav class="cat-list" id="catDevs"></nav>
+
+        <p class="cat-note">一部游戏可以放进多个分类；删除分类只解绑，不动游戏与记录。</p>
+      </aside>
+
+      <section class="cat-main glass">
+        <div class="cat-head">
+          <div class="cat-title">
+            <h2 id="catTitle">全部游戏</h2>
+            <span class="sub" id="catSub">0 部</span>
+          </div>
+          <div class="cat-actions" id="catActions"></div>
+        </div>
+
+        <div class="cat-tools">
+          <label class="cat-search">
+            <svg viewBox="0 0 24 24" class="ic"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+            <input id="catQuery" type="search" placeholder="在分类里搜索游戏" autocomplete="off" spellcheck="false">
+          </label>
+          <select id="catSort" title="排序方式">
+            <option value="default">默认顺序</option>
+            <option value="favorite">收藏优先</option>
+            <option value="name">按名称</option>
+            <option value="recent">最近玩过</option>
+            <option value="playtime">按时长</option>
+          </select>
+        </div>
+
+        <div class="cat-wall" id="catWall"></div>
+        <div class="cat-bar" id="catBar" hidden></div>
+      </section>
+    </div>
+  </section>
+
   <!-- ============ 设置（整页） ============ -->
   <section id="settingsView" hidden>
     <div class="set-page-head" data-drag>
@@ -462,6 +533,18 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
         <!-- 外观 -->
         <div class="set-pane on" data-pane="look">
           <h3>外观</h3>
+          <div class="set-row">
+            <label>主题模式</label>
+            <select id="setTheme">
+              <option value="dark">深色</option>
+              <option value="light">浅色</option>
+              <option value="auto">跟随系统</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label>配色预设</label>
+            <div class="palette-row" id="setPalettes"></div>
+          </div>
           <div class="set-row">
             <label>毛玻璃强度</label>
             <input type="range" id="setBlur" min="0" max="60" step="1">

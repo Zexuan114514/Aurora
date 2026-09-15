@@ -89,17 +89,46 @@ def focus_window(hwnd: int | None) -> bool:
         return False
 
 
-def polish(window, corner: int = DWMWCP_ROUND) -> bool:
+#: 深色 / 浅色主题下的窗口外框描边
+BORDER_DARK = 0x2E2E33
+BORDER_LIGHT = 0xD6D6DC
+
+
+def system_prefers_light() -> bool:
+    """Windows 应用主题是否设为浅色（供 theme_mode = auto 用）。"""
+    try:
+        import winreg
+
+        with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
+            value = int(winreg.QueryValueEx(key, "AppsUseLightTheme")[0] or 0)
+        return value == 1
+    except Exception:
+        return False
+
+
+def set_dark_frame(window, is_dark: bool) -> bool:
+    """让窗口外框（暗色模式 / 描边）跟随界面主题。"""
+    hwnd = handle_of(window)
+    if not hwnd:
+        return False
+    ok = _set_dwm(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 1 if is_dark else 0)
+    _set_dwm(hwnd, DWMWA_BORDER_COLOR, BORDER_DARK if is_dark else BORDER_LIGHT)
+    return bool(ok)
+
+
+def polish(window, corner: int = DWMWCP_ROUND, dark: bool = True) -> bool:
     """给无边框窗口加上圆角、暗色边框与阴影。"""
     hwnd = handle_of(window)
     if not hwnd:
         config.log("polish: hwnd not found")
         return False
 
-    ok = _set_dwm(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 1)
+    ok = _set_dwm(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, 1 if dark else 0)
     _set_dwm(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, corner)
     # 极淡的边框，让圆角在浅色壁纸上也有轮廓
-    _set_dwm(hwnd, DWMWA_BORDER_COLOR, 0x2E2E33)
+    _set_dwm(hwnd, DWMWA_BORDER_COLOR, BORDER_DARK if dark else BORDER_LIGHT)
     set_icon(hwnd)
 
     try:

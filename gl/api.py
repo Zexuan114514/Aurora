@@ -98,6 +98,8 @@ def _public(game: dict, pm: process.ProcessManager) -> dict:
         "launch_args": game.get("launch_args") or "",
         "locale_enabled": bool(game.get("locale_enabled")),
         "locale_guid": game.get("locale_guid") or "",
+        "bookshelf_ids": list(game.get("bookshelf_ids") or []),
+        "status": game.get("status") or "",
     }
 
 
@@ -691,6 +693,74 @@ class Api:
         }
 
     # ------------------------------------------------------------------ #
+    # 分类书架（多对多）与游玩状态
+    # ------------------------------------------------------------------ #
+    def _shelves_payload(self) -> dict:
+        stats = self._library.shelf_counts()
+        shelves = []
+        for shelf in self._library.shelves():
+            shelves.append({**shelf, "count": int(stats["counts"].get(shelf["id"], 0))})
+        return {"ok": True, "shelves": shelves, "unfiled": int(stats["unfiled"]),
+                "total": int(stats["total"])}
+
+    def list_shelves(self) -> dict:
+        return self._shelves_payload()
+
+    def create_shelf(self, name: str) -> dict:
+        shelf, error = self._library.create_shelf(name)
+        if shelf is None:
+            return {"ok": False, "error": error, **self._shelves_payload()}
+        return {"ok": True, "shelf": shelf, **self._shelves_payload()}
+
+    def rename_shelf(self, shelf_id: str, name: str) -> dict:
+        ok, error = self._library.rename_shelf(shelf_id, name)
+        return {"ok": ok, "error": error, **self._shelves_payload()}
+
+    def move_shelf(self, shelf_id: str, delta: int) -> dict:
+        ok = self._library.move_shelf(shelf_id, int(delta))
+        return {"ok": ok, **self._shelves_payload()}
+
+    def delete_shelf(self, shelf_id: str) -> dict:
+        """删除分类只解绑，游戏与游玩记录都保留。"""
+        ok = self._library.delete_shelf(shelf_id)
+        # 解绑信息前端自己就能推出来（把该 id 从每个游戏的 bookshelf_ids 里摘掉）
+        return {"ok": ok, "removed": shelf_id, **self._shelves_payload()}
+
+    def _changed_payload(self, changed: list[dict]) -> dict:
+        return {**self._shelves_payload(),
+                "ok": True, "count": len(changed),
+                "games": [_public(g, self._pm) for g in changed]}
+
+    def add_games_to_shelf(self, game_ids: list, shelf_ids: list) -> dict:
+        changed = self._library.assign_shelves(list(game_ids or []), list(shelf_ids or []),
+                                               mode="add")
+        return self._changed_payload(changed)
+
+    def remove_games_from_shelf(self, game_ids: list, shelf_id: str) -> dict:
+        changed = self._library.assign_shelves(list(game_ids or []), [shelf_id], mode="remove")
+        return self._changed_payload(changed)
+
+    def set_games_favorite(self, game_ids: list, value: bool) -> dict:
+        changed = self._library.set_favorite(list(game_ids or []), bool(value))
+        return self._changed_payload(changed)
+
+    def set_game_status(self, game_id: str, status: str) -> dict:
+        updated = self._library.set_status(game_id, str(status or ""))
+        if updated is None:
+            return {"ok": False, "error": "bad-status"}
+        self._emit("game:updated", _public(updated, self._pm))
+        return {"ok": True, "game": _public(updated, self._pm)}
+
+    def apply_window_theme(self, is_light: bool) -> dict:
+        """让 Windows 外框（暗色模式 / 描边）跟随界面主题。"""
+        if self._window is None:
+            return {"ok": False, "error": "no-window"}
+        from . import winapi
+
+        dark = not bool(is_light)
+        return {"ok": winapi.set_dark_frame(self._window, dark), "dark": dark}
+
+    # ------------------------------------------------------------------ #
     # 自定义名称 / 封面
     # ------------------------------------------------------------------ #
     def rename_game(self, game_id: str, name: str) -> dict:
@@ -812,6 +882,7 @@ class Api:
             "version": config.VERSION,
             "exported_at": int(time.time()),
             "games": games,
+            "bookshelves": self._library.shelves(),
             "settings": dict(self._library.settings),
         }
         try:
@@ -839,6 +910,24 @@ class Api:
 
         added: list[dict] = []
         skipped = 0
+        # 分类：同名合并到现有分类，新名字新建，导入的游戏按映射挂回去
+        shelf_map: dict[str, str] = {}
+        for row in (data.get("bookshelves") or []):
+            if not isinstance(row, dict):
+                continue
+            old_id = str(row.get("id") or "")
+            name = str(row.get("name") or "").strip()
+            if not old_id or not name:
+                continue
+            existing = next((s for s in self._library.shelves()
+                             if s["name"].lower() == name.lower()), None)
+            if existing:
+                shelf_map[old_id] = existing["id"]
+            else:
+                created, _ = self._library.create_shelf(name)
+                if created:
+                    shelf_map[old_id] = created["id"]
+
         ids = {g["id"] for g in self._library.all()}
         for row in data["games"]:
             if not isinstance(row, dict):
@@ -853,13 +942,16 @@ class Api:
             ids.add(record["id"])
             record.setdefault("images", [])
             record.setdefault("background", "")
+            record["bookshelf_ids"] = [shelf_map[x] for x in (record.get("bookshelf_ids") or [])
+                                       if x in shelf_map]
             self._library.add(record)
             added.append(_public(record, self._pm))
         if added:
             self._emit("games:imported", {"games": added,
                                           "ids": [g["id"] for g in added], "ignored": skipped})
         config.log(f"library imported: +{len(added)} / skipped={skipped}")
-        return {"ok": True, "added": len(added), "skipped": skipped, "games": added}
+        return {"ok": True, "added": len(added), "skipped": skipped, "games": added,
+                **self._shelves_payload()}
 
     # ------------------------------------------------------------------ #
     # Steam 库

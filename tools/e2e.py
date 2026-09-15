@@ -584,6 +584,198 @@ def main() -> int:
                  closed_again.get("hall") and closed_again.get("view")
                  and not closed_again.get("match"), closed_again)
 
+            # 3.12 分类工作区
+            window.evaluate_js("document.querySelector('.vs-btn[data-view=categories]').click()")
+            time.sleep(1.8)
+            cat_open = probe(window, """
+              const v = document.getElementById('categoriesView');
+              const r = v.getBoundingClientRect();
+              return JSON.stringify({open: !v.hidden, hall: document.getElementById('hall').hidden,
+                                     title: document.getElementById('catTitle').textContent,
+                                     cards: document.querySelectorAll('.cat-card').length,
+                                     roots: document.querySelectorAll('#catRoots .cat-item').length,
+                                     inside: r.bottom <= innerHeight + 1 && r.left >= -1
+                                             && r.right <= innerWidth + 1});
+            """)
+            step("分类界面能打开且盖住大厅",
+                 cat_open.get("open") and cat_open.get("hall") and cat_open.get("cards") == 1
+                 and cat_open.get("roots") == 2 and cat_open.get("inside"), cat_open)
+
+            window.evaluate_js("document.getElementById('catNew').click()")
+            time.sleep(0.5)
+            window.evaluate_js("""
+              document.getElementById('catName').value = 'E2E 分类';
+              document.getElementById('catSave').click();
+            """)
+            time.sleep(1.6)
+            made = probe(window, """
+              return JSON.stringify({
+                names: [...document.querySelectorAll('#catShelves .cat-item span:first-child')]
+                         .map((s) => s.textContent.trim()),
+                title: document.getElementById('catTitle').textContent,
+                cards: document.querySelectorAll('.cat-card').length});
+            """)
+            step("新建分类后自动切到该分类",
+                 "E2E 分类" in (made.get("names") or [])
+                 and made.get("title") == "E2E 分类" and made.get("cards") == 0, made)
+
+            window.evaluate_js("document.querySelector('#catRoots [data-scope=all]').click()")
+            time.sleep(1.2)
+            window.evaluate_js("document.querySelector('[data-cat=organize]').click()")
+            time.sleep(0.7)
+            window.evaluate_js("""
+              for (const card of [...document.querySelectorAll('.cat-card')]) card.click();
+            """)
+            time.sleep(0.7)
+            picked = probe(window, """
+              return JSON.stringify({bar: !document.getElementById('catBar').hidden,
+                                     marked: document.querySelectorAll('.cat-card.on').length});
+            """)
+            step("整理模式能勾选", picked.get("bar") and picked.get("marked") == 1, picked)
+
+            window.evaluate_js("""
+              const sel = document.getElementById('catTarget');
+              sel.value = sel.options[1] ? sel.options[1].value : '';
+              document.querySelector('[data-catbar=add]').click();
+            """)
+            time.sleep(1.8)
+            shelf_id = (api._library.shelves() or [{}])[0].get("id", "")
+            step("多选归类写进库",
+                 bool(shelf_id) and shelf_id in (api._library.get(game_id).get("bookshelf_ids") or []),
+                 f"shelf={shelf_id}")
+
+            window.evaluate_js("document.querySelector('#catShelves .cat-item').click()")
+            time.sleep(1.2)
+            window.evaluate_js("document.querySelector('.vs-btn[data-view=home]').click()")
+            time.sleep(1.5)
+            scoped = probe(window, """
+              return JSON.stringify({tiles: document.querySelectorAll('#hallRow .gi[data-id]').length,
+                                     pill: document.getElementById('scopePill').hidden ? ""
+                                       : document.getElementById('scopeLabel').textContent});
+            """)
+            step("主页按分类过滤 + 作用域胶囊",
+                 scoped.get("tiles") == 1 and "E2E 分类" in (scoped.get("pill") or ""), scoped)
+
+            window.evaluate_js("document.getElementById('scopePill').click()")
+            time.sleep(1.3)
+            cleared_scope = probe(window, """
+              return JSON.stringify({tiles: document.querySelectorAll('#hallRow .gi[data-id]').length,
+                                     pill: document.getElementById('scopePill').hidden});
+            """)
+            step("作用域胶囊能清除筛选",
+                 cleared_scope.get("tiles") == 1 and cleared_scope.get("pill"), cleared_scope)
+
+            # 状态：从分类界面的封面打开详情面板再改
+            window.evaluate_js("document.querySelector('.vs-btn[data-view=categories]').click()")
+            time.sleep(1.5)
+            window.evaluate_js("document.querySelector('#catShelves .cat-item').click()")
+            time.sleep(1.3)
+            window.evaluate_js("document.querySelector('.cat-card').click()")
+            time.sleep(1.5)
+            window.evaluate_js("""
+              const sel = document.getElementById('detailStatus');
+              sel.value = 'cleared';
+              sel.dispatchEvent(new Event('change', {bubbles: true}));
+            """)
+            time.sleep(1.6)
+            statuses = [g.get("status") for g in api._library.all()]
+            step("详情面板能改游玩状态",
+                 "cleared" in statuses and "playing" not in statuses, str(statuses))
+
+            window.evaluate_js(
+                "document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))")
+            time.sleep(1.2)
+            window.evaluate_js("document.querySelector('.vs-btn[data-view=home]').click()")
+            time.sleep(1.5)
+            badge = probe(window, """
+              return JSON.stringify({
+                cleared: document.querySelectorAll('#hallRow .gi-badge.st-cleared').length,
+                detail: document.getElementById('detailPanel').classList.contains('open')});
+            """)
+            step("封面显示状态徽标", badge.get("cleared") == 1 and not badge.get("detail"), badge)
+
+            # 3.13 主题与配色
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.5)
+            window.evaluate_js("""
+              const sel = document.getElementById('setTheme');
+              sel.value = 'light';
+              sel.dispatchEvent(new Event('change', {bubbles: true}));
+            """)
+            time.sleep(1.6)
+            light = probe(window, """
+              const pane = document.querySelector('.set-panes');
+              return JSON.stringify({theme: document.documentElement.dataset.theme,
+                                     bg: getComputedStyle(pane).backgroundColor,
+                                     chips: document.querySelectorAll('#setPalettes [data-palette]').length});
+            """)
+            step("浅色主题生效（面板转白、文字转深）",
+                 light.get("theme") == "light" and "255, 255, 255" in (light.get("bg") or "")
+                 and light.get("chips") == 4, light)
+
+            window.evaluate_js("document.querySelector('#setPalettes [data-palette=lime]').click()")
+            time.sleep(1.5)
+            lime = probe(window, """
+              return JSON.stringify({palette: document.documentElement.dataset.palette,
+                                     accent: getComputedStyle(document.documentElement)
+                                               .getPropertyValue('--accent').trim()});
+            """)
+            step("配色预设能切换",
+                 lime.get("palette") == "lime"
+                 and (lime.get("accent") or "").lower() == "#26c6a8", lime)
+
+            window.evaluate_js("""
+              const sel = document.getElementById('setTheme');
+              sel.value = 'dark';
+              sel.dispatchEvent(new Event('change', {bubbles: true}));
+              document.querySelector('#setPalettes [data-palette=aurora]').click();
+            """)
+            time.sleep(1.5)
+            back_dark = probe(window, """
+              return JSON.stringify({theme: document.documentElement.dataset.theme,
+                                     palette: document.documentElement.dataset.palette});
+            """)
+            step("能切回深色 + 默认配色",
+                 back_dark.get("theme") == "dark" and back_dark.get("palette") == "aurora", back_dark)
+            window.evaluate_js("document.getElementById('setBack').click()")
+            time.sleep(1.3)
+
+            # 3.14 重命名 / 删除分类
+            window.evaluate_js("document.querySelector('.vs-btn[data-view=categories]').click()")
+            time.sleep(1.5)
+            window.evaluate_js("document.querySelector('#catShelves .cat-item').click()")
+            time.sleep(1.2)
+            window.evaluate_js("document.querySelector('[data-cat=rename]').click()")
+            time.sleep(0.9)
+            window.evaluate_js("""
+              document.getElementById('modalInput').value = 'E2E 改名';
+              document.getElementById('modalOk').click();
+            """)
+            time.sleep(1.5)
+            renamed = probe(window, """
+              return JSON.stringify({title: document.getElementById('catTitle').textContent,
+                                     names: [...document.querySelectorAll('#catShelves .cat-item span:first-child')]
+                                              .map((s) => s.textContent.trim())});
+            """)
+            step("能重命名分类",
+                 renamed.get("title") == "E2E 改名"
+                 and "E2E 改名" in (renamed.get("names") or []), renamed)
+
+            window.evaluate_js("document.querySelector('[data-cat=delete]').click()")
+            time.sleep(1.0)
+            window.evaluate_js("document.getElementById('modalOk').click()")
+            time.sleep(1.7)
+            removed = probe(window, """
+              return JSON.stringify({shelves: document.querySelectorAll('#catShelves .cat-item').length,
+                                     title: document.getElementById('catTitle').textContent,
+                                     cards: document.querySelectorAll('.cat-card').length});
+            """)
+            step("删除分类只解绑、退回全部",
+                 removed.get("shelves") == 0 and removed.get("title") == "全部游戏"
+                 and removed.get("cards") == 1, removed)
+            window.evaluate_js("document.querySelector('.vs-btn[data-view=home]').click()")
+            time.sleep(1.3)
+
             # 3.11 更多菜单 → 转区启动面板
             window.evaluate_js("document.getElementById('btnMore').click()")
             time.sleep(1.0)

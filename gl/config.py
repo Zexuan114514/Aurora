@@ -70,6 +70,8 @@ DEFAULT_SETTINGS = {
     "saturation": 190,           # 玻璃饱和度 %
     "scrim": 42,                 # 背景暗化 %
     "accent": "#0A84FF",         # 强调色
+    "theme_mode": "dark",        # dark | light | auto（auto 跟随 Windows 应用主题）
+    "palette": "aurora",         # aurora | lime | sakura | amber | custom
     "auto_search": True,         # 导入后自动联网搜索
     # 简介翻译：LLM 接口为主 + 免费接口兜底
     "translate_enabled": True,                  # 导入后自动翻译简介

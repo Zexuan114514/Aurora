@@ -42,6 +42,13 @@
     showOriginal: $("btnShowOriginal"),
     moreMenu: $("moreMenu"),
     settingsView: $("settingsView"), setNav: $("setNav"),
+    categoriesView: $("categoriesView"), viewSwitch: $("viewSwitch"),
+    catRoots: $("catRoots"), catShelves: $("catShelves"), catStatusList: $("catStatusList"),
+    catDevs: $("catDevs"), catWall: $("catWall"), catBar: $("catBar"),
+    catTitle: $("catTitle"), catSub: $("catSub"), catActions: $("catActions"),
+    catCreate: $("catCreate"), catName: $("catName"), catHint: $("catHint"),
+    catQuery: $("catQuery"), catSort: $("catSort"),
+    scopePill: $("scopePill"), scopeLabel: $("scopeLabel"),
     netStatus: $("netStatus"), netResults: $("netResults"),
     leStatus: $("leStatus"), leProfiles: $("leProfiles"),
     toast: $("toast"),
@@ -68,6 +75,13 @@
     picked: new Set(),
     batch: null,
     sites: [],
+    view: "home",                                    // home | categories
+    scope: { type: "all", value: "" },               // all | unfiled | shelf | status | dev
+    shelves: [],
+    shelfStats: { unfiled: 0, total: 0 },
+    organizing: false,
+    selected: new Set(),
+    devExpand: false,
   };
 
   let pywebviewReady = false;
@@ -84,6 +98,11 @@
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   const cssUrl = (u) => `url("${String(u).replace(/"/g, '\\"')}")`;
+
+  /* 选择器里安全地写 id（游戏 id 是十六进制，理论上够用，仍然兜一层） */
+  const cssEscape = (value) => (window.CSS && CSS.escape
+    ? CSS.escape(String(value))
+    : String(value).replace(/["\\]/g, "\\$&"));
 
   function toast(msg, ms = 2600) {
     el.toast.textContent = msg;
@@ -245,22 +264,71 @@
 
   /* ---------------------------------------------------------- 渲染 */
   function visibleGames() {
-    let list = state.games.slice();
+    let list = state.games.filter(inScope);
     const q = state.filter.trim().toLowerCase();
-    if (q) {
-      list = list.filter((g) =>
-        [g.name, g.steam_name, g.name_cn, g.name_original, g.exe_name, g.dir,
-         (g.developers || []).join(" "), (g.publishers || []).join(" "),
-         (g.genres || []).join(" "), (g.categories || []).join(" ")]
-          .join(" ")
-          .toLowerCase().includes(q));
-    }
+    if (q) list = list.filter((g) => searchHit(g, q));
+    return sortGames(list);
+  }
+
+  /* 搜索与排序：主页和分类工作区共用同一份逻辑，两处结果永远一致 */
+  function searchHit(game, q) {
+    return [game.name, game.steam_name, game.name_cn, game.name_original, game.exe_name,
+            game.dir, (game.developers || []).join(" "), (game.publishers || []).join(" "),
+            (game.genres || []).join(" "), (game.categories || []).join(" ")]
+      .join(" ").toLowerCase().includes(q);
+  }
+
+  function sortGames(list) {
     if (state.sort === "favorite") {
       list.sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
     } else if (state.sort === "name") list.sort((a, b) => a.name.localeCompare(b.name, "zh"));
     else if (state.sort === "recent") list.sort((a, b) => (b.last_played || 0) - (a.last_played || 0));
     else if (state.sort === "playtime") list.sort((a, b) => (b.play_time || 0) - (a.play_time || 0));
     return list;
+  }
+
+  /* ---------------------------------------------------------- 作用域 */
+  const STATUS_LABEL = { "": "未标记", playing: "在玩", cleared: "通关", shelved: "搁置" };
+  const STATUS_GLYPH = { playing: "玩", cleared: "通", shelved: "搁" };
+  const STATUS_ORDER = ["playing", "cleared", "shelved", ""];
+
+  function inScope(game) {
+    const scope = state.scope;
+    if (scope.type === "shelf") return (game.bookshelf_ids || []).includes(scope.value);
+    if (scope.type === "unfiled") return !(game.bookshelf_ids || []).length;
+    if (scope.type === "status") return (game.status || "") === scope.value;
+    if (scope.type === "dev") return (game.developers || []).includes(scope.value);
+    return true;
+  }
+
+  function scopeName(scope = state.scope) {
+    if (scope.type === "shelf") {
+      const shelf = state.shelves.find((s) => s.id === scope.value);
+      return shelf ? shelf.name : "分类";
+    }
+    if (scope.type === "unfiled") return "未分类";
+    if (scope.type === "status") return STATUS_LABEL[scope.value] ?? "状态";
+    if (scope.type === "dev") return scope.value;
+    return "全部游戏";
+  }
+
+  const scopeCount = () => state.games.filter(inScope).length;
+
+  function syncScopePill() {
+    const active = state.scope.type !== "all";
+    el.scopePill.hidden = !active;
+    if (active) el.scopeLabel.textContent = `${scopeName()} · ${scopeCount()}`;
+  }
+
+  function setScope(type, value = "") {
+    state.scope = type && type !== "all" ? { type, value: value || "" } : { type: "all", value: "" };
+    state.selected.clear();
+    try { localStorage.setItem("aurora.scope", JSON.stringify(state.scope)); } catch (_) { /* ignore */ }
+    // 焦点跟着作用域走：切分类时落到该分类的第一款，空分类就落在「＋」上
+    const games = visibleGames();
+    if (!games.some((g) => g.id === state.focus)) state.focus = games[0]?.id || ADD_KEY;
+    render();
+    if (state.view === "home") updateRow();
   }
 
   /* 图片回退链：img[data-srcs] 里按顺序放备用地址，加载失败自动换下一个 */
@@ -326,6 +394,10 @@
     if (game.running) badges.push('<span class="gi-badge run">●</span>');
     if (game.favorite) badges.push('<span class="gi-badge fav">★</span>');
     if (game.locale_enabled) badges.push('<span class="gi-badge loc">JP</span>');
+    if (game.status && STATUS_GLYPH[game.status]) {
+      badges.push(`<span class="gi-badge st-${esc(game.status)}" title="${
+        esc(STATUS_LABEL[game.status])}">${STATUS_GLYPH[game.status]}</span>`);
+    }
     if (game.missing) badges.push('<span class="gi-badge warn">!</span>');
     else if (game.metadata_state === "notfound") badges.push('<span class="gi-badge warn">?</span>');
     return `<button class="gi${game.id === state.focus ? " focus" : ""}${
@@ -587,20 +659,326 @@
     renderGameContent();
     document.body.classList.toggle("settings-open", state.settingsOpen);
     $("btnSettings").classList.toggle("on", state.settingsOpen);
-    if (state.settingsOpen) {
+    for (const btn of el.viewSwitch.querySelectorAll(".vs-btn")) {
+      btn.classList.toggle("on", btn.dataset.view === state.view);
+      btn.disabled = state.settingsOpen;
+    }
+    syncScopePill();
+    // 视图可见性只在这里决定：设置 / 分类 / 游戏页 / 大厅，互斥且一定会恢复
+    const showSettings = state.settingsOpen;
+    const showCategories = !showSettings && state.view === "categories";
+    el.settingsView.hidden = !showSettings;
+    el.categoriesView.hidden = !showCategories;
+    if (showSettings || showCategories) {
       el.hall.hidden = true;
       el.view.hidden = true;
       el.empty.hidden = true;
-      el.settingsView.hidden = false;
+      if (showCategories) renderCategories();
       return;
     }
-    el.settingsView.hidden = true;
-    // 从设置页回来时要按当前页重新决定显示哪一屏：
-    // 上面那个分支把 view 也藏了，若不在这里恢复，游戏页会变成空白。
+    // 回到主页：按 page 决定显示大厅还是游戏页（进来时可能被上面藏过）
     if (state.page === "game" && currentGame()) {
       el.view.hidden = false;
       el.hall.hidden = true;
+    } else {
+      el.view.hidden = true;
     }
+  }
+
+  /* ---------------------------------------------------------- 分类工作区 */
+  const DEV_LIMIT = 12;
+
+  function setView(name) {
+    const next = name === "categories" ? "categories" : "home";
+    state.view = next;
+    state.organizing = false;
+    state.selected.clear();
+    if (state.settingsOpen) state.settingsOpen = false;
+    closeAll();
+    render();
+    if (next === "home") updateRow();
+  }
+
+  function catList() {
+    let list = state.games.filter(inScope);
+    const q = state.filter.trim().toLowerCase();
+    if (q) list = list.filter((g) => searchHit(g, q));
+    return sortGames(list);
+  }
+
+  function catItem(active, attrs, label, count, ops = "") {
+    return `<button class="cat-item${active ? " on" : ""}" ${attrs}>
+      <span>${esc(label)}</span>
+      <small>${count}</small>${ops}</button>`;
+  }
+
+  function renderCatRoots() {
+    const total = state.shelfStats.total ?? state.games.length;
+    const unfiled = state.shelfStats.unfiled ?? 0;
+    el.catRoots.innerHTML =
+      catItem(state.scope.type === "all", 'data-scope="all"', "全部游戏", total)
+      + catItem(state.scope.type === "unfiled", 'data-scope="unfiled"', "未分类", unfiled);
+  }
+
+  function renderCatShelves() {
+    if (!state.shelves.length) {
+      el.catShelves.innerHTML =
+        '<p class="cat-hint" style="color:var(--text-3)">还没有分类，点右上角 ＋ 新建一个。</p>';
+      return;
+    }
+    el.catShelves.innerHTML = state.shelves.map((shelf, index) => {
+      const active = state.scope.type === "shelf" && state.scope.value === shelf.id;
+      // 注意：按钮不能嵌套按钮（浏览器会把内层摊平），所以外面再包一层行容器
+      return `<div class="cat-row${active ? " on" : ""}">
+        <button class="cat-item${active ? " on" : ""}" data-scope="shelf"
+                data-id="${esc(shelf.id)}">
+          <span>${esc(shelf.name)}</span><small>${shelf.count ?? 0}</small>
+        </button>
+        <span class="cat-ops">
+          <button data-shelf-move="${esc(shelf.id)}" data-delta="-1" title="上移"${
+            index === 0 ? " disabled" : ""}>↑</button>
+          <button data-shelf-move="${esc(shelf.id)}" data-delta="1" title="下移"${
+            index === state.shelves.length - 1 ? " disabled" : ""}>↓</button>
+          <button data-shelf-rename="${esc(shelf.id)}" title="重命名">✎</button>
+          <button class="danger" data-shelf-del="${esc(shelf.id)}" title="删除分类">✕</button>
+        </span>
+      </div>`;
+    }).join("");
+  }
+
+  function renderCatStatus() {
+    el.catStatusList.innerHTML = STATUS_ORDER.map((value) => {
+      const count = state.games.filter((g) => (g.status || "") === value).length;
+      const active = state.scope.type === "status" && state.scope.value === value;
+      return catItem(active, `data-scope="status" data-id="${esc(value)}"`,
+                     STATUS_LABEL[value], count);
+    }).join("");
+  }
+
+  function renderCatDevs() {
+    const counts = new Map();
+    for (const game of state.games) {
+      for (const dev of (game.developers || [])) {
+        if (dev) counts.set(dev, (counts.get(dev) || 0) + 1);
+      }
+    }
+    const rows = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh"));
+    const shown = state.devExpand ? rows : rows.slice(0, DEV_LIMIT);
+    el.catDevs.innerHTML = shown.map(([name, count]) => catItem(
+      state.scope.type === "dev" && state.scope.value === name,
+      `data-scope="dev" data-id="${esc(name)}"`, name, count)).join("")
+      + (rows.length > DEV_LIMIT
+          ? `<button class="cat-item" data-dev-more="1"><span>${
+              state.devExpand ? "收起" : `更多（${rows.length - DEV_LIMIT}）`}</span></button>`
+          : "");
+  }
+
+  function renderCatHead() {
+    const list = catList();
+    el.catTitle.textContent = scopeName();
+    el.catSub.textContent = `${list.length} 部`
+      + (state.filter.trim() ? `（筛选自 ${scopeCount()} 部）` : "");
+    const shelf = state.scope.type === "shelf"
+      ? state.shelves.find((s) => s.id === state.scope.value) : null;
+    const actions = [];
+    if (state.organizing) {
+      actions.push('<button class="mini-btn on" data-cat="organize">完成整理</button>');
+    } else {
+      actions.push('<button class="mini-btn" data-cat="organize">批量归类</button>');
+      if (shelf) {
+        actions.push('<button class="mini-btn" data-cat="rename">重命名</button>');
+        actions.push('<button class="mini-btn" data-cat="delete">删除分类</button>');
+      }
+    }
+    el.catActions.innerHTML = actions.join("");
+  }
+
+  function renderCatWall() {
+    const list = catList();
+    if (!list.length) {
+      el.catWall.innerHTML = `<div class="cat-empty">${
+        state.filter.trim() ? "这个范围里没有匹配的游戏。" : "这个范围里还没有游戏。"}</div>`;
+      return;
+    }
+    el.catWall.innerHTML = list.map((game) => {
+      const picked = state.selected.has(game.id);
+      const sub = (game.developers || [])[0] || STATUS_LABEL[game.status || ""] || "";
+      return `<button class="cat-card${picked ? " on" : ""}" data-id="${esc(game.id)}"
+                      title="${esc(game.name)}">
+        <span class="cat-art">${imgHtml("", coverSources(game))}
+          <b>${esc((game.name || "?").trim().charAt(0).toUpperCase())}</b>
+          ${state.organizing ? `<i class="cat-mark">${picked ? "✓" : ""}</i>` : ""}
+        </span>
+        <span class="cat-name">${esc(game.name)}</span>
+        <span class="cat-dev">${esc(sub)}</span>
+      </button>`;
+    }).join("");
+  }
+
+  function renderCatBar() {
+    if (!state.organizing) {
+      el.catBar.hidden = true;
+      el.catBar.innerHTML = "";
+      return;
+    }
+    const inShelf = state.scope.type === "shelf" ? state.scope.value : "";
+    el.catBar.hidden = false;
+    el.catBar.innerHTML = `
+      <b>已选 ${state.selected.size} 部</b>
+      <button class="mini-btn" data-catbar="all">全选当前结果</button>
+      <button class="mini-btn" data-catbar="none">清空</button>
+      <select id="catTarget"><option value="">选择目标分类</option>${
+        state.shelves.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("")}
+      </select>
+      <button class="mini-btn" data-catbar="add">加入分类</button>
+      ${inShelf ? '<button class="mini-btn" data-catbar="remove">移出当前分类</button>' : ""}
+      <button class="mini-btn" data-catbar="fav">收藏</button>
+      <button class="mini-btn" data-catbar="unfav">取消收藏</button>
+      <span class="hint">点封面勾选</span>`;
+  }
+
+  function renderCategories() {
+    renderCatRoots();
+    renderCatShelves();
+    renderCatStatus();
+    renderCatDevs();
+    renderCatHead();
+    renderCatWall();
+    renderCatBar();
+    if (el.catQuery.value !== state.filter) el.catQuery.value = state.filter;
+    if (el.catSort.value !== state.sort) el.catSort.value = state.sort;
+  }
+
+  /* 分类接口统一收尾：合并货架列表与受影响的游戏 */
+  function applyShelfPayload(res) {
+    if (!res) return;
+    if (Array.isArray(res.shelves)) state.shelves = res.shelves;
+    if (typeof res.unfiled === "number") {
+      state.shelfStats = { unfiled: res.unfiled, total: res.total ?? state.games.length };
+    }
+    if (Array.isArray(res.games)) {
+      for (const row of res.games) {
+        const index = state.games.findIndex((g) => g.id === row.id);
+        if (index >= 0) state.games[index] = { ...state.games[index], ...row };
+      }
+    }
+    if (res.removed) {
+      for (const game of state.games) {
+        game.bookshelf_ids = (game.bookshelf_ids || []).filter((x) => x !== res.removed);
+      }
+    }
+    render();
+  }
+
+  async function refreshShelves() {
+    try {
+      applyShelfPayload(await call("list_shelves"));
+    } catch (_) { /* 离线时保留现有状态 */ }
+  }
+
+  function setOrganizing(on) {
+    state.organizing = !!on;
+    if (!state.organizing) state.selected.clear();
+    render();
+  }
+
+  function togglePick(gameId) {
+    if (state.selected.has(gameId)) state.selected.delete(gameId);
+    else state.selected.add(gameId);
+    // 只改这一张卡片的勾选态：整墙重绘会让连点丢事件、也会闪
+    const card = el.catWall.querySelector(`.cat-card[data-id="${cssEscape(gameId)}"]`);
+    if (card) {
+      const on = state.selected.has(gameId);
+      card.classList.toggle("on", on);
+      const mark = card.querySelector(".cat-mark");
+      if (mark) mark.textContent = on ? "✓" : "";
+    }
+    renderCatBar();
+  }
+
+  async function createShelf(name) {
+    const res = await call("create_shelf", name);
+    if (!res || !res.ok) {
+      el.catHint.textContent = res && res.error === "duplicate" ? "已经有同名的分类了"
+        : (res && res.error === "too-long" ? "名字太长了（最多 24 字）" : "名字不能为空");
+      return null;
+    }
+    el.catHint.textContent = "";
+    el.catCreate.hidden = true;
+    el.catName.value = "";
+    applyShelfPayload(res);
+    toast(`已新建分类「${res.shelf.name}」`);
+    return res.shelf;
+  }
+
+  async function renameShelfFlow(id) {
+    const shelf = state.shelves.find((s) => s.id === id);
+    if (!shelf) return;
+    const value = await modal({
+      title: "重命名分类", body: "只改分类名字，不动里面的游戏。",
+      input: true, value: shelf.name, okText: "保存",
+    });
+    if (value === null) return;
+    const res = await call("rename_shelf", id, value);
+    if (!res || !res.ok) {
+      toast(res && res.error === "duplicate" ? "已经有同名的分类了" : "名字不能为空");
+      return;
+    }
+    applyShelfPayload(res);
+    toast("已重命名分类");
+  }
+
+  async function deleteShelfFlow(id) {
+    const shelf = state.shelves.find((s) => s.id === id);
+    if (!shelf) return;
+    const ok = await modal({
+      title: "删除分类",
+      body: `删除「${shelf.name}」？游戏和游玩记录都不会动，只是不再归在这个分类里。`,
+      okText: "删除",
+    });
+    if (!ok) return;
+    applyShelfPayload(await call("delete_shelf", id));
+    if (state.scope.type === "shelf" && state.scope.value === id) setScope("all");
+    toast("已删除分类");
+  }
+
+  async function assignSelected(target) {
+    const ids = [...state.selected];
+    if (!ids.length) { toast("先勾选几张封面"); return; }
+    if (!target) { toast("先在下拉里选一个目标分类"); return; }
+    const res = await call("add_games_to_shelf", ids, [target]);
+    state.selected.clear();
+    applyShelfPayload(res);
+    const shelf = state.shelves.find((s) => s.id === target);
+    toast(`已把 ${res.count || 0} 部加入「${shelf ? shelf.name : "分类"}」`);
+  }
+
+  async function removeSelectedFromScope() {
+    const ids = [...state.selected];
+    if (state.scope.type !== "shelf" || !ids.length) return;
+    const res = await call("remove_games_from_shelf", ids, state.scope.value);
+    state.selected.clear();
+    applyShelfPayload(res);
+    toast(`已移出 ${res.count || 0} 部`);
+  }
+
+  async function favoriteSelected(value) {
+    const ids = [...state.selected];
+    if (!ids.length) { toast("先勾选几张封面"); return; }
+    const res = await call("set_games_favorite", ids, value);
+    toast(value ? `已收藏 ${res.count || 0} 部` : `已取消收藏 ${res.count || 0} 部`);
+    applyShelfPayload(res);
+  }
+
+  async function setGameStatus(gameId, status) {
+    const res = await call("set_game_status", gameId, status);
+    if (!res || !res.ok) { toast("保存状态失败"); return; }
+    const game = state.games.find((g) => g.id === gameId);
+    if (game && res.game) Object.assign(game, res.game);
+    render();
+    renderDetail();
+    toast(status ? `已标记为「${STATUS_LABEL[status]}」` : "已清除状态标记");
   }
 
   /* ---------------------------------------------------------- 设置页 */
@@ -718,6 +1096,15 @@
       ["类型", g.genres.join("、")],
       ["特性", g.categories.slice(0, 5).join("、")],
       ["评分", g.rating],
+      ["状态", `<select id="detailStatus" data-id="${esc(g.id)}">${
+        STATUS_ORDER.map((value) => `<option value="${esc(value)}"${
+          (g.status || "") === value ? " selected" : ""}>${STATUS_LABEL[value]}</option>`).join("")
+      }</select>`],
+      ["分类", (g.bookshelf_ids || [])
+        .map((id) => (state.shelves.find((s) => s.id === id) || {}).name)
+        .filter(Boolean)
+        .map((name) => `<span class="src-badge">${esc(name)}</span>`)
+        .join(" ")],
       ["启动次数", g.play_count ? `${g.play_count} 次` : ""],
       ["累计游玩", g.play_time ? hours(g.play_time) : ""],
       ["转区启动", g.locale_enabled ? "已开启" : ""],
@@ -1112,6 +1499,7 @@
     applySettingsToUi();
     renderSources();
     applySourcesHint();
+    await refreshShelves();
   }
 
   async function togglePlay() {
@@ -1257,6 +1645,66 @@
   /* ---------------------------------------------------------- 设置：转区启动 */
   const LE_URL = "https://github.com/xupefei/Locale-Emulator/releases";
 
+  /* ---------------------------------------------------------- 主题与配色 */
+  const PALETTES = [
+    { key: "aurora", name: "极光蓝", accent: "#0A84FF", accent2: "#4FA9FF" },
+    { key: "lime", name: "薄荷青", accent: "#26C6A8", accent2: "#6FE0C8" },
+    { key: "sakura", name: "樱花粉", accent: "#FF5C8A", accent2: "#FF9AB6" },
+    { key: "amber", name: "琥珀橙", accent: "#FF9F0A", accent2: "#FFC46B" },
+  ];
+  const lightQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+
+  function effectiveTheme() {
+    const mode = state.settings.theme_mode || "dark";
+    if (mode === "auto") return lightQuery && lightQuery.matches ? "light" : "dark";
+    return mode === "light" ? "light" : "dark";
+  }
+
+  /* 主题只负责 data-theme / data-palette 与窗口外框；强调色跟着设置走 */
+  function applyTheme() {
+    const theme = effectiveTheme();
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.palette = state.settings.palette || "aurora";
+    try { call("apply_window_theme", theme === "light").catch(() => {}); } catch (_) { /* 离线 */ }
+  }
+
+  function renderPaletteRow() {
+    const active = state.settings.palette || "aurora";
+    $("setPalettes").innerHTML = PALETTES.map((p) => `
+      <button type="button" class="palette-chip${active === p.key ? " on" : ""}"
+              data-palette="${p.key}" title="${p.name}">
+        <i style="background:${p.accent}"></i><span>${p.name}</span>
+      </button>`).join("")
+      + `<span class="palette-custom${active === "custom" ? " on" : ""}">自定义</span>`;
+  }
+
+  function bindTheme() {
+    $("setTheme").onchange = async (e) => {
+      await saveSetting("theme_mode", e.target.value);
+      applyTheme();
+      toast(e.target.value === "light" ? "已切换到浅色主题"
+        : (e.target.value === "auto" ? "主题跟随系统" : "已切换到深色主题"));
+    };
+    $("setPalettes").onclick = async (e) => {
+      const chip = e.target.closest("[data-palette]");
+      if (!chip) return;
+      const preset = PALETTES.find((p) => p.key === chip.dataset.palette);
+      if (!preset) return;
+      state.settings.palette = preset.key;
+      state.settings.accent = preset.accent;
+      applySettingsToUi();
+      renderPaletteRow();
+      await call("set_setting", "palette", preset.key);
+      await call("set_setting", "accent", preset.accent);
+      toast(`已应用配色：${preset.name}`);
+    };
+    if (lightQuery) {
+      const onChange = () => { if ((state.settings.theme_mode || "dark") === "auto") applyTheme(); };
+      if (lightQuery.addEventListener) lightQuery.addEventListener("change", onChange);
+      else if (lightQuery.addListener) lightQuery.addListener(onChange);
+    }
+  }
+
   async function refreshLocalePane() {
     try {
       const st = await call("get_locale_status");
@@ -1342,6 +1790,7 @@
     document.documentElement.style.setProperty("--sat", (s.saturation ?? 190) + "%");
     document.documentElement.style.setProperty("--scrim", String(s.scrim ?? 42) / 100);
     if (s.accent) document.documentElement.style.setProperty("--accent", s.accent);
+    applyTheme();
 
     $("setBlur").value = s.blur ?? 30;
     $("setScrim").value = s.scrim ?? 42;
@@ -1357,6 +1806,8 @@
     $("setTransKey").value = s.translate_api_key || "";
     $("setTransModel").value = s.translate_model || "";
     $("setShowOriginal").checked = !!s.show_original;
+    $("setTheme").value = s.theme_mode || "dark";
+    renderPaletteRow();
     $("setBlurVal").textContent = (s.blur ?? 30) + "px";
     $("setScrimVal").textContent = (s.scrim ?? 42) + "%";
     $("setSatVal").textContent = (s.saturation ?? 190) + "%";
@@ -1490,7 +1941,8 @@
 
     // 滚轮 / 横向滚动 = 切换游戏（大厅与游戏页一致）
     $("app").addEventListener("wheel", (e) => {
-      if (state.settingsOpen) return;      // 设置页里滚轮只滚动设置内容
+      // 设置页 / 分类工作区里滚轮只滚动各自的内容
+      if (state.settingsOpen || state.view === "categories") return;
       if (e.target.closest(".sheet, .menu, .modal, input, select, textarea, #toolbar, #toast")) return;
       if (!state.games.length) return;
       e.preventDefault();
@@ -1537,7 +1989,7 @@
       if (!tile) return;
       clearTimeout(hoverTimer);
       hoverTimer = setTimeout(() => {
-        if (state.settingsOpen) return;
+        if (state.settingsOpen || state.view === "categories") return;
         const key = tile.dataset.add ? ADD_KEY : tile.dataset.id;
         if (key && key !== state.focus) setFocus(key);
       }, 320);
@@ -1565,13 +2017,13 @@
       // 关键：每次左键按下都先复位「这次是拖拽还是单击」。
       // 不复位的话，拖过一次之后 moved 永远为 true，之后所有单击都会被当成拖拽丢掉。
       moved = false;
-      if (state.settingsOpen) return;
+      if (state.settingsOpen || state.view === "categories") return;
       // 工具条 / 底部信息带是拖窗口的区域，别在这里抢滑动
       if (e.target.closest("button, a, input, .pill, [data-drag], .rz")) return;
       swipe = { x: e.clientX, y: e.clientY, base: e.clientX };
     };
     const swipeMove = (e) => {
-      if (!swipe || state.settingsOpen) return;
+      if (!swipe || state.settingsOpen || state.view === "categories") return;
       const dx = e.clientX - swipe.base;
       const dy = e.clientY - swipe.y;
       if (Math.abs(dx) < 64 || Math.abs(dy) > Math.abs(dx)) return;
@@ -1813,7 +2265,11 @@
       state.settings.accent = e.target.value;
       applySettingsToUi();
     };
-    $("setAccent").onchange = (e) => saveSetting("accent", e.target.value);
+    $("setAccent").onchange = async (e) => {
+      await saveSetting("accent", e.target.value);
+      await saveSetting("palette", "custom");     // 手选颜色 = 自定义配色
+      renderPaletteRow();
+    };
     $("setSat").oninput = (e) => {
       state.settings.saturation = Number(e.target.value);
       applySettingsToUi();
@@ -1884,6 +2340,115 @@
       render();
       toast(`导入完成：新增 ${res.added} 个，跳过 ${res.skipped} 个`);
     };
+
+    // 视图切换：主页 / 分类
+    el.viewSwitch.addEventListener("click", (e) => {
+      const btn = e.target.closest(".vs-btn");
+      if (!btn || btn.disabled) return;
+      if (btn.dataset.view === "categories") {
+        setView("categories");
+        refreshShelves();
+      } else {
+        setView("home");
+      }
+    });
+    $("scopePill").onclick = () => { setScope("all"); toast("已显示全部游戏"); };
+
+    // 分类工作区（事件委托，界面重绘后依然有效）
+    el.categoriesView.addEventListener("click", async (e) => {
+      const scopeBtn = e.target.closest("[data-scope]");
+      if (scopeBtn) {
+        setScope(scopeBtn.dataset.scope, scopeBtn.dataset.id || "");
+        return;
+      }
+      if (e.target.closest("[data-dev-more]")) {
+        state.devExpand = !state.devExpand;
+        renderCatDevs();
+        return;
+      }
+      const move = e.target.closest("[data-shelf-move]");
+      if (move && !move.disabled) {
+        await moveShelf(move.dataset.shelfMove, Number(move.dataset.delta));
+        return;
+      }
+      const ren = e.target.closest("[data-shelf-rename]");
+      if (ren) { await renameShelfFlow(ren.dataset.shelfRename); return; }
+      const del = e.target.closest("[data-shelf-del]");
+      if (del) { await deleteShelfFlow(del.dataset.shelfDel); return; }
+      const act = e.target.closest("[data-cat]");
+      if (act) {
+        if (act.dataset.cat === "organize") setOrganizing(!state.organizing);
+        else if (act.dataset.cat === "rename") renameShelfFlow(state.scope.value);
+        else if (act.dataset.cat === "delete") deleteShelfFlow(state.scope.value);
+        return;
+      }
+      const bar = e.target.closest("[data-catbar]");
+      if (bar) {
+        const kind = bar.dataset.catbar;
+        if (kind === "all") {
+          state.selected = new Set(catList().map((g) => g.id));
+          renderCatWall();
+          renderCatBar();
+        } else if (kind === "none") {
+          state.selected.clear();
+          renderCatWall();
+          renderCatBar();
+        } else if (kind === "add") {
+          const target = $("catTarget");
+          assignSelected(target ? target.value : "");
+        } else if (kind === "remove") removeSelectedFromScope();
+        else if (kind === "fav") favoriteSelected(true);
+        else if (kind === "unfav") favoriteSelected(false);
+        return;
+      }
+      const card = e.target.closest(".cat-card");
+      if (card) {
+        const id = card.dataset.id;
+        if (state.organizing) {
+          togglePick(id);
+        } else {
+          setFocus(id);
+          renderDetail();
+          openPanel(el.detailPanel);
+        }
+      }
+    });
+
+    $("catNew").onclick = () => {
+      el.catCreate.hidden = false;
+      el.catHint.textContent = "";
+      el.catName.focus();
+    };
+    $("catCancel").onclick = () => {
+      el.catCreate.hidden = true;
+      el.catHint.textContent = "";
+    };
+    el.catCreate.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const shelf = await createShelf(el.catName.value.trim());
+      if (shelf) setScope("shelf", shelf.id);
+    });
+
+    // 分类工作区与主页共用同一份搜索 / 排序
+    el.catQuery.addEventListener("input", (e) => {
+      state.filter = e.target.value;
+      el.search.value = state.filter;
+      el.searchClear.hidden = !state.filter;
+      renderHall();
+      renderCatHead();
+      renderCatWall();
+    });
+    el.catSort.onchange = (e) => {
+      state.sort = e.target.value;
+      syncSortMenu();
+      renderHall();
+      renderCatHead();
+      renderCatWall();
+    };
+    el.detailBody.addEventListener("change", (e) => {
+      if (e.target.id === "detailStatus") setGameStatus(e.target.dataset.id, e.target.value);
+    });
+    bindTheme();
 
     // 封面面板
     $("coverClose").onclick = () => closePanel(el.coverPanel);
@@ -2050,6 +2615,7 @@
     el.search.oninput = (e) => {
       state.filter = e.target.value;
       el.searchClear.hidden = !state.filter;
+      if (el.catQuery.value !== state.filter) el.catQuery.value = state.filter;   // 两处搜索同步
       renderHall();
     };
     el.searchClear.onclick = () => {
@@ -2098,16 +2664,18 @@
         const menuOpen = !el.moreMenu.hidden || !el.sortMenu.hidden || !el.addMenu.hidden;
         if (anyOpen || menuOpen) { closeAll(); return; }
         if (state.settingsOpen) { closeSettings(); return; }
+        if (state.view === "categories") { setView("home"); return; }
         if (state.page === "game") { closeGame(); return; }
       }
       if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
       // 设置页是独立界面：除 Esc（上面已处理）外的快捷键一律不抢，
       // 免得滚动/切页签时顺带把大厅的焦点、背景甚至游戏启动状态也改了
-      if (state.settingsOpen) return;
+      if (state.settingsOpen || state.view === "categories") return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
         e.preventDefault();
-        el.search.focus();
-        el.search.select();
+        const box = state.view === "categories" ? el.catQuery : el.search;
+        box.focus();
+        box.select();
         return;
       }
       if (typing || !el.modal.hidden) return;
@@ -2322,6 +2890,14 @@
       console.error(e);
       toast("初始化失败：" + e.message, 6000);
     }
+    // 作用域：恢复上次看的分类 / 状态 / 厂商（分类被删掉就退回全部）
+    try {
+      const raw = localStorage.getItem("aurora.scope");
+      const saved = raw ? JSON.parse(raw) : null;
+      const usable = saved && saved.type && saved.type !== "all"
+        && (saved.type !== "shelf" || state.shelves.some((s) => s.id === saved.value));
+      if (usable) state.scope = { type: saved.type, value: saved.value || "" };
+    } catch (_) { /* ignore */ }
     // 焦点：优先恢复上次看的那一款，否则用最近玩过的
     let want = null;
     try { want = localStorage.getItem("aurora.focus"); } catch (_) {}

@@ -78,6 +78,9 @@ def main() -> int:
         return ok
 
     failed = 0
+    # 每次从干净的数据目录开始：上次探测写进去的 le_proc_path 会把「未安装」分支带偏
+    shutil.rmtree(TEST_DATA, ignore_errors=True)
+    TEST_DATA.mkdir(parents=True, exist_ok=True)
     build_fixtures()
 
     write("Aurora 转区启动自检")

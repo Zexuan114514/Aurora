@@ -282,7 +282,9 @@ def main() -> int:
     def polish(*_args) -> None:
         if state["polished"]:
             return
-        if winapi.polish(window):
+        mode = str(api._library.settings.get("theme_mode") or "dark")
+        dark = mode == "dark" or (mode == "auto" and not winapi.system_prefers_light())
+        if winapi.polish(window, dark=dark):
             state["polished"] = True
 
     window.events.loaded += polish
