@@ -226,6 +226,11 @@ button, input, select { font: inherit; color: inherit; }
 }
 .icon-btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
 .icon-btn:active { transform: scale(0.93); }
+.icon-btn.on {
+  background: color-mix(in srgb, var(--accent) 34%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: #fff;
+}
 .icon-btn.sq { width: 40px; height: 40px; border-radius: 13px; font-size: 17px; }
 
 .win-btns { display: flex; gap: 2px; margin-left: 4px; padding-left: 8px;
@@ -482,12 +487,13 @@ button, input, select { font: inherit; color: inherit; }
    ------------------------------------------------------------ */
 #settingsView {
   position: absolute;
-  inset: 0;
+  /* 顶部让开工具条：齿轮（再点一次退出）与窗口按钮必须始终点得到 */
+  inset: 82px 12px 12px;
   z-index: 30;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 12px;
+  padding: 0;
 }
 #settingsView[hidden] { display: none; }
 
@@ -498,6 +504,10 @@ button, input, select { font: inherit; color: inherit; }
   padding: 0 16px 0 12px;
   border-radius: 22px;
 }
+
+/* 设置页是独立界面：搜索框与排序只作用于大厅，收起来免得改到看不见的状态 */
+body.settings-open .search,
+body.settings-open #btnSort { display: none; }
 .set-title { display: flex; flex-direction: column; line-height: 1.25; }
 .set-title h2 { margin: 0; font-size: 17px; font-weight: 640; letter-spacing: 0.2px; }
 .set-title .sub { font-size: 11.5px; color: var(--text-3); }

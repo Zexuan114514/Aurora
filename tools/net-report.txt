@@ -2,7 +2,7 @@ Aurora 网络自检
 ====================================================
 
 [当前生效路线]
-  mode=auto proxy=http://127.0.0.1:7897 source=Windows 系统代理 fallback=True
+  mode=auto proxy=(直连) source=系统（未启用代理） fallback=True
   bypass: localhost, 127.*, 192.168.*, 10.*, 172.16.*, 172.17.*, 172.18.*, 172.19.*, 172.20.*, 172.21.*, 172.22.*, 172.23.*
   OK  describe() 结构完整
 
@@ -10,23 +10,21 @@ Aurora 网络自检
   OK  direct 模式强制直连  手动：直连
   OK  手动地址自动补 http://  http://127.0.0.1:7890
   OK  非法地址退化为直连  手动（地址无效或为空）
-  OK  auto 模式给出源说明  Windows 系统代理
+  OK  auto 模式给出源说明  系统（未启用代理）
 
 [端点连通性 test_network]
-  OK  Steam 商店   508 ms
-  OK  Steam 图片   653 ms
-  OK  VNDB       2160 ms
-  OK  Bangumi    1777 ms
-  OK  翻译接口       2731 ms
-  用时 7.8s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
-  OK  至少 3 个端点通  5/5
+  BAD Steam 商店   URLError: <urlopen error timed out>
+  OK  Steam 图片   2709 ms
+  OK  VNDB       737 ms
+  BAD Bangumi    URLError: <urlopen error [WinError 10054] 远程主机强迫关闭了一个现有的连接。>
+  OK  翻译接口       909 ms
+  用时 14.7s，生效代理 (直连)（系统（未启用代理））
+  OK  至少 3 个端点通  3/5
 
 [直连 vs 手动（换路）]
   OK  切到直连后 current() 也变了
-  直连请求成功：1079 ms
-  OK  坏代理下 fallback=True
-  OK  走代理失败会自动换直连  代理失败后自动直连成功（3161 ms）
-  OK  关掉换路后坏代理就失败  按预期失败：URLError
+  直连请求失败：URLError: <urlopen error timed out>
+  WARN 当前离线，跳过换路断言
 
 [沙盒还原]
   OK  代理设置已还原为 auto

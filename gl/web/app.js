@@ -585,6 +585,8 @@
   function render() {
     renderHall();
     renderGameContent();
+    document.body.classList.toggle("settings-open", state.settingsOpen);
+    $("btnSettings").classList.toggle("on", state.settingsOpen);
     if (state.settingsOpen) {
       el.hall.hidden = true;
       el.view.hidden = true;
@@ -1430,11 +1432,16 @@
       }
     });
 
-    document.addEventListener("mouseup", () => {
+    /* 鼠标在窗口外松开、或窗口切走时收不到 mouseup，状态必须主动清掉，
+       否则会出现「没按键也在拖窗口 / 划封面」这种鬼畜行为 */
+    function dropPointerState() {
       if (drag) { drag = null; call("drag_end"); }
       if (resize) { resize = null; }
       if (swipe) swipe = null;
-    });
+    }
+    document.addEventListener("mouseup", dropPointerState);
+    window.addEventListener("blur", dropPointerState);
+    document.addEventListener("mouseleave", dropPointerState);
 
     // 双击拖拽区域最大化 / 还原
     document.addEventListener("dblclick", (e) => {
@@ -1483,6 +1490,7 @@
 
     // 滚轮 / 横向滚动 = 切换游戏（大厅与游戏页一致）
     $("app").addEventListener("wheel", (e) => {
+      if (state.settingsOpen) return;      // 设置页里滚轮只滚动设置内容
       if (e.target.closest(".sheet, .menu, .modal, input, select, textarea, #toolbar, #toast")) return;
       if (!state.games.length) return;
       e.preventDefault();
@@ -1529,6 +1537,7 @@
       if (!tile) return;
       clearTimeout(hoverTimer);
       hoverTimer = setTimeout(() => {
+        if (state.settingsOpen) return;
         const key = tile.dataset.add ? ADD_KEY : tile.dataset.id;
         if (key && key !== state.focus) setFocus(key);
       }, 320);
@@ -1544,7 +1553,7 @@
     });
     el.hallRow.addEventListener("dblclick", (e) => {
       const tile = e.target.closest(".gi");
-      if (!tile || tile.dataset.add) return;
+      if (!tile || tile.dataset.add || moved) return;
       setFocus(tile.dataset.id);
       openGame(tile.dataset.id);
       togglePlay();
@@ -1553,13 +1562,16 @@
     // 横向拖动 = 换一张封面
     const swipeStart = (e) => {
       if (e.button !== 0) return;
+      // 关键：每次左键按下都先复位「这次是拖拽还是单击」。
+      // 不复位的话，拖过一次之后 moved 永远为 true，之后所有单击都会被当成拖拽丢掉。
+      moved = false;
+      if (state.settingsOpen) return;
       // 工具条 / 底部信息带是拖窗口的区域，别在这里抢滑动
       if (e.target.closest("button, a, input, .pill, [data-drag], .rz")) return;
       swipe = { x: e.clientX, y: e.clientY, base: e.clientX };
-      moved = false;
     };
     const swipeMove = (e) => {
-      if (!swipe) return;
+      if (!swipe || state.settingsOpen) return;
       const dx = e.clientX - swipe.base;
       const dy = e.clientY - swipe.y;
       if (Math.abs(dx) < 64 || Math.abs(dy) > Math.abs(dx)) return;
@@ -1567,7 +1579,8 @@
       swipe.base = e.clientX;
       moveFocus(dx < 0 ? 1 : -1);
     };
-    $("app").addEventListener("mousedown", swipeStart);
+    // 捕获阶段：保证在任何其它 mousedown 处理（窗口拖拽等）之前先把状态复位
+    $("app").addEventListener("mousedown", swipeStart, true);
     document.addEventListener("mousemove", swipeMove);
 
     // 窗口尺寸变化后重新把焦点封面摆到正中
@@ -1733,7 +1746,8 @@
     });
 
     // 设置
-    $("btnSettings").onclick = () => openSettings();
+    // 齿轮是开关：点开、再点一次（或用「← 返回」）都能退出设置
+    $("btnSettings").onclick = () => (state.settingsOpen ? closeSettings() : openSettings());
     $("setBack").onclick = closeSettings;
     el.setNav.addEventListener("click", (e) => {
       const tab = e.target.closest(".set-tab");
@@ -2087,6 +2101,9 @@
         if (state.page === "game") { closeGame(); return; }
       }
       if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
+      // 设置页是独立界面：除 Esc（上面已处理）外的快捷键一律不抢，
+      // 免得滚动/切页签时顺带把大厅的焦点、背景甚至游戏启动状态也改了
+      if (state.settingsOpen) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
         e.preventDefault();
         el.search.focus();
@@ -2208,8 +2225,10 @@
           }
           if (g) { g.metadata_state = "notfound"; g.metadata_note = payload.note; }
           render();
-          // 只有正看着这个游戏时才弹候选面板；在大厅里只提示，不打断浏览
-          if (state.focus === payload.id && state.page === "game" && !payload.quiet) {
+          // 只有正看着这个游戏时才弹候选面板；
+          // 大厅里、以及设置页里都只提示一句，别把面板盖到别的界面上
+          if (state.focus === payload.id && state.page === "game" && !payload.quiet
+              && !state.settingsOpen) {
             renderMatches(payload.candidates, "");
             $("matchRetry").hidden = !/网络/.test(payload.note || "");
             openPanel(el.matchPanel);

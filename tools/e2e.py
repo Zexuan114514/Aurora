@@ -57,6 +57,29 @@ def main() -> int:
 
     def run() -> None:
         time.sleep(6)
+
+        def real_click(selector: str):
+            """像真人一样点：按坐标找 elementFromPoint 命中的元素再派发鼠标事件。
+
+            直接用 element.click() 会绕过遮挡，曾经因此漏掉「设置页返回按钮被工具条盖住」
+            这种问题，所以关键点击一律走这里。
+            """
+            return probe(window, """
+              const node = document.querySelector('%s');
+              const r = node.getBoundingClientRect();
+              const x = Math.round(r.left + r.width / 2);
+              const y = Math.round(r.top + r.height / 2);
+              const target = document.elementFromPoint(x, y) || node;
+              for (const type of ['mousedown', 'mouseup', 'click']) {
+                target.dispatchEvent(new MouseEvent(type,
+                  {bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0}));
+              }
+              return JSON.stringify({
+                hits: !!(target.closest && target.closest('%s')),
+                top: target.id || target.className || target.tagName,
+                at: [x, y]});
+            """ % (selector, selector))
+
         try:
             # 1. 空状态
             state = probe(window, """
@@ -189,9 +212,16 @@ def main() -> int:
                              const r = t.getBoundingClientRect();
                              return Math.round(r.x + r.width / 2); })(),
                 vw: innerWidth,
+                getHit: (() => { const b = document.getElementById('btnGetGames');
+                                 const r = b.getBoundingClientRect();
+                                 const el = document.elementFromPoint(
+                                   Math.round(r.left + r.width / 2),
+                                   Math.round(r.top + r.height / 2));
+                                 return !!(el && el.closest('#btnGetGames')); })(),
               });
             """)
             step("大厅出现封面块", hall.get("tiles") == 2 and hall.get("add"), hall)
+            step("大厅「获取游戏」入口可点（没被工具条压住）", bool(hall.get("getHit")), hall.get("getHit"))
             step("焦点封面居中", abs((hall.get("cx") or 0) - (hall.get("vw") or 0) / 2) <= 2,
                  f"cx={hall.get('cx')} vw={hall.get('vw')}")
 
@@ -217,16 +247,74 @@ def main() -> int:
             window.evaluate_js("(() => { %s })()" % (key % "ArrowLeft"))
             time.sleep(1.0)
 
-            window.evaluate_js("document.querySelector('#hallRow .gi.focus').click()")
+            # 横向拖动换封面之后，单击封面必须还能进游戏页（拖拽标志位不能留在按下状态）
+            window.evaluate_js("(() => { %s })()" % (key % "Home"))
+            time.sleep(0.8)
+            dragged = probe(window, """
+              // 找一个封面之间、又不是拖窗口区域的空位，像真人那样在这里按下起手
+              const vp = document.getElementById('hallViewport').getBoundingClientRect();
+              let pt = null;
+              for (let y = vp.top + 16; y < vp.bottom - 16 && !pt; y += 14) {
+                for (let x = vp.left + 16; x < vp.right - 16; x += 14) {
+                  const el = document.elementFromPoint(x, y);
+                  if (!el || el.closest('.gi') || el.closest('[data-drag]') || el.closest('.get-pill')) continue;
+                  pt = [Math.round(x), Math.round(y)];
+                  break;
+                }
+              }
+              if (!pt) return JSON.stringify({error: 'no-empty-spot'});
+              const before = document.getElementById('hallName').textContent;
+              const fire = (node, type, x, y) => node.dispatchEvent(new MouseEvent(type,
+                {bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0}));
+              fire(document.elementFromPoint(pt[0], pt[1]), 'mousedown', pt[0], pt[1]);
+              fire(document, 'mousemove', pt[0] - 220, pt[1]);
+              fire(document, 'mouseup', pt[0] - 220, pt[1]);
+              return JSON.stringify({error: '', before: before, pt: pt});
+            """)
+            time.sleep(0.8)
+            swiped = probe(window, """return JSON.stringify({focus: document.getElementById('hallName').textContent});""")
+            step("鼠标横向拖动切换封面",
+                 not dragged.get("error") and dragged.get("before") != swiped.get("focus"),
+                 f"{dragged.get('before')} -> {swiped.get('focus')} {dragged.get('error') or ''}")
+
+            # 拖动后可能停在末尾的「＋」方块上，所以明确点一张游戏封面
+            target = probe(window, """
+              const t = document.querySelector('#hallRow .gi[data-id]');
+              return JSON.stringify({name: t.getAttribute('title'), id: t.dataset.id});
+            """)
+            hit = real_click("#hallRow .gi[data-id]")
+            time.sleep(1.2)
+            after_drag_click = probe(window, """
+              return JSON.stringify({view: !document.getElementById('view').hidden,
+                                     title: document.getElementById('gTitle').textContent});
+            """)
+            step("拖动换封面后单击封面仍能进入游戏页",
+                 not dragged.get("error") and dragged.get("before") != swiped.get("focus")
+                 and (hit or {}).get("hits") and after_drag_click.get("view")
+                 and after_drag_click.get("title") == target.get("name"), after_drag_click)
+            window.evaluate_js("(() => { %s })()" % (key % "Escape"))
+            time.sleep(1.0)
+            window.evaluate_js("(() => { %s })()" % (key % "Home"))   # 焦点回到第一个游戏
+            time.sleep(0.8)
+
+            hit_enter = real_click("#hallRow .gi.focus")
             time.sleep(1.2)
             entered = probe(window, """
               return JSON.stringify({hall: document.getElementById('hall').hidden,
                                      view: !document.getElementById('view').hidden,
                                      title: document.getElementById('gTitle').textContent,
-                                     back: !document.getElementById('btnBack').hidden});
+                                     back: !document.getElementById('btnBack').hidden,
+                                     backHit: (() => {
+                                       const b = document.getElementById('btnBack');
+                                       const r = b.getBoundingClientRect();
+                                       const el = document.elementFromPoint(
+                                         Math.round(r.left + r.width / 2),
+                                         Math.round(r.top + r.height / 2));
+                                       return !!(el && el.closest('#btnBack')); })()});
             """)
-            step("单击封面进入游戏页",
-                 entered.get("hall") and entered.get("view") and entered.get("back")
+            step("单击封面进入游戏页（按坐标命中）",
+                 (hit_enter or {}).get("hits") and entered.get("hall") and entered.get("view")
+                 and entered.get("back") and entered.get("backHit")
                  and entered.get("title") == game.get("name"), entered)
 
             window.evaluate_js("(() => { %s })()" % (key % "Escape"))
@@ -375,6 +463,35 @@ def main() -> int:
                  and "失败" not in (tab_locale.get("status") or "")
                  and tab_locale.get("download"), tab_locale)
 
+            # 设置页里的滚轮 / 方向键 / 回车不能穿透到大厅（否则背景会跟着换，甚至启动游戏）
+            SCOPE = """
+              const on = document.getElementById('bg-a').classList.contains('on')
+                ? document.getElementById('bg-a') : document.getElementById('bg-b');
+              const inner = on.querySelector('.bg-img');
+              return JSON.stringify({
+                settings: !document.getElementById('settingsView').hidden,
+                focus: document.getElementById('hallName').textContent,
+                bg: inner ? getComputedStyle(inner).backgroundImage.slice(0, 90) : ''});
+            """
+            scope_before = probe(window, SCOPE)
+            window.evaluate_js("""
+              const pane = document.querySelector('#settingsView .set-pane.on');
+              pane.dispatchEvent(new WheelEvent('wheel',
+                {deltaY: 120, deltaX: 0, bubbles: true, cancelable: true}));
+              for (const k of ['ArrowRight', 'ArrowLeft', 'Home', 'End', 'Enter']) {
+                document.dispatchEvent(new KeyboardEvent('keydown', {key: k, bubbles: true}));
+              }
+            """)
+            time.sleep(1.6)
+            scope_after = probe(window, SCOPE)
+            step("设置页里滚轮 / 方向键 / 回车不改大厅状态",
+                 scope_after.get("settings")
+                 and scope_before.get("focus") == scope_after.get("focus")
+                 and scope_before.get("bg") == scope_after.get("bg")
+                 and not api._pm.is_running(game_id),
+                 f"{scope_before.get('focus')} -> {scope_after.get('focus')}"
+                 f" / 进程运行中={api._pm.is_running(game_id)}")
+
             window.evaluate_js(
                 "document.dispatchEvent(new KeyboardEvent('keydown',"
                 "{key:'Escape',bubbles:true}))")
@@ -388,6 +505,84 @@ def main() -> int:
             step("Esc 关设置回大厅且焦点没变",
                  (not back_hall.get("settings")) and back_hall.get("hall")
                  and back_hall.get("focus") == game_id, back_hall)
+
+            # 鼠标退出设置：返回按钮不能被工具条盖住，齿轮也要能开能关
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.5)
+            win_btns = probe(window, """
+              const hit = (id) => {
+                const b = document.getElementById(id);
+                const r = b.getBoundingClientRect();
+                const el = document.elementFromPoint(Math.round(r.left + r.width / 2),
+                                                    Math.round(r.top + r.height / 2));
+                return !!(el && el.closest('#' + id));
+              };
+              return JSON.stringify({min: hit('btnMin'), close: hit('btnClose')});
+            """)
+            back_hit = real_click("#setBack")
+            time.sleep(1.3)
+            after_back = probe(window, """
+              return JSON.stringify({settings: !document.getElementById('settingsView').hidden,
+                                     hall: !document.getElementById('hall').hidden});
+            """)
+            step("鼠标点「← 返回」能退出设置（按钮不被工具条遮挡）",
+                 (back_hit or {}).get("hits") and win_btns.get("min") and win_btns.get("close")
+                 and (not after_back.get("settings")) and after_back.get("hall"),
+                 {"hit": back_hit, "win": win_btns, "after": after_back})
+
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.4)
+            gear_open = probe(window, """
+              return JSON.stringify({
+                settings: !document.getElementById('settingsView').hidden,
+                on: document.getElementById('btnSettings').classList.contains('on'),
+                searchHidden: getComputedStyle(
+                  document.querySelector('#toolbar .search')).display === 'none'});
+            """)
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.3)
+            gear_closed = probe(window, """
+              return JSON.stringify({settings: !document.getElementById('settingsView').hidden,
+                                     searchHidden: getComputedStyle(
+                                       document.querySelector('#toolbar .search')).display === 'none',
+                                     hall: !document.getElementById('hall').hidden});
+            """)
+            step("齿轮能开也能关，设置态收起搜索与排序",
+                 gear_open.get("settings") and gear_open.get("on") and gear_open.get("searchHidden")
+                 and (not gear_closed.get("settings")) and (not gear_closed.get("searchHidden"))
+                 and gear_closed.get("hall"),
+                 {"open": gear_open, "closed": gear_closed})
+
+            # 设置页期间后台搜索结束：只提示一句，不能把候选面板盖到设置页上
+            real_click("#hallRow .gi[data-id]")
+            time.sleep(1.3)
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.5)
+            window.evaluate_js("""
+              window.__aurora.emit('metadata:notfound', {id: '%s', note: '没有找到匹配结果',
+                                                         candidates: [], quiet: false});
+            """ % game_id)
+            time.sleep(1.2)
+            panel_scope = probe(window, """
+              return JSON.stringify({
+                settings: !document.getElementById('settingsView').hidden,
+                match: document.getElementById('matchPanel').classList.contains('open'),
+                body: !document.getElementById('view').hidden});
+            """)
+            step("设置页期间搜索结束不把面板盖上来",
+                 panel_scope.get("settings") and not panel_scope.get("match"), panel_scope)
+            window.evaluate_js("(() => { %s })()" % (key % "Escape"))
+            time.sleep(1.2)
+            window.evaluate_js("(() => { %s })()" % (key % "Escape"))
+            time.sleep(1.2)
+            closed_again = probe(window, """
+              return JSON.stringify({hall: !document.getElementById('hall').hidden,
+                                     view: document.getElementById('view').hidden,
+                                     match: document.getElementById('matchPanel').classList.contains('open')});
+            """)
+            step("连按 Esc：先关设置再回大厅",
+                 closed_again.get("hall") and closed_again.get("view")
+                 and not closed_again.get("match"), closed_again)
 
             # 3.11 更多菜单 → 转区启动面板
             window.evaluate_js("document.getElementById('btnMore').click()")
