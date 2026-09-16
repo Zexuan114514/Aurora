@@ -21,6 +21,8 @@ WS_EX_TOOLWINDOW = 0x00000080
 SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0x0002
 SWP_NOACTIVATE = 0x0010
+SWP_SHOWWINDOW = 0x0040
+SW_SHOWNOACTIVATE = 4
 HWND_TOPMOST = -1
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
@@ -96,7 +98,7 @@ class Overlay:
                     "Aurora 翻译", url=str(HTML_PATH),
                     js_api=OverlayBridge(self),
                     width=view["width"], height=view["height"], x=x, y=y,
-                    frameless=True, on_top=True, transparent=True,
+                    frameless=True, on_top=True, transparent=True, hidden=False,
                     background_color="#000000", resizable=True, easy_drag=False)
             except Exception as exc:
                 config.log(f"overlay create failed: {exc}")
@@ -122,15 +124,29 @@ class Overlay:
         if not hwnd:
             return False
         style = user32.GetWindowLongW(wintypes.HWND(hwnd), GWL_EXSTYLE)
-        base = style | WS_EX_LAYERED | WS_EX_TOOLWINDOW
+        # 不再用 WS_EX_TOOLWINDOW：那样窗口不进任务栏/Alt+Tab，用户既找不到也没法把它
+        # 切到前台（反馈里「进程在但看不到窗口」就是这个坑）
+        base = (style | WS_EX_LAYERED) & ~WS_EX_TOOLWINDOW
         if self._click_through:
             base |= WS_EX_TRANSPARENT
         else:
             base &= ~WS_EX_TRANSPARENT
         user32.SetWindowLongW(wintypes.HWND(hwnd), GWL_EXSTYLE, base)
-        user32.SetWindowPos(wintypes.HWND(hwnd), wintypes.HWND(HWND_TOPMOST), 0, 0, 0, 0,
-                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
+        self._force_top()
         return True
+
+    def _force_top(self) -> bool:
+        """显式显示并抬到最前：光靠 pywebview 的 on_top 在游戏窗口前不够稳。"""
+        hwnd = self._hwnd()
+        if not hwnd:
+            return False
+        try:
+            user32.ShowWindow(wintypes.HWND(hwnd), SW_SHOWNOACTIVATE)
+        except Exception:
+            pass
+        return bool(user32.SetWindowPos(
+            wintypes.HWND(hwnd), wintypes.HWND(HWND_TOPMOST), 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW))
 
     def set_click_through(self, on: bool, *, persist: bool = True) -> dict:
         with self._lock:
@@ -155,6 +171,11 @@ class Overlay:
         except Exception:
             pass
         self._visible = True
+        try:
+            self._window.on_top = True      # pywebview 也支持运行时改置顶
+        except Exception:
+            pass
+        self._force_top()
         self.update({})
         return {"ok": True}
 
