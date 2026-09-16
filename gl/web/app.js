@@ -48,7 +48,7 @@
     catTitle: $("catTitle"), catSub: $("catSub"), catActions: $("catActions"),
     catCreate: $("catCreate"), catName: $("catName"), catHint: $("catHint"),
     catQuery: $("catQuery"), catSort: $("catSort"),
-    scopePill: $("scopePill"), scopeLabel: $("scopeLabel"),
+    scopePill: $("scopePill"), scopeLabel: $("scopeLabel"), scopeMenu: $("scopeMenu"),
     netStatus: $("netStatus"), netResults: $("netResults"),
     leStatus: $("leStatus"), leProfiles: $("leProfiles"),
     toast: $("toast"),
@@ -296,6 +296,7 @@
     const scope = state.scope;
     if (scope.type === "shelf") return (game.bookshelf_ids || []).includes(scope.value);
     if (scope.type === "unfiled") return !(game.bookshelf_ids || []).length;
+    if (scope.type === "fav") return !!game.favorite;
     if (scope.type === "status") return (game.status || "") === scope.value;
     if (scope.type === "dev") return (game.developers || []).includes(scope.value);
     return true;
@@ -307,6 +308,7 @@
       return shelf ? shelf.name : "分类";
     }
     if (scope.type === "unfiled") return "未分类";
+    if (scope.type === "fav") return "已收藏";
     if (scope.type === "status") return STATUS_LABEL[scope.value] ?? "状态";
     if (scope.type === "dev") return scope.value;
     return "全部游戏";
@@ -316,8 +318,8 @@
 
   function syncScopePill() {
     const active = state.scope.type !== "all";
-    el.scopePill.hidden = !active;
-    if (active) el.scopeLabel.textContent = `${scopeName()} · ${scopeCount()}`;
+    el.scopeLabel.textContent = `${scopeName()} · ${scopeCount()}`;
+    $("scopeClear").hidden = !active;
   }
 
   function setScope(type, value = "") {
@@ -715,9 +717,11 @@
   function renderCatRoots() {
     const total = state.shelfStats.total ?? state.games.length;
     const unfiled = state.shelfStats.unfiled ?? 0;
+    const favorite = state.games.filter((g) => g.favorite).length;
     el.catRoots.innerHTML =
       catItem(state.scope.type === "all", 'data-scope="all"', "全部游戏", total)
-      + catItem(state.scope.type === "unfiled", 'data-scope="unfiled"', "未分类", unfiled);
+      + catItem(state.scope.type === "unfiled", 'data-scope="unfiled"', "未分类", unfiled)
+      + catItem(state.scope.type === "fav", 'data-scope="fav"', "已收藏", favorite);
   }
 
   function renderCatShelves() {
@@ -875,6 +879,65 @@
     try {
       applyShelfPayload(await call("list_shelves"));
     } catch (_) { /* 离线时保留现有状态 */ }
+  }
+
+  /* 主页作用域菜单：不用进分类界面也能直接选一个范围 */
+  function scopeRow(type, value, label, count) {
+    const on = state.scope.type === type && (state.scope.value || "") === (value || "");
+    return `<button class="${on ? "on" : ""}" data-scope-type="${esc(type)}"
+                    data-scope-value="${esc(value || "")}">
+      <span>${esc(label)}</span><small>${count}</small></button>`;
+  }
+
+  function renderScopeMenu() {
+    const rows = [];
+    rows.push(`<div class="scope-group">范围</div>`);
+    rows.push(scopeRow("all", "", "全部游戏", state.games.length));
+    rows.push(scopeRow("unfiled", "", "未分类",
+                       state.shelfStats.unfiled ?? state.games.filter(
+                         (g) => !(g.bookshelf_ids || []).length).length));
+    rows.push(scopeRow("fav", "", "已收藏",
+                       state.games.filter((g) => g.favorite).length));
+    if (state.shelves.length) {
+      rows.push(`<div class="scope-group">自定义分类</div>`);
+      for (const shelf of state.shelves) {
+        rows.push(scopeRow("shelf", shelf.id, shelf.name, shelf.count ?? 0));
+      }
+    }
+    rows.push(`<div class="scope-group">按状态</div>`);
+    for (const value of STATUS_ORDER) {
+      const count = state.games.filter((g) => (g.status || "") === value).length;
+      rows.push(scopeRow("status", value, STATUS_LABEL[value], count));
+    }
+    const devs = new Map();
+    for (const game of state.games) {
+      for (const dev of (game.developers || [])) {
+        if (dev) devs.set(dev, (devs.get(dev) || 0) + 1);
+      }
+    }
+    if (devs.size) {
+      rows.push(`<div class="scope-group">按开发商</div>`);
+      for (const [name, count] of [...devs.entries()]
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh")).slice(0, 12)) {
+        rows.push(scopeRow("dev", name, name, count));
+      }
+    }
+    el.scopeMenu.innerHTML = rows.join("");
+  }
+
+  function openScopeMenu() {
+    renderScopeMenu();
+    el.scopeMenu.hidden = false;
+    const rect = el.scopePill.getBoundingClientRect();
+    const box = el.scopeMenu.getBoundingClientRect();
+    let left = Math.round(rect.left);
+    left = Math.max(12, Math.min(window.innerWidth - box.width - 12, left));
+    let top = Math.round(rect.bottom + 8);
+    if (top + box.height > window.innerHeight - 12) {
+      top = Math.max(80, Math.round(rect.top - box.height - 8));
+    }
+    el.scopeMenu.style.left = left + "px";
+    el.scopeMenu.style.top = top + "px";
   }
 
   function setOrganizing(on) {
@@ -1469,6 +1532,7 @@
     el.moreMenu.hidden = true;
     el.sortMenu.hidden = true;
     el.addMenu.hidden = true;
+    el.scopeMenu.hidden = true;
   };
 
   /* ---------------------------------------------------------- 动作 */
@@ -2352,7 +2416,22 @@
         setView("home");
       }
     });
-    $("scopePill").onclick = () => { setScope("all"); toast("已显示全部游戏"); };
+    $("scopePick").onclick = () => {
+      const wasHidden = el.scopeMenu.hidden;
+      closeAll();
+      if (wasHidden) openScopeMenu();
+    };
+    $("scopeClear").onclick = () => {
+      el.scopeMenu.hidden = true;
+      setScope("all");
+      toast("已显示全部游戏");
+    };
+    el.scopeMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-scope-type]");
+      if (!btn) return;
+      el.scopeMenu.hidden = true;
+      setScope(btn.dataset.scopeType, btn.dataset.scopeValue || "");
+    });
 
     // 分类工作区（事件委托，界面重绘后依然有效）
     el.categoriesView.addEventListener("click", async (e) => {
@@ -2653,6 +2732,7 @@
       if (!e.target.closest("#moreMenu, #btnMore")) el.moreMenu.hidden = true;
       if (!e.target.closest("#sortMenu, #btnSort")) el.sortMenu.hidden = true;
       if (!e.target.closest("#addMenu, .gi-add")) el.addMenu.hidden = true;
+      if (!e.target.closest("#scopeMenu, #scopePill")) el.scopeMenu.hidden = true;
     });
     document.addEventListener("keydown", (e) => {
       const tag = (e.target && e.target.tagName) || "";
@@ -2661,7 +2741,8 @@
         const anyOpen = [el.bgPanel, el.detailPanel, el.matchPanel, el.sourcePanel,
                          el.coverPanel, el.steamPanel, el.localePanel, el.getPanel]
           .some((p) => p.classList.contains("open"));
-        const menuOpen = !el.moreMenu.hidden || !el.sortMenu.hidden || !el.addMenu.hidden;
+        const menuOpen = !el.moreMenu.hidden || !el.sortMenu.hidden || !el.addMenu.hidden
+          || !el.scopeMenu.hidden;
         if (anyOpen || menuOpen) { closeAll(); return; }
         if (state.settingsOpen) { closeSettings(); return; }
         if (state.view === "categories") { setView("home"); return; }

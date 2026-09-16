@@ -599,7 +599,7 @@ def main() -> int:
             """)
             step("分类界面能打开且盖住大厅",
                  cat_open.get("open") and cat_open.get("hall") and cat_open.get("cards") == 1
-                 and cat_open.get("roots") == 2 and cat_open.get("inside"), cat_open)
+                 and cat_open.get("roots") == 3 and cat_open.get("inside"), cat_open)
 
             window.evaluate_js("document.getElementById('catNew').click()")
             time.sleep(0.5)
@@ -644,6 +644,13 @@ def main() -> int:
                  bool(shelf_id) and shelf_id in (api._library.get(game_id).get("bookshelf_ids") or []),
                  f"shelf={shelf_id}")
 
+            window.evaluate_js("document.querySelector('#catWall .cat-card').click()")
+            time.sleep(0.7)
+            window.evaluate_js("document.querySelector('[data-catbar=fav]').click()")
+            time.sleep(1.6)
+            favs = [bool(g.get("favorite")) for g in api._library.all()]
+            step("整理模式能批量收藏", any(favs), str(favs))
+
             window.evaluate_js("document.querySelector('#catShelves .cat-item').click()")
             time.sleep(1.2)
             window.evaluate_js("document.querySelector('.vs-btn[data-view=home]').click()")
@@ -656,14 +663,48 @@ def main() -> int:
             step("主页按分类过滤 + 作用域胶囊",
                  scoped.get("tiles") == 1 and "E2E 分类" in (scoped.get("pill") or ""), scoped)
 
-            window.evaluate_js("document.getElementById('scopePill').click()")
+            window.evaluate_js("document.getElementById('scopePick').click()")
+            time.sleep(1.3)
+            scope_menu = probe(window, """
+              const m = document.getElementById('scopeMenu');
+              const r = m.getBoundingClientRect();
+              const items = [...m.querySelectorAll('button[data-scope-type]')]
+                .map((b) => b.textContent.trim());
+              return JSON.stringify({open: !m.hidden, items: items,
+                                     inside: r.bottom <= innerHeight + 1 && r.left >= -1
+                                             && r.right <= innerWidth + 1});
+            """)
+            step("主页能直接选分类（作用域菜单）",
+                 scope_menu.get("open")
+                 and any("E2E 分类" in x for x in (scope_menu.get("items") or []))
+                 and any("已收藏" in x for x in (scope_menu.get("items") or []))
+                 and scope_menu.get("inside"), scope_menu)
+
+            window.evaluate_js("""
+              const btn = [...document.querySelectorAll('#scopeMenu button[data-scope-type]')]
+                .find((b) => b.textContent.includes('已收藏'));
+              btn.click();
+            """)
+            time.sleep(1.5)
+            fav_scope = probe(window, """
+              return JSON.stringify({label: document.getElementById('scopeLabel').textContent,
+                                     tiles: document.querySelectorAll('#hallRow .gi[data-id]').length,
+                                     menu: document.getElementById('scopeMenu').hidden});
+            """)
+            step("「已收藏」能当分类用",
+                 fav_scope.get("menu") and "已收藏" in (fav_scope.get("label") or "")
+                 and fav_scope.get("tiles") == 1, fav_scope)
+
+            window.evaluate_js("document.getElementById('scopeClear').click()")
             time.sleep(1.3)
             cleared_scope = probe(window, """
               return JSON.stringify({tiles: document.querySelectorAll('#hallRow .gi[data-id]').length,
-                                     pill: document.getElementById('scopePill').hidden});
+                                     cleared: document.getElementById('scopeClear').hidden,
+                                     label: document.getElementById('scopeLabel').textContent});
             """)
             step("作用域胶囊能清除筛选",
-                 cleared_scope.get("tiles") == 1 and cleared_scope.get("pill"), cleared_scope)
+                 cleared_scope.get("tiles") == 1 and cleared_scope.get("cleared")
+                 and "全部" in (cleared_scope.get("label") or ""), cleared_scope)
 
             # 状态：从分类界面的封面打开详情面板再改
             window.evaluate_js("document.querySelector('.vs-btn[data-view=categories]').click()")

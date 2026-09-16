@@ -35,16 +35,16 @@
 ==============================================================================
 2) 多源搜索与匹配
 ==============================================================================
-  OK   'ELDEN RING' -> steam:1245620 'ELDEN RING' score=1.0 (0.0s)
-  OK   'Cyberpunk2077' -> steam:1091500 'Cyberpunk 2077' score=1.0 (0.0s)
-  OK   'Black Myth Wukong' -> steam:2358720 'Black Myth: Wukong' score=1.0 (0.0s)
-  OK   'Hades' -> steam:1145360 'Hades' score=1.0 (0.0s)
+  OK   'ELDEN RING' -> steam:1245620 'ELDEN RING' score=1.0 (0.1s)
+  OK   'Cyberpunk2077' -> steam:1091500 'Cyberpunk 2077' score=1.0 (0.1s)
+  OK   'Black Myth Wukong' -> steam:2358720 'Black Myth: Wukong' score=1.0 (0.1s)
+  OK   'Hades' -> steam:1145360 'Hades' score=1.0 (0.1s)
   OK   'Stardew Valley' -> steam:413150 'Stardew Valley' score=1.0 (0.0s)
-  OK   'Hollow Knight' -> steam:367520 'Hollow Knight' score=1.0 (0.0s)
+  OK   'Hollow Knight' -> steam:367520 'Hollow Knight' score=1.0 (0.1s)
   OK   'Baldurs Gate 3' -> steam:1086940 "Baldur's Gate 3" score=1.0 (0.0s)
   OK   'It Takes Two' -> steam:1426210 'It Takes Two' score=1.0 (0.0s)
-  OK   '黑神话悟空' -> steam:2358720 '黑神话：悟空' score=1.0 (7.3s)
-  OK   'witcher3' -> steam:292030 'The Witcher 3: Wild Hunt - Complete Edition' score=0.8375 (0.0s)
+  OK   '黑神话悟空' -> steam:2358720 '黑神话：悟空' score=1.0 (2.5s)
+  OK   'witcher3' -> steam:292030 'The Witcher 3: Wild Hunt - Complete Edition' score=0.8375 (0.1s)
 
 ==============================================================================
 3) 详情与背景图候选

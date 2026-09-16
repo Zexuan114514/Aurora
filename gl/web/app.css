@@ -26,6 +26,10 @@
   --ink-strong: #ffffff;
   --app-bg: #05050a;
   --option-bg: #1c1c22;
+  --scrim-rgb: 0, 0, 0;          /* 壁纸压暗方向（浅色主题翻成提亮） */
+  --scrim-boost: 1;
+  --veil-ink: #05050a;           /* 非焦点封面的压暗色 */
+  --text-shadow: 0 3px 20px rgba(0, 0, 0, 0.7);
   --fil100: rgba(255, 255, 255, 0.100);
   --fil110: rgba(255, 255, 255, 0.110);
   --fil130: rgba(255, 255, 255, 0.130);
@@ -147,15 +151,17 @@ button, input, select { font: inherit; color: inherit; }
   inset: 0;
   background:
     linear-gradient(to top,
-      rgba(0, 0, 0, calc(var(--scrim) * 1.15)) 0%,
-      rgba(0, 0, 0, calc(var(--scrim) * 0.62)) 38%,
-      rgba(0, 0, 0, calc(var(--scrim) * 0.22)) 100%),
-    radial-gradient(115% 78% at 12% 105%, rgba(0, 0, 0, calc(var(--scrim) * 0.85)), transparent 62%);
+      rgba(var(--scrim-rgb), calc(var(--scrim) * 1.15 * var(--scrim-boost))) 0%,
+      rgba(var(--scrim-rgb), calc(var(--scrim) * 0.62 * var(--scrim-boost))) 38%,
+      rgba(var(--scrim-rgb), calc(var(--scrim) * 0.22 * var(--scrim-boost))) 100%),
+    radial-gradient(115% 78% at 12% 105%,
+      rgba(var(--scrim-rgb), calc(var(--scrim) * 0.85 * var(--scrim-boost))), transparent 62%);
 }
 #bg-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(130% 120% at 50% 40%, transparent 42%, rgba(0, 0, 0, 0.45) 100%);
+  background: radial-gradient(130% 120% at 50% 40%, transparent 42%,
+    rgba(var(--scrim-rgb), 0.35) 100%);
   pointer-events: none;
 }
 
@@ -361,7 +367,7 @@ button, input, select { font: inherit; color: inherit; }
 }
 .gi .veil {
   position: absolute; inset: 0; z-index: 2;
-  background: var(--app-bg);
+  background: var(--veil-ink);      /* 非焦点封面的压暗色：浅色主题改用深灰，别把画洗白 */
   opacity: 0.45;
   pointer-events: none;
   transition: opacity 0.45s var(--ease);
@@ -449,16 +455,16 @@ button, input, select { font: inherit; color: inherit; }
 .hall-info { min-width: 0; }
 .hall-name {
   font-size: 22px; font-weight: 640; letter-spacing: 0.2px;
-  text-shadow: 0 3px 20px rgba(0, 0, 0, 0.7);
+  text-shadow: var(--text-shadow);
 }
 .hall-sub {
   font-size: 12.5px; color: var(--text-2); margin-top: 4px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+  text-shadow: var(--text-shadow);
 }
 .hall-hint {
   flex: none; text-align: right;
   font-size: 11.5px; color: var(--text-3); line-height: 1.85;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+  text-shadow: var(--text-shadow);
 }
 .hall-hint span { display: block; }
 .hall-hint b { color: var(--text-2); font-weight: 600; }
@@ -1518,9 +1524,13 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   --ink-strong: #14161d;
   --app-bg: #e9e9ee;
   --option-bg: #ffffff;
+  --scrim-rgb: 255, 255, 255;    /* 浅色：把壁纸提亮，深色文字才读得出来 */
+  --scrim-boost: 1.45;
+  --veil-ink: #2b2e38;           /* 非焦点封面仍然压暗（不要把画面洗白） */
+  --text-shadow: 0 2px 16px rgba(255, 255, 255, 0.85);
   --text: #14161d;
   --text-2: rgba(20, 22, 29, 0.74);
-  --text-3: rgba(20, 22, 29, 0.52);
+  --text-3: rgba(20, 22, 29, 0.64);     /* 快捷键提示压在壁纸上，太淡会读不出来 */
   --fil100: rgba(18, 20, 28, 0.110);
   --fil110: rgba(18, 20, 28, 0.121);
   --fil130: rgba(18, 20, 28, 0.143);
@@ -1748,6 +1758,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   display: grid; place-items: center;
   font-size: 30px; font-weight: 600; color: var(--text-3);
 }
+.cat-art img { position: relative; z-index: 1; }        /* 首字兜底只垫在图片下面 */
+.cat-art.img-broken img { display: none; }
 .cat-card:hover .cat-art { transform: translateY(-3px); }
 .cat-card.on .cat-art { box-shadow: 0 0 0 2px var(--accent), 0 12px 28px -18px rgba(0, 0, 0, 0.8); }
 .cat-mark {
@@ -1793,9 +1805,43 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
   display: flex; align-items: center; gap: 8px;
   animation: rise 0.45s var(--ease-out) both;
 }
-.scope-pill { position: static; display: inline-flex; align-items: center; gap: 7px; }
-.scope-pill .ic { width: 12px; height: 12px; opacity: 0.7; }
+.scope-pill {
+  position: static;
+  display: inline-flex; align-items: center;
+  padding: 0 6px 0 0;
+  gap: 2px;
+}
+.scope-main, .scope-clear {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 8px;
+  border: none; border-radius: 999px;
+  background: none; color: inherit; cursor: pointer; font-size: inherit;
+}
+.scope-main:hover, .scope-clear:hover { background: var(--fil100); }
+.scope-clear { padding: 0 7px; }
+.scope-pill .ic { width: 13px; height: 13px; opacity: 0.75; }
 .scope-pill:hover .ic { opacity: 1; }
+.scope-menu { min-width: 236px; max-height: 62vh; overflow-y: auto; }
+.scope-menu .scope-group {
+  padding: 8px 12px 3px;
+  font-size: 10.5px; letter-spacing: 0.6px; color: var(--text-3);
+}
+.scope-menu button {
+  display: flex; align-items: center; gap: 8px;
+  height: 34px; padding: 0 12px;
+  border: none; border-radius: 11px;
+  background: none; color: var(--text);
+  font-size: 13px; text-align: left; cursor: pointer;
+}
+.scope-menu button:hover { background: var(--fil130); }
+.scope-menu button.on {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+  font-weight: 600;
+}
+.scope-menu button span { flex: 1; min-width: 0; overflow: hidden;
+                          text-overflow: ellipsis; white-space: nowrap; }
+.scope-menu button small { flex: none; font-size: 11px; color: var(--text-3);
+                           font-variant-numeric: tabular-nums; }
 
 /* 游玩状态徽标 */
 .gi-badge.st-playing { color: #30D158; }
