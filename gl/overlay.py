@@ -109,8 +109,12 @@ class Overlay:
                     "Aurora 翻译", url=str(HTML_PATH),
                     js_api=OverlayBridge(self),
                     width=width, height=height, **place,
-                    frameless=True, on_top=True, transparent=True, hidden=False,
-                    background_color="#000000", resizable=True, easy_drag=False)
+                    frameless=True, on_top=True, hidden=False,
+                    # 不再用 transparent=True：那是逐像素 alpha 的分层窗口，
+                    # 命中测试按像素 alpha 走，外部清 WS_EX_TRANSPARENT 也点不到
+                    # （反馈里的「提示已可点击但鼠标仍穿透」就是它）。改成实心窗，
+                    # 靠 WS_EX_TRANSPARENT 开关穿透，行为可预期。
+                    background_color="#14161f", resizable=True, easy_drag=False)
             except Exception as exc:
                 config.log(f"overlay create failed: {exc}")
                 self._window = None

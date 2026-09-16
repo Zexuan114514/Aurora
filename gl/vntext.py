@@ -127,6 +127,21 @@ def parse_hook_line(raw: str) -> dict | None:
             "name": name, "code": code}
 
 
+KANA_RE = re.compile(r"[\u3040-\u30ff]")
+CJK_RE = re.compile(r"[\u4e00-\u9fff]")
+
+
+def looks_like_dialogue(text: str) -> bool:
+    """像不像游戏里的台词：有假名、有一定长度、不是纯符号/菜单。"""
+    body = (text or "").strip()
+    if len(body) < 4 or len(body) > 400:
+        return False
+    if looks_like_noise(body):
+        return False
+    kana = len(KANA_RE.findall(body))
+    return kana >= 2 or (kana >= 1 and len(CJK_RE.findall(body)) >= 2)
+
+
 def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
     """过滤纯数字/符号、过短、系统菜单这类不该翻的行。"""
     body = text.strip()
@@ -176,7 +191,8 @@ class VnTextEngine:
             active = self._active_key()
             threads = sorted(
                 ({"key": key, "name": row["name"], "code": row["code"],
-                  "count": row["count"], "sample": row["sample"],
+                  "count": row["count"], "dialogue": row.get("dialogue", 0),
+                  "sample": row["sample"],
                   "active": key == active}
                  for key, row in self._seen.items()),
                 key=lambda row: -row["count"])
@@ -211,7 +227,9 @@ class VnTextEngine:
             return self._locked
         if not self._seen:
             return ""
-        return max(self._seen.items(), key=lambda item: item[1]["count"])[0]
+        # 优先挑「像台词」的行数最多的线程，其次才看总行数
+        return max(self._seen.items(),
+                   key=lambda item: (item[1].get("dialogue", 0), item[1]["count"]))[0]
 
     # ------------------------------------------------------------------ #
     def start(self, game_id: str, pid: int, mode: str = "auto", exe: str = "") -> dict:
@@ -355,6 +373,8 @@ class VnTextEngine:
                                                       "code": parsed["code"], "count": 0,
                                                       "sample": ""})
                     row["count"] += 1
+                    if looks_like_dialogue(parsed["text"]):
+                        row["dialogue"] = row.get("dialogue", 0) + 1
                     row["sample"] = parsed["text"][:60]
                     if parsed["code"]:
                         row["code"] = parsed["code"]
@@ -363,11 +383,17 @@ class VnTextEngine:
                 if self._locked and not (key == self._locked
                                          or key.startswith(self._locked)):
                     continue
-                # 自动模式：等某个线程明显领先（≥5 行）之后，才丢弃其它线程的文本。
-                # 刚开始时谁都不知道哪个线程是正文，过早过滤会把真正的台词也丢掉。
-                leader = self._seen.get(active, {}).get("count", 0)
-                if not self._locked and active and key != active and leader >= 5:
-                    continue
+                # 自动模式：只在「已经有一个明确在说台词的线程」时，才丢弃别的线程。
+                # 之前按总行数判断，会被 Textractor 自己的状态行（例如「连接到 …」）
+                # 抢先当上领跑者，把真正的台词线程整个丢掉——反馈里的「翻页不翻译」
+                # 就是这个原因。
+                if not self._locked and active and key != active:
+                    leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
+                    if leader_dialogue >= 3 and looks_like_dialogue(parsed["text"]):
+                        self._emit(parsed["text"], "hook")
+                        continue
+                    if leader_dialogue >= 3:
+                        continue
                 self._emit(parsed["text"], "hook")
         if not self._stop.is_set():
             self._error = self._error or "hook-closed"
