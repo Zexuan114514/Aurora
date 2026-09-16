@@ -1076,6 +1076,9 @@
     if (running && state.pid) parts.push(`PID ${state.pid}`);
     parts.push(`已译 ${state.lines || 0} 句`);
     if (running && !state.llm_ready) parts.push("没配 LLM Key：正在用免费接口，质量与速度较差");
+    if (running && state.engine === "hook" && state.game_locale === false) {
+      parts.push("这个游戏没开转区：日文原版很容易出乱码，建议用「⋯ → 转区启动…」开启后再翻译");
+    }
     const hk = state.hotkeys || {};
     if (running && hk.registered && hk.registered.length) {
       parts.push("Ctrl+Alt+T 切换穿透");

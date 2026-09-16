@@ -127,6 +127,24 @@ def parse_hook_line(raw: str) -> dict | None:
             "name": name, "code": code}
 
 
+GARBAGE_RE = re.compile(r"[\ue000-\uf8ff\ufffd\ufff0-\uffff\x00-\x08\x0b\x0c\x0e-\x1f]")
+GOOD_RE = re.compile(r"[\u3040-\u30ff\u4e00-\u9fff\uff01-\uff60a-zA-Z0-9\s，。、！？…—「」『』（）()：:；;・～~ー]")
+
+def looks_like_garbage(text: str) -> bool:
+    """乱码判定：未转区（非日语代码页）时游戏会吐出假名+私用区/控制符混杂的串。"""
+    body = (text or "").strip()
+    if not body:
+        return True
+    if GARBAGE_RE.search(body):
+        return True
+    if len(body) >= 4:
+        good = len(GOOD_RE.findall(body))
+        if good / len(body) < 0.7:      # 大半是看不懂的符号/生僻字
+            return True
+        if len(set(body)) <= 3 and len(body) >= 5:
+            return True
+    return False
+
 KANA_RE = re.compile(r"[\u3040-\u30ff]")
 CJK_RE = re.compile(r"[\u4e00-\u9fff]")
 
@@ -150,6 +168,8 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
     if not re.search(r"[^\W\d_]", body, re.UNICODE):        # 全是数字/符号
         return True
     if any(word in body for word in NOISE_WORDS):
+        return True
+    if looks_like_garbage(body):
         return True
     if len(set(body)) <= 2 and len(body) >= 6:              # 分割线之类
         return True
@@ -389,11 +409,8 @@ class VnTextEngine:
                 # 就是这个原因。
                 if not self._locked and active and key != active:
                     leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
-                    if leader_dialogue >= 3 and looks_like_dialogue(parsed["text"]):
-                        self._emit(parsed["text"], "hook")
-                        continue
                     if leader_dialogue >= 3:
-                        continue
+                        continue          # 已有明确的台词线程，其它线程一律不看
                 self._emit(parsed["text"], "hook")
         if not self._stop.is_set():
             self._error = self._error or "hook-closed"

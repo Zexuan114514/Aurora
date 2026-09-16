@@ -501,6 +501,8 @@ class Api:
             "llm_ready": bool(str(settings.get("translate_api_key") or "").strip()),
             "context_lines": int(settings.get("vntext_context_lines") or 4),
             "history": self._translator.history(10),
+            "game_locale": bool((self._library.get(str(state.get("game_id") or "")) or {})
+                                .get("locale_enabled")),
         })
         return state
 
@@ -723,8 +725,9 @@ class Api:
                                        "translation": payload.get("translation") or "",
                                        "provider": payload.get("provider") or ""})
         elif kind == "error":
-            self._overlay.update({"lines": {"translation": text, "status": "error"},
-                                  "notice": "翻译失败，请检查网络或 LLM 配置"})
+            # 失败时保留上一句译文，只提示一句，避免「真文本一闪而过」
+            self._overlay.update({"status": "error",
+                                  "notice": "这句没翻出来（可能是乱码或网络问题）"})
             self._emit("vntext:line", {"phase": "error", "text": text,
                                        "error": payload.get("error") or ""})
 
