@@ -994,13 +994,20 @@ def main() -> int:
                  (translated or "")[:60])
 
             vn_panel = probe(window, """
+              // 只看 classList 会漏掉「面板 open 了但 CSS 没写规则、永远 opacity:0」
+              // 这类问题，所以这里查计算样式
+              const p = document.getElementById('vntextPanel');
+              const cs = getComputedStyle(p);
+              const rect = p.getBoundingClientRect();
               return JSON.stringify({
-                open: document.getElementById('vntextPanel').classList.contains('open'),
+                open: p.classList.contains('open'),
+                visible: cs.opacity !== '0' && cs.pointerEvents !== 'none' && rect.height > 10,
                 threads: document.querySelectorAll('#vnThreads .vn-thread').length,
                 state: document.getElementById('vnState').textContent});
             """)
-            step("翻译面板显示运行状态与线程",
-                 vn_panel.get("open") and vn_panel.get("threads", 0) >= 1
+            step("翻译面板可见且显示运行状态与线程",
+                 vn_panel.get("open") and vn_panel.get("visible")
+                 and vn_panel.get("threads", 0) >= 1
                  and "正在翻译" in (vn_panel.get("state") or ""), vn_panel)
 
             overlay_text = ""

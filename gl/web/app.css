@@ -900,14 +900,14 @@ body.settings-open #btnSort { display: none; }
 }
 #bgPanel.open, #coverPanel.open { transform: none; opacity: 1; pointer-events: auto; }
 
-#detailPanel, #matchPanel, #steamPanel, #sourcePanel, #localePanel, #getPanel {
+#detailPanel, #matchPanel, #steamPanel, #sourcePanel, #localePanel, #vntextPanel, #getPanel {
   left: 24px; right: 12px; bottom: 12px;
   max-height: 72%;
   border-radius: 28px;
   transform: translateY(calc(100% + 24px));
 }
 #detailPanel.open, #matchPanel.open, #steamPanel.open,
-#sourcePanel.open, #localePanel.open, #getPanel.open {
+#sourcePanel.open, #localePanel.open, #vntextPanel.open, #getPanel.open {
   transform: none; opacity: 1; pointer-events: auto;
 }
 
