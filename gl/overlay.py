@@ -91,13 +91,24 @@ class Overlay:
                 return False
             view = self._view()
             screen_w, screen_h = _screen_size()
-            x = view["x"] or max(40, (screen_w - view["width"]) // 2)
-            y = view["y"] or max(40, screen_h - view["height"] - 120)
+            width = min(max(320, view["width"]), screen_w - 40)
+            height = min(max(80, view["height"]), screen_h - 40)
+            # 位置交给 pywebview 自己居中：屏幕指标与 create_window 的坐标空间在
+            # 高 DPI 下不是同一套（实测 175% 缩放时会算出屏幕外的坐标），
+            # 所以不再用「算出来的默认坐标」，避免把窗口丢到屏幕外。
+            place = {"x": view["x"], "y": view["y"]} if (view["x"] and view["y"]) else {}
+            # 兜底：老配置可能存了屏幕外的坐标（DPI 混用过），钳回可见区域，
+            # 否则窗口只有任务栏预览能看到，用户既看不到也拖不到
+            if place and not (0 <= place["x"] <= screen_w * 1.3
+                              and 0 <= place["y"] <= screen_h * 1.3):
+                place.clear()                      # 存了离谱坐标就回到居中
+                self._save({"x": 0, "y": 0})
+            view["width"], view["height"] = width, height
             try:
                 self._window = webview.create_window(
                     "Aurora 翻译", url=str(HTML_PATH),
                     js_api=OverlayBridge(self),
-                    width=view["width"], height=view["height"], x=x, y=y,
+                    width=width, height=height, **place,
                     frameless=True, on_top=True, transparent=True, hidden=False,
                     background_color="#000000", resizable=True, easy_drag=False)
             except Exception as exc:

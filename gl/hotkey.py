@@ -13,6 +13,7 @@ from . import config
 
 MOD_ALT = 0x0001
 MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
 MOD_NOREPEAT = 0x4000
 WM_HOTKEY = 0x0312
 
@@ -28,6 +29,7 @@ class Hotkeys:
         self._binds: list[tuple[int, int, int]] = []      # (id, modifiers, vk)
         self._handlers: dict[int, callable] = {}
         self._registered: list[int] = []
+        self._failed: list[int] = []
 
     def bind(self, hotkey_id: int, modifiers: int, vk: int, handler) -> None:
         self._binds.append((hotkey_id, modifiers | MOD_NOREPEAT, vk))
@@ -39,6 +41,11 @@ class Hotkeys:
         self._stop.clear()
         self._thread = threading.Thread(target=self._loop, daemon=True, name="aurora-hotkeys")
         self._thread.start()
+
+    def status(self) -> dict:
+        """哪些热键注册成功、哪些被占用（界面要如实告诉用户）。"""
+        return {"ok": bool(self._registered), "registered": list(self._registered),
+                "failed": list(self._failed)}
 
     def stop(self) -> None:
         self._stop.set()
@@ -52,9 +59,11 @@ class Hotkeys:
             if user32.RegisterHotKey(None, hotkey_id, modifiers, vk):
                 self._registered.append(hotkey_id)
             else:
+                self._failed.append(hotkey_id)
                 config.log(f"RegisterHotKey failed id={hotkey_id} vk={vk} "
                            f"err={ctypes.get_last_error()}")
         if not self._registered:
+            config.log("所有全局热键都注册失败：请在游戏页「翻译」面板里点「切换穿透」")
             return
         msg = wintypes.MSG()
         while not self._stop.is_set():

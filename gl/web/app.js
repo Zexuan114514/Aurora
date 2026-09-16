@@ -1076,6 +1076,12 @@
     if (running && state.pid) parts.push(`PID ${state.pid}`);
     parts.push(`已译 ${state.lines || 0} 句`);
     if (running && !state.llm_ready) parts.push("没配 LLM Key：正在用免费接口，质量与速度较差");
+    const hk = state.hotkeys || {};
+    if (running && hk.registered && hk.registered.length) {
+      parts.push("Ctrl+Alt+T 切换穿透");
+    } else if (running) {
+      parts.push("全局热键没注册成功（可能被别的软件占用），请点下面的「切换穿透」");
+    }
     const error = vnErrorText(state);
     let detail = error;
     if (state.error === "wrong-bitness") {
@@ -1266,6 +1272,13 @@
       const last = el.vnHistory.querySelector("i");
       const res = await call("translate_line_now", last ? last.textContent : "");
       toast(res && res.ok ? "正在重译…" : "还没有可重译的台词");
+    };
+    $("vnThrough").onclick = async () => {
+      const status = await call("get_vntext_status");
+      const on = !(status && status.overlay && status.overlay.click_through === false);
+      const res = await call("set_overlay_click_through", on);
+      toast(on ? "悬浮窗已设为鼠标穿透" : "悬浮窗已可点击（可拖动/点按钮）");
+      refreshVntext();
     };
     $("vnPause").onclick = async () => {
       const status = await call("get_vntext_status");

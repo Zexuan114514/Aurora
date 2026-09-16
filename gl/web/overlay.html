@@ -179,8 +179,14 @@
     let timer = null;
     const save = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => call("save_bounds", window.screenX, window.screenY,
-                                    window.outerWidth, window.outerHeight), 400);
+      // screenX/screenY/outerWidth 是「逻辑像素」，显示缩放 175% 时
+      // 直接当物理像素保存会让窗口每次都被乘 1.75，几次就飘到屏幕外
+      const dpr = window.devicePixelRatio || 1;
+      timer = setTimeout(() => call("save_bounds",
+                                    Math.round(window.screenX * dpr),
+                                    Math.round(window.screenY * dpr),
+                                    Math.round(window.outerWidth * dpr),
+                                    Math.round(window.outerHeight * dpr)), 400);
     };
     window.addEventListener("mouseup", save);
     window.addEventListener("resize", save);

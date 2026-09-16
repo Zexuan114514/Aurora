@@ -149,6 +149,11 @@ class Api:
                            self._toggle_overlay_click_through)
         self._hotkeys.bind(2, hotkey.MOD_CONTROL | hotkey.MOD_ALT, 0x59,   # Ctrl+Alt+Y
                            self._toggle_overlay_visible)
+        # 主热键被别的软件占用时的备选（Ctrl+Shift+F9 / Ctrl+Shift+F10）
+        self._hotkeys.bind(3, hotkey.MOD_CONTROL | hotkey.MOD_SHIFT, 0x78,
+                           self._toggle_overlay_click_through)
+        self._hotkeys.bind(4, hotkey.MOD_CONTROL | hotkey.MOD_SHIFT, 0x79,
+                           self._toggle_overlay_visible)
         self._recover_sessions()
 
     # ------------------------------------------------------------------ #
@@ -491,6 +496,7 @@ class Api:
             "ocr": ocr.status("ja-JP"),
             "overlay": dict(settings.get("vntext_overlay") or {}),
             "overlay_open": self._overlay.visible(),
+            "hotkeys": self._hotkeys.status(),
             "paused": self._translator.paused(),
             "llm_ready": bool(str(settings.get("translate_api_key") or "").strip()),
             "context_lines": int(settings.get("vntext_context_lines") or 4),
