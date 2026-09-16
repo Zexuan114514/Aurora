@@ -103,6 +103,18 @@ DEFAULT_SETTINGS = {
     "proxy_mode": "auto",        # auto | direct | manual
     "proxy_url": "",             # manual 时的代理地址
     "proxy_fallback": True,      # 走代理失败时自动试一次直连
+    # 游戏内翻译（Textractor 钩子 + 屏幕 OCR）
+    "vntext_enabled": False,     # 是否开启游戏内翻译
+    "vntext_engine": "auto",     # auto | hook | ocr
+    "vntext_tractor_path": "",   # 用户指定的 TextractorCLI.exe（留空则自动探测）
+    "vntext_auto_start": False,  # 启动游戏时自动开始翻译
+    "vntext_context_lines": 4,   # 送给 LLM 的上文句数
+    "vntext_max_chars": 1200,    # 超过这个长度的行不翻（多半是噪声）
+    "vntext_ocr_interval": 0.9,  # OCR 采样间隔（秒）
+    "vntext_overlay": {          # 悬浮窗外观与位置
+        "x": 0, "y": 0, "w": 760, "h": 150,
+        "font": 20, "opacity": 0.9, "mode": "translated", "click_through": True,
+    },
 }
 
 USER_AGENT = (

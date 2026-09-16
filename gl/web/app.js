@@ -49,6 +49,9 @@
     catCreate: $("catCreate"), catName: $("catName"), catHint: $("catHint"),
     catQuery: $("catQuery"), catSort: $("catSort"),
     scopePill: $("scopePill"), scopeLabel: $("scopeLabel"), scopeMenu: $("scopeMenu"),
+    vntextPanel: $("vntextPanel"), vnThreads: $("vnThreads"), vnState: $("vnState"),
+    vnHistory: $("vnHistory"), frameBox: $("frameBox"), frameImg: $("frameImg"),
+    frameSel: $("frameSel"),
     netStatus: $("netStatus"), netResults: $("netResults"),
     leStatus: $("leStatus"), leProfiles: $("leProfiles"),
     toast: $("toast"),
@@ -1044,6 +1047,278 @@
     toast(status ? `已标记为「${STATUS_LABEL[status]}」` : "已清除状态标记");
   }
 
+  /* ---------------------------------------------------------- 游戏内翻译 */
+  const VN_ENGINE_LABEL = { hook: "Textractor 钩子", ocr: "屏幕 OCR", "": "未运行" };
+  const VN_ERROR_LABEL = {
+    "no-textractor": "没找到 TextractorCLI，请在设置里指定，或改用 OCR 模式",
+    "no-language": "系统缺少日语 OCR 组件，装好后再试",
+    "no-winrt": "OCR 组件不可用（缺少 winrt 运行库）",
+    "no-window": "没找到游戏窗口，先启动游戏再试",
+    "no-pid": "还没定位到游戏进程，等游戏跑起来再开启",
+    "capture-failed": "抓不到游戏画面，试试让游戏窗口化运行",
+    "textractor-failed": "启动 TextractorCLI 失败",
+    "hook-closed": "TextractorCLI 已退出",
+  };
+
+  const vnErrorText = (state) => {
+    const error = (state && state.error) || "";
+    return VN_ERROR_LABEL[error] || error;
+  };
+
+  function renderVntextPanel(state) {
+    if (!state) return;
+    const running = !!state.running;
+    $("vnToggle").firstElementChild.textContent = running ? "停止翻译" : "开启翻译";
+    $("vnPause").firstElementChild.textContent = state.paused ? "继续" : "暂停";
+    const parts = [running ? `正在翻译（${VN_ENGINE_LABEL[state.engine || ""] || state.engine}）`
+                           : "未开启"];
+    if (running && state.pid) parts.push(`PID ${state.pid}`);
+    parts.push(`已译 ${state.lines || 0} 句`);
+    if (running && !state.llm_ready) parts.push("没配 LLM Key：正在用免费接口，质量与速度较差");
+    const error = vnErrorText(state);
+    el.vnState.textContent = parts.join(" · ") + (error ? ` · ${error}` : "");
+
+    const locked = state.locked || "";
+    el.vnThreads.innerHTML = (state.threads || []).map((row) => `
+      <button class="vn-thread${row.key === locked ? " on" : ""}" data-vn-thread="${esc(row.key)}"
+              title="${esc(row.sample || "")}">
+        <span>${esc(row.name || row.key)}</span><small>${row.count}</small>
+      </button>`).join("");
+
+    const region = state.region || {};
+    $("vnRegion").textContent = `x${Math.round((region.x || 0) * 100)}% y${
+      Math.round((region.y || 0) * 100)}% · ${Math.round((region.w || 1) * 100)}%×${
+      Math.round((region.h || 0.34) * 100)}%`;
+
+    const history = state.history || [];
+    el.vnHistory.innerHTML = history.slice(-6).reverse().map((row) => `
+      <div class="vn-row"><i>${esc(row.text)}</i>${esc(row.translation)}</div>`).join("")
+      || '<div class="vn-row"><i>还没有译文</i>开启翻译后，游戏里的日文会实时出现在这里和悬浮窗上。</div>';
+  }
+
+  function renderVntextSettings(state) {
+    const tractor = state.tractor || {};
+    $("setVnPath").value = tractor.path || tractor.saved || "";
+    $("setVnContext").value = state.context_lines ?? 4;
+    $("setVnContextVal").textContent = (state.context_lines ?? 4) + " 句";
+    $("setVnAuto").checked = !!state.auto_start;
+    const overlay = state.overlay || {};
+    const font = overlay.font || 20;
+    const opacity = Math.round((overlay.opacity ?? 0.9) * 100);
+    $("setVnFont").value = font;
+    $("setVnFontVal").textContent = font + "px";
+    $("setVnOpacity").value = opacity;
+    $("setVnOpacityVal").textContent = opacity + "%";
+    const ocrInfo = state.ocr || {};
+    $("setVnOcr").textContent = ocrInfo.lang_ready
+      ? "日语 OCR 组件已就绪，可以只用 OCR 模式。"
+      : `系统还没装「日语 OCR」组件（当前可用：${(ocrInfo.languages || []).join(" / ") || "无"}）。`
+        + "点「安装日语 OCR 组件…」按提示添加日语并勾选光学字符识别。";
+    $("vnStatus").textContent = tractor.found
+      ? `TextractorCLI：${tractor.path}`
+      : "没有检测到 TextractorCLI。装好 Textractor 后点「重新检测」，或手动指定；只用 OCR 也可以。";
+  }
+
+  async function refreshVntext() {
+    let state = null;
+    try {
+      state = await call("get_vntext_status");
+    } catch (_) { /* 离线时保留原样 */ }
+    if (state) {
+      renderVntextPanel(state);
+      renderVntextSettings(state);
+    }
+    return state;
+  }
+
+  async function renderGlossary() {
+    let data = null;
+    try {
+      data = await call("list_glossary");
+    } catch (_) { return; }
+    const gameId = state.focus && state.focus !== ADD_KEY ? state.focus : "";
+    const global = (data && data.global) || {};
+    const perGame = ((data && data.games) || {})[gameId] || {};
+    const rows = [
+      ...Object.entries(global).map(([src, dst]) => ({ src, dst, scope: "" })),
+      ...Object.entries(perGame).map(([src, dst]) => ({ src, dst, scope: gameId })),
+    ];
+    $("glossaryList").innerHTML = rows.map((row) => `
+      <span class="glossary-chip">${esc(row.src)}<i>→</i>${esc(row.dst)}${
+        row.scope ? '<i title="仅这个游戏">·本作</i>' : ""}
+        <button data-glossary-del="${esc(row.src)}" data-scope="${esc(row.scope)}">✕</button>
+      </span>`).join("") || '<span class="hint">还没有术语，遇到人名/专有名词可以加进来。</span>';
+  }
+
+  async function setGlossary(src, dst, gameId = "") {
+    const res = await call("set_glossary_entry", src, dst, gameId);
+    if (!res || !res.ok) { toast("术语表更新失败"); return; }
+    await renderGlossary();
+    toast(dst ? "已加入术语表" : "已删除术语");
+  }
+
+  function openVntextPanel() {
+    closeAll();
+    openPanel(el.vntextPanel);
+    refreshVntext();
+  }
+
+  /* OCR 区域框选：先截一张游戏窗口图，再在上面拖框 */
+  let frameRect = null;
+
+  async function openFraming() {
+    const gameId = state.focus;
+    if (!gameId || gameId === ADD_KEY) return;
+    const res = await call("capture_game_frame", gameId);
+    if (!res || !res.ok) {
+      toast("截图失败：" + (vnErrorText({ error: (res && res.error) || "" }) || "未知原因"), 4200);
+      return;
+    }
+    el.frameImg.src = res.url;
+    el.frameSel.hidden = true;
+    frameRect = null;
+    el.frameBox.hidden = false;
+    el.frameBox.dataset.game = gameId;
+  }
+
+  function bindFraming() {
+    const stage = $("frameStage");
+    let start = null;
+    stage.addEventListener("mousedown", (e) => {
+      const rect = el.frameImg.getBoundingClientRect();
+      if (e.clientX < rect.left || e.clientX > rect.right
+          || e.clientY < rect.top || e.clientY > rect.bottom) return;
+      start = { x: e.clientX - rect.left, y: e.clientY - rect.top, rect: rect };
+      el.frameSel.hidden = false;
+    });
+    document.addEventListener("mousemove", (e) => {
+      if (!start) return;
+      const rect = start.rect;
+      const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+      const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
+      const left = Math.min(start.x, x);
+      const top = Math.min(start.y, y);
+      const width = Math.abs(x - start.x);
+      const height = Math.abs(y - start.y);
+      frameRect = { left, top, width, height, base: rect };
+      el.frameSel.style.left = (rect.left + left) + "px";
+      el.frameSel.style.top = (rect.top + top) + "px";
+      el.frameSel.style.width = width + "px";
+      el.frameSel.style.height = height + "px";
+    });
+    document.addEventListener("mouseup", () => { start = null; });
+    $("frameCancel").onclick = () => { el.frameBox.hidden = true; frameRect = null; };
+    $("frameOk").onclick = async () => {
+      const gameId = el.frameBox.dataset.game;
+      const rect = el.frameImg.getBoundingClientRect();
+      if (!frameRect || frameRect.width < 8 || frameRect.height < 8) { toast("先拖一个框"); return; }
+      const region = {
+        x: frameRect.left / rect.width,
+        y: frameRect.top / rect.height,
+        w: frameRect.width / rect.width,
+        h: frameRect.height / rect.height,
+      };
+      await call("set_vntext_region", gameId, region);
+      el.frameBox.hidden = true;
+      frameRect = null;
+      toast("已记住这个游戏的 OCR 区域");
+      refreshVntext();
+    };
+  }
+
+  function bindVntext() {
+    $("btnVntext").onclick = openVntextPanel;
+    $("vnClose").onclick = () => closePanel(el.vntextPanel);
+    $("vnToggle").onclick = async () => {
+      const status = await call("get_vntext_status");
+      if (status && status.running) {
+        await call("stop_vntext");
+        toast("已停止翻译");
+      } else {
+        const res = await call("start_vntext", state.focus);
+        toast(res && res.ok ? "翻译已开启，悬浮窗会显示译文"
+                            : "开启失败：" + (vnErrorText(res || {}) || "未知原因"), 5200);
+      }
+      refreshVntext();
+    };
+    $("vnPush").onclick = async () => {
+      const res = await call("toggle_overlay");
+      toast(res && res.visible ? "悬浮窗已显示" : "悬浮窗已隐藏");
+    };
+    $("vnRetry").onclick = async () => {
+      const last = el.vnHistory.querySelector("i");
+      const res = await call("translate_line_now", last ? last.textContent : "");
+      toast(res && res.ok ? "正在重译…" : "还没有可重译的台词");
+    };
+    $("vnPause").onclick = async () => {
+      const status = await call("get_vntext_status");
+      const res = await call("set_vntext_paused", !(status && status.paused));
+      toast(res && res.paused ? "已暂停翻译" : "已继续翻译");
+      refreshVntext();
+    };
+    $("vnHookSend").onclick = async () => {
+      const code = $("vnHook").value.trim();
+      if (!code) { toast("先粘贴 hook 码"); return; }
+      const res = await call("send_hook_code", code);
+      toast(res && res.ok ? "已发送 hook 码" : "发送失败（当前不是钩子模式）");
+      refreshVntext();
+    };
+    el.vnThreads.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-vn-thread]");
+      if (!btn) return;
+      const key = btn.dataset.vnThread;
+      const current = btn.classList.contains("on");
+      await call("lock_vntext_thread", current ? "" : key);
+      toast(current ? "已取消锁定线程" : "已锁定这个线程");
+      refreshVntext();
+    });
+    $("vnFraming").onclick = openFraming;
+    bindFraming();
+
+    $("setVnEngine").onchange = async (e) => {
+      state.settings.vntext_engine = e.target.value;
+      await call("set_vntext_option", "vntext_engine", e.target.value);
+      toast("已切换翻译引擎");
+      refreshVntext();
+    };
+    $("setVnPick").onclick = async () => {
+      const res = await call("pick_textractor");
+      if (!res || res.cancelled) return;
+      if (!res.ok) { toast("这个路径不可用"); return; }
+      toast("已指定 TextractorCLI");
+      refreshVntext();
+    };
+    $("setVnDownload").onclick = () => call("open_textractor_page");
+    $("setVnRefresh").onclick = () => { refreshVntext(); toast("已重新检测"); };
+    $("setVnLang").onclick = () => call("open_language_settings");
+    $("setVnContext").oninput = (e) => { $("setVnContextVal").textContent = e.target.value + " 句"; };
+    $("setVnContext").onchange = (e) =>
+      call("set_vntext_option", "vntext_context_lines", Number(e.target.value));
+    $("setVnAuto").onchange = async (e) => {
+      await call("set_vntext_option", "vntext_auto_start", e.target.checked);
+      toast(e.target.checked ? "启动游戏时会自动开始翻译" : "已关闭自动翻译");
+    };
+    $("setVnFont").oninput = (e) => { $("setVnFontVal").textContent = e.target.value + "px"; };
+    $("setVnFont").onchange = (e) => call("set_overlay_style", { font: Number(e.target.value) });
+    $("setVnOpacity").oninput = (e) => {
+      $("setVnOpacityVal").textContent = e.target.value + "%";
+    };
+    $("setVnOpacity").onchange = (e) =>
+      call("set_overlay_style", { opacity: Number(e.target.value) / 100 });
+    $("glossaryAdd").onclick = () => {
+      const src = $("glossarySrc").value.trim();
+      const dst = $("glossaryDst").value.trim();
+      if (!src || !dst) { toast("日文和中文都要填"); return; }
+      setGlossary(src, dst, $("glossaryGame").checked ? state.focus : "");
+      $("glossarySrc").value = "";
+      $("glossaryDst").value = "";
+    };
+    $("glossaryList").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-glossary-del]");
+      if (btn) setGlossary(btn.dataset.glossaryDel, "", btn.dataset.scope || "");
+    });
+  }
+
   /* ---------------------------------------------------------- 设置页 */
   function setSettingsTab(name) {
     state.settingsTab = name || "look";
@@ -1081,6 +1356,8 @@
     } catch (_) { /* 离线也要能开设置 */ }
     refreshNetworkPane();
     refreshLocalePane();
+    refreshVntext();
+    renderGlossary();
   }
 
   /* ---------------------------------------------------------- 背景面板 */
@@ -1528,6 +1805,7 @@
     closePanel(el.sourcePanel);
     closePanel(el.coverPanel); closePanel(el.steamPanel);
     closePanel(el.localePanel);
+    closePanel(el.vntextPanel);
     closePanel(el.getPanel);
     el.moreMenu.hidden = true;
     el.sortMenu.hidden = true;
@@ -1872,6 +2150,7 @@
     $("setShowOriginal").checked = !!s.show_original;
     $("setTheme").value = s.theme_mode || "dark";
     renderPaletteRow();
+    $("setVnEngine").value = s.vntext_engine || "auto";
     $("setBlurVal").textContent = (s.blur ?? 30) + "px";
     $("setScrimVal").textContent = (s.scrim ?? 42) + "%";
     $("setSatVal").textContent = (s.saturation ?? 190) + "%";
@@ -2528,6 +2807,7 @@
       if (e.target.id === "detailStatus") setGameStatus(e.target.dataset.id, e.target.value);
     });
     bindTheme();
+    bindVntext();
 
     // 封面面板
     $("coverClose").onclick = () => closePanel(el.coverPanel);
@@ -2739,7 +3019,8 @@
       const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || e.target?.isContentEditable;
       if (e.key === "Escape") {
         const anyOpen = [el.bgPanel, el.detailPanel, el.matchPanel, el.sourcePanel,
-                         el.coverPanel, el.steamPanel, el.localePanel, el.getPanel]
+                         el.coverPanel, el.steamPanel, el.localePanel, el.vntextPanel,
+                         el.getPanel]
           .some((p) => p.classList.contains("open"));
         const menuOpen = !el.moreMenu.hidden || !el.sortMenu.hidden || !el.addMenu.hidden
           || !el.scopeMenu.hidden;
@@ -2933,6 +3214,11 @@
           } else {
             toast("简介已经是中文，无需翻译");
           }
+        } else if (event === "vntext:status") {
+          if (el.vntextPanel.classList.contains("open")) renderVntextPanel(payload);
+        } else if (event === "vntext:line") {
+          if (state.settingsOpen && state.settingsTab === "vntext") renderGlossary();
+          if (el.vntextPanel.classList.contains("open")) refreshVntext();
         } else if (event === "downloads:status") {
           if (payload.kind === "warn") {
             toast(payload.text || "下载目录里有个文件处理不了", 5200);

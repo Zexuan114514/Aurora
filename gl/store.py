@@ -62,6 +62,16 @@ class Library:
             # 转区启动（Locale Emulator）
             game.setdefault("locale_enabled", False)
             game.setdefault("locale_guid", "")
+            # 游戏内翻译：OCR 识别区域（相对窗口的百分比，窗口缩放/移动后仍有效）
+            region = game.get("vntext_ocr_region")
+            if not isinstance(region, dict):
+                region = {}
+            game["vntext_ocr_region"] = {
+                "x": float(region.get("x", 0.0) or 0.0),
+                "y": float(region.get("y", 0.62) or 0.0),
+                "w": float(region.get("w", 1.0) or 1.0),
+                "h": float(region.get("h", 0.34) or 0.34),
+            }
             # 分类书架（多对多）与游玩状态
             ids = [str(x) for x in (game.get("bookshelf_ids") or []) if str(x)]
             game["bookshelf_ids"] = list(dict.fromkeys(ids))

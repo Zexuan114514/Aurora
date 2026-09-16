@@ -155,6 +155,10 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
             <svg viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.4M12 7.8h.01"/></svg>
             <span>详情</span>
           </button>
+          <button class="btn glass-btn" id="btnVntext" title="游戏内翻译（日文台词实时译成中文）">
+            <svg viewBox="0 0 24 24" class="ic"><path d="M4 5h9M8.5 3.4v1.6M5.5 9.4c1.6 2.3 3.6 3.6 6 4.6M11.4 5.6c-.7 3.4-2.6 6.4-5.9 8.6"/><path d="M13 20l3.6-9 3.6 9M14.4 17h4.6"/></svg>
+            <span>翻译</span>
+          </button>
           <button class="icon-btn glass-btn sq" id="btnMore" title="更多">
             <svg viewBox="0 0 24 24" class="ic"><circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/></svg>
           </button>
@@ -452,6 +456,52 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     </div>
   </div>
 
+  <!-- ============ 游戏内翻译（面板） ============ -->
+  <div id="vntextPanel" class="sheet glass wide" data-nodrag>
+    <div class="sheet-head">
+      <div>
+        <h3>游戏内翻译</h3>
+        <span class="sub" id="vnSub">把游戏里的日文台词实时翻成简体中文</span>
+      </div>
+      <button class="icon-btn" id="vnClose">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="set-actions">
+      <button class="btn glass-btn" id="vnToggle"><span>开启翻译</span></button>
+      <button class="btn glass-btn" id="vnPush"><span>显示悬浮窗</span></button>
+      <button class="btn glass-btn" id="vnRetry"><span>重译最后一句</span></button>
+      <button class="btn glass-btn" id="vnPause"><span>暂停</span></button>
+    </div>
+    <p class="set-note" id="vnState">—</p>
+    <div class="vn-threads" id="vnThreads"></div>
+    <div class="set-row">
+      <label>hook 码</label>
+      <input type="text" id="vnHook" placeholder="粘贴 hook 码，例如 HS2@0" spellcheck="false">
+      <button class="mini-btn" id="vnHookSend">发送</button>
+    </div>
+    <div class="set-row">
+      <label>OCR 区域</label>
+      <button class="mini-btn" id="vnFraming">框选区域…</button>
+      <span class="hint" id="vnRegion"></span>
+    </div>
+    <div class="vn-history" id="vnHistory"></div>
+  </div>
+
+  <!-- ============ OCR 区域框选 ============ -->
+  <div id="frameBox" class="frame-box" hidden>
+    <div class="frame-head">
+      <b>拖拽框选要识别的对话框</b>
+      <span id="frameHint">建议只框住台词区域，别把按钮和标题栏框进来</span>
+      <button class="btn glass-btn" id="frameCancel">取消</button>
+      <button class="btn primary" id="frameOk">确定</button>
+    </div>
+    <div class="frame-stage" id="frameStage">
+      <img id="frameImg" alt="">
+      <div class="frame-sel" id="frameSel" hidden></div>
+    </div>
+  </div>
+
   <!-- ============ 分类工作区（整页） ============ -->
   <section id="categoriesView" hidden>
     <div class="cat-body">
@@ -533,6 +583,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
         <button class="set-tab" data-pane="trans">简介翻译</button>
         <button class="set-tab" data-pane="net">网络</button>
         <button class="set-tab" data-pane="locale">转区启动</button>
+        <button class="set-tab" data-pane="vntext">游戏内翻译</button>
         <button class="set-tab" data-pane="about">关于</button>
       </nav>
 
@@ -699,6 +750,59 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
           </div>
           <div class="le-profiles" id="leProfiles"></div>
           <p class="set-note">转区是<b>按游戏</b>开启的：在大厅按「⋯ → 转区启动…」。日文原版游戏在中文系统上常出现乱码或路径报错，转区可以解决；简体中文版一般不需要开。</p>
+        </div>
+
+        <!-- 游戏内翻译 -->
+        <div class="set-pane" data-pane="vntext">
+          <h3>游戏内翻译</h3>
+          <p class="set-note" id="vnStatus">正在检查文本源…</p>
+          <div class="set-row">
+            <label>翻译引擎</label>
+            <select id="setVnEngine">
+              <option value="auto">自动（优先 Textractor 钩子，失败用 OCR）</option>
+              <option value="hook">只用 Textractor 钩子</option>
+              <option value="ocr">只用屏幕 OCR</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label>TextractorCLI</label>
+            <input type="text" id="setVnPath" placeholder="未指定（自动探测）" readonly>
+            <button class="mini-btn" id="setVnPick">选择…</button>
+          </div>
+          <div class="set-actions">
+            <button class="btn glass-btn" id="setVnDownload"><span>打开下载页</span></button>
+            <button class="btn glass-btn" id="setVnRefresh"><span>重新检测</span></button>
+            <button class="btn glass-btn" id="setVnLang"><span>安装日语 OCR 组件…</span></button>
+          </div>
+          <p class="set-note" id="setVnOcr">—</p>
+          <div class="set-row">
+            <label>上文句数</label>
+            <input type="range" id="setVnContext" min="0" max="12" step="1">
+            <span id="setVnContextVal"></span>
+          </div>
+          <div class="set-row">
+            <label>启动游戏自动翻译</label>
+            <input type="checkbox" id="setVnAuto" class="switch">
+          </div>
+          <div class="set-row">
+            <label>悬浮窗字号</label>
+            <input type="range" id="setVnFont" min="12" max="40" step="1">
+            <span id="setVnFontVal"></span>
+          </div>
+          <div class="set-row">
+            <label>悬浮窗不透明度</label>
+            <input type="range" id="setVnOpacity" min="35" max="100" step="1">
+            <span id="setVnOpacityVal"></span>
+          </div>
+          <h4>术语表 <span class="hint">人名 / 专有名词的固定译法，翻译时强制遵守</span></h4>
+          <div class="glossary-form">
+            <input id="glossarySrc" type="text" placeholder="日文，例如 桜小路ルナ" spellcheck="false">
+            <input id="glossaryDst" type="text" placeholder="中文，例如 樱小路露娜" spellcheck="false">
+            <label class="get-toggle"><input type="checkbox" id="glossaryGame" class="switch sm"><span>仅本作</span></label>
+            <button class="mini-btn" id="glossaryAdd">添加</button>
+          </div>
+          <div class="glossary-list" id="glossaryList"></div>
+          <p class="set-note">钩子拿到的是游戏里的真实文本，最准确；OCR 模式识别的是屏幕上框选的区域，需要系统安装「日语 OCR」组件。翻译沿用上方「简介翻译」里的 LLM 配置。</p>
         </div>
 
         <!-- 关于 -->

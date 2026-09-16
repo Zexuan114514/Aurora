@@ -276,6 +276,8 @@ def main() -> int:
     api._window = window
     bind_file_drop(window, api)
     bind_tray(window, api)
+    # 主窗口关掉后把译文悬浮窗一并收走，否则它会留在桌面上
+    window.events.closed += lambda: api.close_overlay()
 
     state = {"polished": False}
 

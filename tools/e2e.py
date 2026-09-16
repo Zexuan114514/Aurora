@@ -6,6 +6,7 @@ import shutil
 import sys
 import threading
 import time
+import http.server
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +28,46 @@ from gl.api import Api  # noqa: E402
 OUT = Path(__file__).resolve().parent / "e2e-report.json"
 results: list[dict] = []
 
+FAKE_TEXTTRACTOR = '''"""端到端自检用的假 TextractorCLI。"""
+import sys, time
+
+def emit(handle, name, code, text):
+    line = f"[{handle}:000004D2:00000000:0:0:{name}:{code}] {text}\\n"
+    sys.stdout.buffer.write(line.encode("utf-16-le"))
+    sys.stdout.buffer.flush()
+
+while True:
+    raw = sys.stdin.buffer.readline()
+    if not raw:
+        break
+    cmd = raw.decode("utf-16-le", "ignore").strip()
+    if cmd.startswith("attach"):
+        emit("00000001", "menu", "HS1@0", "セーブ")
+        for text in ["彼女は静かに微笑んだ。", "「また明日ね」と小さく呟いて、"]:
+            emit("00000002", "dialogue", "HS2@0", text)
+            time.sleep(0.05)
+    elif cmd.startswith("detach"):
+        break
+'''
+
+
+class MockLLM(http.server.BaseHTTPRequestHandler):
+    def do_POST(self):  # noqa: N802
+        length = int(self.headers.get("Content-Length") or 0)
+        self.rfile.read(length)
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.end_headers()
+        for piece in ("她静", "静地", "微笑了。"):
+            chunk = {"choices": [{"delta": {"content": piece}}]}
+            self.wfile.write(f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n".encode())
+            self.wfile.flush()
+        self.wfile.write(b"data: [DONE]\n\n")
+        self.wfile.flush()
+
+    def log_message(self, *args):
+        return
+
 
 def step(name: str, ok: bool, detail="", skipped: bool = False):
     results.append({"step": name, "ok": bool(ok), "skipped": skipped, "detail": detail})
@@ -47,6 +88,11 @@ def main() -> int:
         shutil.rmtree(TEST_DATA, ignore_errors=True)
     TEST_DATA.mkdir(parents=True, exist_ok=True)
     EXE_DIR.mkdir(parents=True, exist_ok=True)
+    fake_cli = SANDBOX / "e2e-textractor.py"
+    fake_cli.write_text(FAKE_TEXTTRACTOR, encoding="utf-8")
+    llm = http.server.ThreadingHTTPServer(("127.0.0.1", 0), MockLLM)
+    threading.Thread(target=llm.serve_forever, daemon=True).start()
+    llm_port = llm.server_address[1]
     exe = EXE_DIR / "eldenring.exe"
     if not exe.exists():
         shutil.copy2(Path(os.environ.get("WINDIR", r"C:\Windows")) / "System32" / "ping.exe", exe)
@@ -411,7 +457,7 @@ def main() -> int:
             """)
             step("设置页能打开且盖住大厅",
                  settings.get("open") and settings.get("hallHidden")
-                 and len(settings.get("tabs") or []) == 6
+                 and len(settings.get("tabs") or []) == 7
                  and settings.get("tabs") == settings.get("panes")
                  and settings.get("inside"), settings)
 
@@ -895,6 +941,91 @@ def main() -> int:
             """)
             step("界面显示运行中", state.get("running") and state.get("label") == "结束游戏", state)
             step("进程确实在运行", api._pm.is_running(game_id))
+            # 3.10b 游戏内翻译：设置页签 + 假钩子 + 流式译文 + 悬浮窗
+            saved_llm = {
+                "translate_base_url": api._library.settings.get("translate_base_url"),
+                "translate_api_key": api._library.settings.get("translate_api_key"),
+                "proxy_mode": api._library.settings.get("proxy_mode"),
+            }
+            api._library.set_setting("vntext_tractor_path", str(fake_cli))
+            api._library.set_setting("translate_base_url", f"http://127.0.0.1:{llm_port}")
+            api._library.set_setting("translate_api_key", "e2e-key")
+            api._library.set_setting("proxy_mode", "direct")
+            window.evaluate_js("document.getElementById('btnSettings').click()")
+            time.sleep(1.5)
+            window.evaluate_js(
+                "document.querySelector('#setNav .set-tab[data-pane=vntext]').click()")
+            time.sleep(1.8)
+            vn_pane = probe(window, """
+              const pane = document.querySelector('#settingsView .set-pane.on');
+              return JSON.stringify({
+                pane: pane && pane.dataset.pane,
+                status: document.getElementById('vnStatus').textContent,
+                ocr: document.getElementById('setVnOcr').textContent.slice(0, 40),
+                path: document.getElementById('setVnPath').value});
+            """)
+            step("设置页有「游戏内翻译」页签且识别到 TextractorCLI",
+                 vn_pane.get("pane") == "vntext"
+                 and "TextractorCLI" in (vn_pane.get("status") or "")
+                 and bool(vn_pane.get("ocr")), vn_pane)
+            window.evaluate_js("document.getElementById('setBack').click()")
+            time.sleep(1.3)
+
+            # 游戏页的翻译面板（此时游戏正在运行，PID 已知）
+            window.evaluate_js("document.getElementById('btnVntext').click()")
+            time.sleep(1.5)
+            started_vn = api.start_vntext(game_id)
+            step("游戏内翻译能以钩子模式开启",
+                 bool(started_vn.get("ok")) and started_vn.get("engine") == "hook",
+                 f"{started_vn.get('engine')} / {started_vn.get('error')}")
+
+            translated = ""
+            deadline = time.time() + 25
+            while time.time() < deadline and not translated:
+                time.sleep(1.2)
+                row = probe(window, """
+                  const box = document.querySelector('#vnHistory .vn-row');
+                  const state = document.getElementById('vnState').textContent;
+                  return JSON.stringify({row: box ? box.textContent : "", state: state});
+                """)
+                if "微笑" in (row.get("row") or ""):
+                    translated = row.get("row")
+            step("假钩子的日文被翻成中文并进入面板", bool(translated),
+                 (translated or "")[:60])
+
+            vn_panel = probe(window, """
+              return JSON.stringify({
+                open: document.getElementById('vntextPanel').classList.contains('open'),
+                threads: document.querySelectorAll('#vnThreads .vn-thread').length,
+                state: document.getElementById('vnState').textContent});
+            """)
+            step("翻译面板显示运行状态与线程",
+                 vn_panel.get("open") and vn_panel.get("threads", 0) >= 1
+                 and "正在翻译" in (vn_panel.get("state") or ""), vn_panel)
+
+            overlay_text = ""
+            if len(webview.windows) >= 2:
+                try:
+                    overlay_text = webview.windows[-1].evaluate_js(
+                        "document.getElementById('trans').textContent")
+                except Exception as exc:
+                    overlay_text = f"err {exc}"
+            step("悬浮窗已创建并显示译文",
+                 len(webview.windows) >= 2 and "微笑" in str(overlay_text),
+                 f"{len(webview.windows)} 个窗口 / {str(overlay_text)[:40]}")
+
+            stopped_vn = api.stop_vntext()
+            time.sleep(1.2)
+            step("能停止翻译且悬浮窗收起",
+                 not stopped_vn.get("running")
+                 and not stopped_vn.get("overlay_open"), str(stopped_vn.get("overlay_open")))
+
+            for key, value in saved_llm.items():
+                api._library.set_setting(key, value)
+            window.evaluate_js("document.getElementById('vnClose').click()")
+            time.sleep(1.0)
+
+
             stopped = api.stop(game_id)
             step("结束进程", bool(stopped.get("ok")), stopped)
             time.sleep(2)
@@ -976,6 +1107,12 @@ def main() -> int:
             passed = sum(1 for r in results if r["ok"])
             skipped = sum(1 for r in results if r.get("skipped"))
             print(f"\n{passed}/{len(results)} passed, {skipped} skipped -> {OUT}")
+            # 悬浮窗也是 pywebview 窗口：不关掉主循环不会退出，脚本会一直挂着
+            for extra in list(webview.windows)[1:]:
+                try:
+                    extra.destroy()
+                except Exception:
+                    pass
             try:
                 window.destroy()
             except Exception:

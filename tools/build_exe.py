@@ -23,8 +23,19 @@ TARGET = ROOT / "Aurora.exe"
 
 #: 真正要打进 exe 的前端文件。gl/web 下的 userbg / usercovers / usericon 是
 #: 用户自己的素材副本（运行时由 gl/config.py 从 data/ 重新同步），绝不能进发布包
-WEB_FILES = ("index.html", "app.css", "app.js")
+WEB_FILES = ("index.html", "app.css", "app.js", "overlay.html")
 WEB_USER_DIRS = ("userbg", "usercovers", "usericon")
+
+#: 游戏内翻译用的 Windows OCR 是动态导入的，PyInstaller 扫不到，必须显式声明
+WINRT_MODULES = (
+    "winrt.windows.media.ocr",
+    "winrt.windows.graphics.imaging",
+    "winrt.windows.storage.streams",
+    "winrt.windows.storage",
+    "winrt.windows.globalization",
+    "winrt.windows.foundation",
+    "winrt.windows.foundation.collections",
+)
 
 # 这些包在 Anaconda 里常被间接扫到，但本项目完全用不上，排除掉能显著减小体积/避免 hook 报错
 EXCLUDES = [
@@ -98,6 +109,8 @@ def build(python: Path) -> int:
     ]
     for name in EXCLUDES:
         args += ["--exclude-module", name]
+    for module in WINRT_MODULES:
+        args += ["--hidden-import", module]
 
     print("开始打包 ...")
     result = subprocess.run(args, cwd=str(ROOT))

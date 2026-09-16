@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Aurora 翻译</title>
+<style>
+  :root {
+    --font-size: 20px;
+    --alpha: 0.9;
+    --fg: #f4f5f8;
+    --fg-dim: #a9adba;
+    --accent: #4fa9ff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: transparent;
+    font-family: "Segoe UI Variable Display", "Microsoft YaHei UI", "Yu Gothic UI", system-ui, sans-serif;
+    color: var(--fg); user-select: none; overflow: hidden;
+  }
+  #card {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    border-radius: 16px;
+    background: rgba(10, 12, 18, var(--alpha));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    overflow: hidden;
+  }
+  #bar {
+    flex: none; height: 30px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 8px 0 12px;
+    font-size: 11.5px; color: var(--fg-dim);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: default;
+  }
+  #bar .grow { flex: 1; }
+  #bar b { color: var(--fg); font-weight: 600; }
+  #bar button {
+    height: 22px; min-width: 22px; padding: 0 7px;
+    border: none; border-radius: 7px;
+    background: rgba(255, 255, 255, 0.08); color: var(--fg-dim);
+    font-size: 11.5px; cursor: pointer;
+  }
+  #bar button:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+  #bar button.danger:hover { background: rgba(255, 69, 58, 0.75); color: #fff; }
+  #notice {
+    flex: none; padding: 4px 12px 0;
+    font-size: 11px; color: #ffc53d;
+  }
+  #notice:empty { display: none; }
+  #body {
+    flex: 1; min-height: 0;
+    padding: 8px 14px 12px;
+    display: flex; flex-direction: column; gap: 6px;
+    overflow-y: auto;
+  }
+  #source {
+    font-size: calc(var(--font-size) * 0.68);
+    color: var(--fg-dim); line-height: 1.5;
+  }
+  #source:empty { display: none; }
+  #trans {
+    font-size: var(--font-size);
+    line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+  }
+  #trans.pending { color: var(--fg-dim); }
+  #hint {
+    flex: none; padding: 0 14px 8px;
+    font-size: 11px; color: var(--fg-dim);
+  }
+  .drag { cursor: move; }
+</style>
+</head>
+<body>
+<div id="card">
+  <div id="bar" class="drag">
+    <b>Aurora 翻译</b>
+    <span id="status">未开始</span>
+    <span class="grow"></span>
+    <button id="btnMode" title="切换原文/双语">双语</button>
+    <button id="btnPrev" title="上一句">‹</button>
+    <button id="btnNext" title="下一句">›</button>
+    <button id="btnCopy" title="复制译文">复制</button>
+    <button id="btnPause" title="暂停/继续">暂停</button>
+    <button id="btnThrough" title="切换鼠标穿透（Ctrl+Alt+T）">穿透</button>
+    <button id="btnHide" class="danger" title="隐藏（Ctrl+Alt+Y）">✕</button>
+  </div>
+  <div id="notice"></div>
+  <div id="body">
+    <div id="source"></div>
+    <div id="trans">等待游戏文本…</div>
+  </div>
+  <div id="hint">Ctrl+Alt+T 切换穿透 · Ctrl+Alt+Y 显示/隐藏</div>
+</div>
+<script>
+  const api = () => (window.pywebview && window.pywebview.api) || null;
+  const el = (id) => document.getElementById(id);
+  const state = { lines: [], index: -1, style: { mode: "translated", font: 20, opacity: .9 },
+                  clickThrough: true, paused: false, status: "idle" };
+
+  function applyStyle() {
+    document.documentElement.style.setProperty("--font-size", (state.style.font || 20) + "px");
+    document.documentElement.style.setProperty("--alpha", String(state.style.opacity ?? .9));
+    el("btnMode").textContent = state.style.mode === "bilingual" ? "双语" : "仅译文";
+    el("btnThrough").textContent = state.clickThrough ? "穿透" : "可点";
+    el("btnPause").textContent = state.paused ? "继续" : "暂停";
+  }
+
+  function render() {
+    const row = state.lines[state.index] || { source: "", translation: "" };
+    el("source").textContent = state.style.mode === "bilingual" ? (row.source || "") : "";
+    el("trans").textContent = row.translation || (state.status === "translating" ? "翻译中…" : "等待游戏文本…");
+    el("trans").classList.toggle("pending", !row.translation);
+    el("status").textContent = state.paused ? "已暂停"
+      : (state.status === "translating" ? "翻译中…" : (state.lines.length ? "已翻译 " + state.lines.length + " 句" : "未开始"));
+    el("notice").textContent = state.notice || "";
+  }
+
+  window.vnUpdate = (payload) => {
+    if (payload.style) state.style = { ...state.style, ...payload.style };
+    if ("clickThrough" in payload) state.clickThrough = !!payload.clickThrough;
+    if (payload.lines) {
+      const row = payload.lines;
+      if (row.source) {
+        state.lines.push({ source: row.source, translation: row.translation || "" });
+        if (state.lines.length > 60) state.lines.shift();
+        state.index = state.lines.length - 1;
+      } else if (row.translation !== undefined && state.index >= 0) {
+        state.lines[state.index].translation = row.translation;
+      }
+      state.status = row.status || state.status;
+      if (row.provider) state.provider = row.provider;
+    }
+    if ("notice" in payload) state.notice = payload.notice;
+    if ("paused" in payload) state.paused = !!payload.paused;
+    if ("status" in payload && payload.status) state.status = payload.status;
+    applyStyle();
+    render();
+  };
+
+  async function call(name, ...args) {
+    const a = api();
+    if (!a || typeof a[name] !== "function") return null;
+    try { return await a[name](...args); } catch (_) { return null; }
+  }
+
+  el("btnMode").onclick = async () => {
+    const next = state.style.mode === "bilingual" ? "translated" : "bilingual";
+    await call("action", "toggle_mode", next);
+  };
+  el("btnThrough").onclick = () => call("action", "click_through", !state.clickThrough);
+  el("btnCopy").onclick = () => {
+    const row = state.lines[state.index];
+    if (row && row.translation) navigator.clipboard.writeText(row.translation);
+  };
+  el("btnPause").onclick = () => call("action", "pause", !state.paused);
+  el("btnHide").onclick = () => call("action", "hide", null);
+  el("btnPrev").onclick = () => { if (state.index > 0) { state.index -= 1; render(); } };
+  el("btnNext").onclick = () => { if (state.index < state.lines.length - 1) { state.index += 1; render(); } };
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") el("btnPrev").click();
+    if (e.key === "ArrowRight") el("btnNext").click();
+    if (e.key === "Escape") el("btnHide").click();
+  });
+
+  async function boot() {
+    const info = await call("ready");
+    if (info && info.style) {
+      state.style = { ...state.style, ...info.style };
+      state.clickThrough = !!info.click_through;
+    }
+    applyStyle();
+    render();
+    // 拖动 / 缩放后把位置记下来
+    let timer = null;
+    const save = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => call("save_bounds", window.screenX, window.screenY,
+                                    window.outerWidth, window.outerHeight), 400);
+    };
+    window.addEventListener("mouseup", save);
+    window.addEventListener("resize", save);
+  }
+  if (window.pywebview && window.pywebview.api) boot();
+  else window.addEventListener("pywebviewready", boot);
+</script>
+</body>
+</html>
