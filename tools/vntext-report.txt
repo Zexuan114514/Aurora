@@ -18,7 +18,7 @@ Aurora 游戏内翻译自检
   OK  attach 成功并进入 hook 模式
   OK  收到台词且顺序正确  ['彼女は静かに微笑んだ。', '「また明日ね」と小さく呟いて、', '教室をあとにする。']
   OK  菜单类噪声被挡掉  ['彼女は静かに微笑んだ。', '「また明日ね」と小さく呟いて、', '教室をあとにする。']
-  OK  线程列表有记录  {'menu', 'dialogue'}
+  OK  线程列表有记录  {'dialogue', 'menu'}
   OK  能锁定线程（用线程列表里的完整 key）  00000002:000004D2:00000000:0:0 -> 00000002:000004D2:00000000:0:0
   OK  锁定支持前缀  00000002
   OK  手写 hook 码能透传并回文本  ['彼女は静かに微笑んだ。', '「また明日ね」と小さく呟いて、', '教室をあとにする。']
@@ -39,6 +39,13 @@ Aurora 游戏内翻译自检
   OK  历史记录累积  3 条
   OK  暂停后不再提交
 
+[TextractorCLI 位数选择]
+  OK  能同时发现 x86 与 x64 两个版本  [(32, 'ractor\\x86\\TextractorCLI.exe'), (64, 'ractor\\x64\\TextractorCLI.exe')]
+  OK  32 位游戏挑 x86 版  E:\Textractor\x86\TextractorCLI.exe
+  OK  64 位游戏挑 x64 版  E:\Textractor\x64\TextractorCLI.exe
+  OK  不知道位数时默认 x86（galgame 多数是 32 位）
+  OK  显式指定错位数时明确报 wrong-bitness  wrong-bitness cli=64 target=32
+
 [OCR]
   winrt 可用=True 语言=['en-US', 'zh-Hans-CN'] 日语就绪=False
   OK  缺日语 OCR 组件时给出明确错误
@@ -47,6 +54,13 @@ Aurora 游戏内翻译自检
 [窗口捕获]
   OK  能抓到前台窗口画面  1293x838 print
   OK  相对区域裁剪生效  1293x419
+
+[文件对话框过滤器]
+  OK  合法过滤器：可执行文件 (*.exe)
+  OK  合法过滤器：命令行程序 (*.exe)
+  OK  合法过滤器：所有文件 (*.*)
+  OK  合法过滤器：图片 (*.jpg;*.jpeg;*.png)
+  OK  api.py 里所有 file_types 都带通配符  []
 
 [悬浮窗设置]
   OK  悬浮窗默认样式正确  {'x': 0, 'y': 0, 'width': 760, 'height': 150, 'font': 20, 'opacity': 0.9, 'mode': 'translated', 'click_through': True}

@@ -1058,6 +1058,7 @@
     "capture-failed": "抓不到游戏画面，试试让游戏窗口化运行",
     "textractor-failed": "启动 TextractorCLI 失败",
     "hook-closed": "TextractorCLI 已退出",
+    "wrong-bitness": "TextractorCLI 位数和目标游戏不一致，注入不了",
   };
 
   const vnErrorText = (state) => {
@@ -1076,7 +1077,13 @@
     parts.push(`已译 ${state.lines || 0} 句`);
     if (running && !state.llm_ready) parts.push("没配 LLM Key：正在用免费接口，质量与速度较差");
     const error = vnErrorText(state);
-    el.vnState.textContent = parts.join(" · ") + (error ? ` · ${error}` : "");
+    let detail = error;
+    if (state.error === "wrong-bitness") {
+      detail = `这个游戏是 ${state.target_bits || "?"} 位，当前的 TextractorCLI 是 ${
+        state.cli_bits || "?"} 位；请在 设置 → 游戏内翻译 里换成 ${
+        state.target_bits === 32 ? "x86" : "x64"} 版`;
+    }
+    el.vnState.textContent = parts.join(" · ") + (detail ? ` · ${detail}` : "");
 
     const locked = state.locked || "";
     el.vnThreads.innerHTML = (state.threads || []).map((row) => `
@@ -1117,6 +1124,16 @@
     $("vnStatus").textContent = tractor.found
       ? `TextractorCLI：${tractor.path}`
       : "没有检测到 TextractorCLI。装好 Textractor 后点「重新检测」，或手动指定；只用 OCR 也可以。";
+    const builds = state.builds || [];
+    $("setVnBuilds").innerHTML = builds.map((row) => {
+      const label = row.bits === 32 ? "x86" : (row.bits === 64 ? "x64" : "未知位数");
+      const bits = row.bits ? `${row.bits} 位` : "位数未知";
+      const on = (tractor.path || "").toLowerCase() === row.path.toLowerCase();
+      return `<button class="vn-build${on ? " on" : ""}" data-vn-build="${esc(row.path)}"
+                      title="${esc(row.path)}">
+        <b>${label}</b><span>${esc(row.path)}</span><i>${bits}</i>
+      </button>`;
+    }).join("") || "";
   }
 
   async function refreshVntext() {
@@ -1288,6 +1305,14 @@
       toast("已指定 TextractorCLI");
       refreshVntext();
     };
+    $("setVnBuilds").addEventListener("click", async (e) => {
+      const chip = e.target.closest("[data-vn-build]");
+      if (!chip) return;
+      const res = await call("set_vntext_option", "vntext_tractor_path", chip.dataset.vnBuild);
+      if (!res || !res.ok) { toast("这个路径不可用"); return; }
+      toast("已切换 TextractorCLI");
+      refreshVntext();
+    });
     $("setVnDownload").onclick = () => call("open_textractor_page");
     $("setVnRefresh").onclick = () => { refreshVntext(); toast("已重新检测"); };
     $("setVnLang").onclick = () => call("open_language_settings");

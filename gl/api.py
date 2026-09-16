@@ -394,7 +394,7 @@ class Api:
         result = self._window.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=False,
-            file_types=("Locale Emulator (LEProc.exe)", "所有文件 (*.*)"),
+            file_types=("可执行文件 (*.exe)", "所有文件 (*.*)"),
         )
         if not result:
             return {"ok": False, "cancelled": True}
@@ -531,7 +531,7 @@ class Api:
             return {"ok": False, "error": "no-window"}
         result = self._window.create_file_dialog(
             webview.OPEN_DIALOG, allow_multiple=False,
-            file_types=("Textractor 命令行 (TextractorCLI.exe)", "所有文件 (*.*)"))
+            file_types=("命令行程序 (*.exe)", "所有文件 (*.*)"))
         if not result:
             return {"ok": False, "cancelled": True}
         path = result[0] if isinstance(result, (list, tuple)) else result
@@ -565,7 +565,8 @@ class Api:
         self._vn_engine.set_region(region)
         self._library.set_setting("vntext_enabled", True)
         state = self._vn_engine.start(game_id, pid,
-                                      str(settings.get("vntext_engine") or "auto"))
+                                      str(settings.get("vntext_engine") or "auto"),
+                                      exe=str(game.get("exe") or ""))
         self._hotkeys.start()
         if state.get("running"):
             self._overlay.show()

@@ -56,19 +56,59 @@ def candidate_dirs() -> list[Path]:
     return out
 
 
-def find_cli(saved: str = "") -> str:
-    """返回可用的 TextractorCLI.exe；找不到返回空串。"""
+def cli_builds(saved: str = "") -> list[dict]:
+    """找到的所有 TextractorCLI 版本（x86 / x64 各算一个），带位数信息。
+
+    Textractor 发布包里根目录是 x86 版，`x64\\` 是 64 位版；galgame 绝大多数是
+    32 位，所以注入 32 位游戏必须用 x86 那份，选错会报「只能用 32 位」。
+    """
+    from . import locale as locale_mod
+
+    seen: list[str] = []
+    paths: list[Path] = []
     if saved:
-        path = Path(saved)
-        if path.is_dir():
-            path = path / CLI_NAME
-        if path.is_file():
-            return str(path)
-    for item in candidate_dirs():
-        path = item if item.suffix.lower() == ".exe" else item / CLI_NAME
-        if path.is_file():
-            return str(path)
-    return ""
+        item = Path(saved)
+        paths.append(item / CLI_NAME if item.is_dir() else item)
+    for root in candidate_dirs():
+        if root.suffix.lower() == ".exe":
+            paths += [root]
+            continue
+        paths += [root / CLI_NAME, root / "x86" / CLI_NAME, root / "x64" / CLI_NAME,
+                  root.parent / CLI_NAME]
+    out: list[dict] = []
+    for path in paths:
+        try:
+            if not path.is_file():
+                continue
+            key = str(path).lower()
+            if key in seen:
+                continue
+            seen.append(key)
+        except OSError:
+            continue
+        info = locale_mod.pe_bits(path)
+        out.append({"path": str(path), "bits": int(info.get("bits") or 0),
+                    "known": bool(info.get("ok"))})
+    return out
+
+
+def find_cli(saved: str = "", bits: int = 0) -> str:
+    """按目标游戏位数挑一个 TextractorCLI.exe；找不到返回空串。"""
+    builds = cli_builds(saved)
+    if not builds:
+        return ""
+    if saved:
+        exact = [b for b in builds if b["path"].lower() == str(saved).lower()]
+        if exact:
+            return exact[0]["path"]
+    if bits:
+        match = [b for b in builds if b["bits"] == bits]
+        if match:
+            return match[0]["path"]
+    # 没有位数信息（或没有匹配版本）时优先 x86：galgame 大多数是 32 位
+    prefer = [b for b in builds if b["bits"] == 32] or \
+             [b for b in builds if "/x86/" in b["path"].replace("\\", "/").lower()] or builds
+    return prefer[0]["path"]
 
 
 def parse_hook_line(raw: str) -> dict | None:
@@ -126,6 +166,8 @@ class VnTextEngine:
         self._ocr_streak = 0
         self._lang = "ja-JP"
         self._interval = 0.9
+        self._cli_bits = 0
+        self._target_bits = 0
 
     # ------------------------------------------------------------------ #
     def status(self) -> dict:
@@ -145,6 +187,9 @@ class VnTextEngine:
                 "game_id": self._game_id,
                 "pid": self._pid,
                 "cli": self._cli,
+                "cli_bits": self._cli_bits,
+                "target_bits": self._target_bits,
+                "builds": cli_builds(str((self._get_settings() or {}).get("vntext_tractor_path") or "")),
                 "locked": self._locked,
                 "threads": threads[:12],
                 "region": dict(self._region),
@@ -169,7 +214,7 @@ class VnTextEngine:
         return max(self._seen.items(), key=lambda item: item[1]["count"])[0]
 
     # ------------------------------------------------------------------ #
-    def start(self, game_id: str, pid: int, mode: str = "auto") -> dict:
+    def start(self, game_id: str, pid: int, mode: str = "auto", exe: str = "") -> dict:
         self.stop()
         mode = mode if mode in ("hook", "ocr") else "auto"
         self._stop.clear()
@@ -183,11 +228,29 @@ class VnTextEngine:
         self._ocr_streak = 0
 
         settings = self._get_settings() or {}
-        self._cli = find_cli(str(settings.get("vntext_tractor_path") or ""))
+        saved = str(settings.get("vntext_tractor_path") or "")
+        if exe:
+            from . import locale as locale_mod
+
+            self._target_bits = int(locale_mod.pe_bits(exe).get("bits") or 0)
+        else:
+            self._target_bits = 0
+        self._cli = find_cli(saved, self._target_bits)
+        if self._cli:
+            from . import locale as locale_mod
+
+            self._cli_bits = int(locale_mod.pe_bits(self._cli).get("bits") or 0)
+        else:
+            self._cli_bits = 0
         self._interval = max(0.3, float(settings.get("vntext_ocr_interval") or 0.9))
 
         started = False
-        if mode in ("auto", "hook") and self._cli and self._pid:
+        # 位数不匹配就别注入：x64 的 CLI 注入不了 32 位游戏（反之亦然）
+        mismatch = (self._cli_bits and self._target_bits
+                    and self._cli_bits != self._target_bits)
+        if mismatch:
+            self._error = "wrong-bitness"
+        elif mode in ("auto", "hook") and self._cli and self._pid:
             started = self._start_hook()
             if not started and mode == "hook":
                 self._error = "textractor-failed"

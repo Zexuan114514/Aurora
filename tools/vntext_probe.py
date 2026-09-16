@@ -228,6 +228,35 @@ def main() -> int:
     server.shutdown()
 
     # ------------------------------------------------------------ OCR 状态
+    # ------------------------------------------------------------ 位数选择
+    write("\n[TextractorCLI 位数选择]")
+    win = Path(os.environ.get("WINDIR", r"C:\Windows"))
+    build_root = SANDBOX / "TL"
+    (build_root / "x86").mkdir(parents=True, exist_ok=True)
+    (build_root / "x64").mkdir(parents=True, exist_ok=True)
+    shutil.copy2(win / "System32" / "ping.exe", build_root / "x64" / "TextractorCLI.exe")
+    shutil.copy2(win / "SysWOW64" / "ping.exe", build_root / "x86" / "TextractorCLI.exe")
+    builds = vntext.cli_builds(str(build_root))
+    check("能同时发现 x86 与 x64 两个版本",
+          {row["bits"] for row in builds} == {32, 64}, str([(r["bits"], r["path"][-28:]) for r in builds]))
+    check("32 位游戏挑 x86 版",
+          vntext.find_cli(str(build_root), 32).lower().endswith("x86\\textractorcli.exe"),
+          vntext.find_cli(str(build_root), 32))
+    check("64 位游戏挑 x64 版",
+          vntext.find_cli(str(build_root), 64).lower().endswith("x64\\textractorcli.exe"),
+          vntext.find_cli(str(build_root), 64))
+    check("不知道位数时默认 x86（galgame 多数是 32 位）",
+          vntext.find_cli(str(build_root)).lower().endswith("x86\\textractorcli.exe"))
+    bad_settings = {"vntext_tractor_path": str(build_root / "x64" / "TextractorCLI.exe"),
+                    "vntext_max_chars": 1200}
+    engine2 = vntext.VnTextEngine(settings_getter=lambda: bad_settings, on_line=lambda row: None)
+    state2 = engine2.start("bits", 1234, "hook", exe=str(win / "SysWOW64" / "ping.exe"))
+    engine2.stop()
+    check("显式指定错位数时明确报 wrong-bitness",
+          state2.get("error") == "wrong-bitness" and state2.get("cli_bits") == 64
+          and state2.get("target_bits") == 32,
+          f"{state2.get('error')} cli={state2.get('cli_bits')} target={state2.get('target_bits')}")
+
     write("\n[OCR]")
     state = ocr.status("ja-JP")
     write(f"  winrt 可用={state['available']} 语言={state['languages']} 日语就绪={state['lang_ready']}")
@@ -255,6 +284,25 @@ def main() -> int:
               f"{sub.get('width')}x{sub.get('height')}")
     else:
         check("前台窗口存在", False, "没有前台窗口，跳过")
+
+    write("\n[文件对话框过滤器]")
+    # 曾经踩过：file_types 少了 *.exe 通配符，pywebview 直接抛异常，
+    # 前端 await 之后静默失败，表现为「点『选择…』没反应」。
+    import re
+    from webview.util import parse_file_type
+
+    for spec in ("可执行文件 (*.exe)", "命令行程序 (*.exe)", "所有文件 (*.*)",
+                 "图片 (*.jpg;*.jpeg;*.png)"):
+        try:
+            parse_file_type(spec)
+            ok = True
+        except Exception:
+            ok = False
+        check(f"合法过滤器：{spec}", ok)
+    source = (ROOT / "gl" / "api.py").read_text(encoding="utf-8")
+    bad = [m.group(1).strip()[:40] for m in re.finditer(r"file_types=\(([^)]*)\)", source)
+           if "*" not in m.group(1)]
+    check("api.py 里所有 file_types 都带通配符", not bad, str(bad))
 
     write("\n[悬浮窗设置]")
     cfg = {"vntext_overlay": {"x": 0, "y": 0, "w": 760, "h": 150, "font": 20,
