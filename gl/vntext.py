@@ -127,6 +127,39 @@ def parse_hook_line(raw: str) -> dict | None:
             "name": name, "code": code}
 
 
+RUN_RE = re.compile(r"(.)\1{2,}", re.DOTALL)
+
+
+def collapse_runs(body: str) -> str:
+    """把「同一个字连续重复 ≥3 次」压成 1 个（引擎逐字写缓冲时会这样）。
+
+    只压 3 次以上：日文里的「！！」「……」这类两连是有意义的，不能动。
+    """
+    out = RUN_RE.sub(r"\1", body)
+    tokens = out.split()
+    if len(tokens) >= 2 and len(set(tokens)) == 1:
+        out = tokens[0]                       # 「ABC ABC」这种整串重复
+    return out
+
+
+def collapse_repeats(text: str) -> str:
+    """把「整行是同一段重复」还原成一段（Textractor 常见的重复句问题）。
+
+    例：AAABBBCCC → ABC；【佑斗】【佑斗】【佑斗】 → 【佑斗】；
+        おおおいいいいーー → おいー
+    """
+    body = (text or "").strip()
+    n = len(body)
+    if n >= 4:
+        for period in range(1, n // 2 + 1):
+            if n % period:
+                continue
+            block = body[:period]
+            if block and block * (n // period) == body:
+                return collapse_runs(block)
+    return collapse_runs(body)
+
+
 GARBAGE_RE = re.compile(r"[\ue000-\uf8ff\ufffd\ufff0-\uffff\x00-\x08\x0b\x0c\x0e-\x1f]")
 GOOD_RE = re.compile(r"[\u3040-\u30ff\u4e00-\u9fff\uff01-\uff60a-zA-Z0-9\s，。、！？…—「」『』（）()：:；;・～~ー]")
 
@@ -515,13 +548,23 @@ class VnTextEngine:
             if code:
                 row["code"] = code
             pending = self._pending.get(key)
-            if pending and text.startswith(pending["text"]) and len(text) > len(pending["text"]):
-                pending["text"] = text          # 同一句被补全
-                pending["at"] = now
-                return
-            if pending and pending["text"].startswith(text):
-                pending["at"] = now             # 重复/回退，忽略
-                return
+            if pending:
+                old = pending["text"]
+                if text.startswith(old) and len(text) > len(old):
+                    pending["text"] = text      # 同一句被补全
+                    pending["at"] = now
+                    return
+                if old.startswith(text):
+                    pending["at"] = now         # 重复/回退，忽略
+                    return
+                # 引擎可能把「缺字的前半段」先写出来、再补一份更完整的：
+                # 只要一份基本包含另一份，就保留更长的那份，别当成新句子
+                shorter, longer = (old, text) if len(old) <= len(text) else (text, old)
+                if shorter and longer.find(shorter[:max(4, len(shorter) // 2)]) >= 0 \
+                        and len(shorter) >= 0.6 * len(longer):
+                    pending["text"] = longer
+                    pending["at"] = now
+                    return
         if pending:
             self._flush_thread(key)             # 上一句先落地
         with self._lock:
@@ -620,7 +663,7 @@ class VnTextEngine:
 
     # ------------------------------------------------------------------ #
     def _emit(self, text: str, source: str, dedupe: bool = True) -> None:
-        body = " ".join(str(text or "").split())
+        body = " ".join(collapse_repeats(str(text or "")).split())
         max_chars = int((self._get_settings() or {}).get("vntext_max_chars") or 1200)
         if looks_like_noise(body, max_chars):
             return
