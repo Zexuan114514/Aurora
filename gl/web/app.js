@@ -1285,7 +1285,8 @@
       const status = await call("get_vntext_status");
       const on = !(status && status.overlay && status.overlay.click_through === false);
       const res = await call("set_overlay_click_through", on);
-      toast(on ? "悬浮窗已设为鼠标穿透" : "悬浮窗已可点击（可拖动/点按钮）");
+      toast(on ? "悬浮窗已设为鼠标穿透"
+               : "悬浮窗已可点击：拖标题栏移动，拖右下角或任意边缘缩放");
       refreshVntext();
     };
     $("vnPause").onclick = async () => {

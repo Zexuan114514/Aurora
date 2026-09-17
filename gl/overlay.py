@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ctypes
 import threading
+import time
 from ctypes import wintypes
 from pathlib import Path
 
@@ -15,15 +16,20 @@ import webview
 from . import config
 
 GWL_EXSTYLE = -20
+GWL_STYLE = -16
+WS_THICKFRAME = 0x00040000
 WS_EX_LAYERED = 0x00080000
 WS_EX_TRANSPARENT = 0x00000020
 WS_EX_TOOLWINDOW = 0x00000080
 SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0x0002
 SWP_NOACTIVATE = 0x0010
+SWP_FRAMECHANGED = 0x0020
 SWP_SHOWWINDOW = 0x0040
 SW_SHOWNOACTIVATE = 4
 HWND_TOPMOST = -1
+WM_NCLBUTTONDOWN = 0x00A1
+HTBOTTOMRIGHT = 17
 
 user32 = ctypes.WinDLL("user32", use_last_error=True)
 user32.GetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int]
@@ -31,6 +37,10 @@ user32.GetWindowLongW.restype = ctypes.c_long
 user32.SetWindowLongW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_long]
 user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
                                 ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+user32.ReleaseCapture.argtypes = []
+user32.PostMessageW.argtypes = [wintypes.HWND, ctypes.c_uint, ctypes.c_size_t,
+                                ctypes.c_ssize_t]
+user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 
 HTML_PATH = Path(__file__).resolve().parent / "web" / "overlay.html"
 
@@ -47,6 +57,9 @@ class OverlayBridge:
     def save_bounds(self, x, y, width, height) -> dict:
         return self._owner.save_bounds(int(x), int(y), int(width), int(height))
 
+    def begin_resize(self) -> dict:
+        return self._owner.begin_resize()
+
     def action(self, name: str, payload=None) -> dict:
         return self._owner.handle_action(str(name or ""), payload)
 
@@ -60,6 +73,7 @@ class Overlay:
         self._lock = threading.RLock()
         self._click_through = True
         self._visible = False
+        self._resize_ready = False
 
     # ------------------------------------------------------------------ #
     def _view(self) -> dict:
@@ -120,6 +134,9 @@ class Overlay:
                 self._window = None
                 return False
             self._click_through = view["click_through"]
+            self._enable_resize_border()
+            threading.Thread(target=self._resize_border_later, daemon=True,
+                             name="aurora-overlay-resize").start()
             self._apply_click_through()
             self._visible = True
             return True
@@ -149,6 +166,63 @@ class Overlay:
         user32.SetWindowLongW(wintypes.HWND(hwnd), GWL_EXSTYLE, base)
         self._force_top()
         return True
+
+    def _enable_resize_border(self) -> bool:
+        """补上 WS_THICKFRAME：无边框窗口默认没有可拖的边框，鼠标移到边缘不会
+        变成缩放光标（用户反馈「不知道怎么缩放」）。补上以后既能从任意边缘拖，
+        右下角的手柄也能直接走 Windows 原生缩放。"""
+        if self._resize_ready:
+            return True
+        hwnd = self._hwnd()
+        if not hwnd:
+            return False
+        try:
+            handle = wintypes.HWND(hwnd)
+            style = user32.GetWindowLongW(handle, GWL_STYLE)
+            user32.SetWindowLongW(handle, GWL_STYLE, style | WS_THICKFRAME)
+            user32.SetWindowPos(handle, wintypes.HWND(HWND_TOPMOST), 0, 0, 0, 0,
+                                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+                                | SWP_FRAMECHANGED | SWP_SHOWWINDOW)
+            # 读回来确认：pywebview 建窗时会用它自己的样式覆盖一次
+            self._resize_ready = bool(
+                user32.GetWindowLongW(handle, GWL_STYLE) & WS_THICKFRAME)
+            return self._resize_ready
+        except Exception as exc:
+            config.log(f"overlay resize border failed: {exc}")
+            return False
+
+    def _resize_border_later(self) -> None:
+        """窗口显示之后样式还可能被 pywebview 覆盖，退几步再补一次。"""
+        for _ in range(8):
+            if self._resize_ready or self._window is None:
+                self._clamp_to_screen()
+                return
+            time.sleep(0.4)
+            self._enable_resize_border()
+
+    def _clamp_to_screen(self) -> bool:
+        """窗口按 DPI 放大后可能有一部分在屏幕外，右下角的缩放手柄就够不到了；
+        把它挪回可见区域。"""
+        hwnd = self._hwnd()
+        if not hwnd:
+            return False
+        try:
+            handle = wintypes.HWND(hwnd)
+            rect = wintypes.RECT()
+            user32.GetWindowRect(handle, ctypes.byref(rect))
+            screen_w, screen_h = _screen_size()
+            width, height = rect.right - rect.left, rect.bottom - rect.top
+            x = min(max(0, rect.left), max(0, screen_w - width))
+            y = min(max(0, rect.top), max(0, screen_h - height))
+            if (x, y) == (rect.left, rect.top):
+                return False
+            config.log(f"overlay clamped {rect.left},{rect.top} -> {x},{y}")
+            user32.SetWindowPos(handle, wintypes.HWND(HWND_TOPMOST), x, y, 0, 0,
+                                SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+            return True
+        except Exception as exc:
+            config.log(f"overlay clamp failed: {exc}")
+            return False
 
     def _force_top(self) -> bool:
         """显式显示并抬到最前：光靠 pywebview 的 on_top 在游戏窗口前不够稳。"""
@@ -228,6 +302,24 @@ class Overlay:
     def save_bounds(self, x: int, y: int, width: int, height: int) -> dict:
         self._save({"x": x, "y": y, "w": max(320, width), "h": max(80, height)})
         return {"ok": True}
+
+    def begin_resize(self) -> dict:
+        """无边框窗口没有可拖的边框，把右下角交回 Windows 的原生缩放循环。
+
+        用 PostMessage 而不是 SendMessage：原生缩放循环是模态的，SendMessage
+        会把处理 JS 请求的线程一直卡到松开鼠标为止。
+        """
+        hwnd = self._hwnd()
+        if not hwnd:
+            return {"ok": False, "error": "no-window"}
+        try:
+            user32.ReleaseCapture()
+            user32.PostMessageW(wintypes.HWND(hwnd), WM_NCLBUTTONDOWN,
+                                ctypes.c_size_t(HTBOTTOMRIGHT), ctypes.c_ssize_t(0))
+            return {"ok": True}
+        except Exception as exc:
+            config.log(f"overlay resize failed: {exc}")
+            return {"ok": False, "error": str(exc)}
 
     def set_style(self, patch: dict) -> dict:
         clean = {}

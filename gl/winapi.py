@@ -31,6 +31,16 @@ _dwmapi = ctypes.WinDLL("dwmapi", use_last_error=True)
 _dwmapi.DwmSetWindowAttribute.argtypes = [wintypes.HWND, wintypes.DWORD, ctypes.c_void_p, wintypes.DWORD]
 _dwmapi.DwmSetWindowAttribute.restype = ctypes.c_long
 
+# 句柄是指针：不声明 argtypes/restype 在 64 位 Python 上会被截成 32 位
+_user32.GetForegroundWindow.restype = wintypes.HWND
+_user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+_user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+_user32.AttachThreadInput.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.BOOL]
+_user32.AttachThreadInput.restype = wintypes.BOOL
+_user32.SetForegroundWindow.argtypes = [wintypes.HWND]
+_user32.SetFocus.argtypes = [wintypes.HWND]
+_user32.BringWindowToTop.argtypes = [wintypes.HWND]
+
 
 def _set_dwm(hwnd: int, attribute: int, value: int) -> bool:
     buf = ctypes.c_int(value)
@@ -84,9 +94,37 @@ def focus_window(hwnd: int | None) -> bool:
             pass
         _user32.SetForegroundWindow(handle)
         _user32.BringWindowToTop(handle)
-        return True
+        if int(_user32.GetForegroundWindow() or 0) == int(handle):
+            return True
+        # Windows 默认不允许后台进程抢前台（实测从 Codex 终端里跑
+        # 自检脚本时 SetForegroundWindow 直接返回失败）。把当前前台线程
+        # 和游戏窗口线程临时「合流」再抢，就不受限了。
+        _attach_thread_input(handle)
+        return int(_user32.GetForegroundWindow() or 0) == int(handle)
     except Exception:
         return False
+
+
+def _attach_thread_input(handle) -> None:
+    """AttachThreadInput 版的强制前台（失败也无所谓，不影响其它功能）。"""
+    try:
+        kernel32 = ctypes.WinDLL("kernel32")
+        target_thread = _user32.GetWindowThreadProcessId(handle, None)
+        current = wintypes.HWND(_user32.GetForegroundWindow() or 0)
+        foreground_thread = _user32.GetWindowThreadProcessId(current, None) if current else 0
+        my_thread = kernel32.GetCurrentThreadId()
+        attached = []
+        for thread in {target_thread, foreground_thread}:
+            if thread and thread != my_thread:
+                attached.append((thread, bool(_user32.AttachThreadInput(thread, my_thread, True))))
+        _user32.SetForegroundWindow(handle)
+        _user32.SetFocus(handle)
+        _user32.BringWindowToTop(handle)
+        for thread, ok in attached:
+            if ok:
+                _user32.AttachThreadInput(thread, my_thread, False)
+    except Exception:
+        pass
 
 
 #: 深色 / 浅色主题下的窗口外框描边

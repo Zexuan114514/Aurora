@@ -7,6 +7,7 @@ TextractorCLI 的契约（读它的 host/CLI/main.cpp 得出）：
 """
 from __future__ import annotations
 
+import difflib
 import os
 import re
 import shutil
@@ -25,7 +26,14 @@ TEXTRACTOR_URL = "https://github.com/Artikash/Textractor/releases"
 #: 钩子文本里常见的菜单/系统提示，翻译它们只会干扰阅读
 NOISE_WORDS = ("无法注入", "Usage:", "Textractor:", "请以管理员", "注入失败","設定", "セーブ", "ロード", "タイトル", "終了", "バックログ", "スキップ",
                "オプション", "コンフィグ", "ウィンドウ", "フルスクリーン", "音量", "戻る",
-               "はじめから", "つづきから", "終わります", "よろしいですか")
+               "はじめから", "つづきから", "終わります", "よろしいですか",
+               # Textractor 自己的状态行（实测会被当台词送去翻译）
+               "vnreng", "hijacking", "注入钩子", "管道已连接", "INSERT ", "disable GDI hooks",
+               "已连接", "successfully attached")
+
+#: 折叠「连续重复字符」时要放过的字符：这些连写本身有意义（「！！」「……」），
+#: 折掉会改坏原文。注意「「「」这种引号连写一定是写缓冲痕迹，不能放过。
+KEEP_RUN_CHARS = set("。、，．,.！？!?…‥ー〜～゛゜")
 
 #: 引擎识别特征（按进程加载的模块名判断；这些都是我们自己观察到的模块名，
 #: 不复制 Textractor / LunaHook 的引擎表或钩子码数据）
@@ -34,6 +42,16 @@ ENGINE_SIGNATURES = (
     ("WillPlus", ("willplus", "advhd", "will_", "wpm")),
     ("BGI/Ethornell", ("bgi", "ethornell", "buriko")),
     ("Artemis/Siglus", ("siglus", "artemis", "ave;new")),
+)
+
+#: 钩子输出里的引擎特征。实测：游戏模块名里看不出来的引擎（DRACU RIOT 进程里
+#: 没有任何 kirikiri 字样的模块），Textractor 自己的状态行会写明
+#: 「vnreng: INSERT KiriKiriZ」——这条信息比模块名可靠。
+HOOK_ENGINE_HINTS = (
+    ("TVP/KIRIKIRI", ("kirikiriz", "kirikiri", "tvp(kirikiri)", "vnreng")),
+    ("WillPlus", ("willplus", "advhd", "embedwillplus")),
+    ("BGI/Ethornell", ("ethornell", "buriko", "bgimt")),
+    ("Artemis/Siglus", ("siglus", "artemis")),
 )
 
 #: 每引擎的文本清洗规则。字段都可以按实测继续加：
@@ -64,9 +82,20 @@ def profile_for(engine: str) -> dict:
 
 def detect_engine(pid: int) -> str:
     """按进程加载的模块名猜引擎；读不到模块就返回 unknown（不影响功能）。"""
+    for path in module_names(pid):
+        low = path.lower()
+        for name, keys in ENGINE_SIGNATURES:
+            if any(key in low for key in keys):
+                return name
+    return "unknown"
+
+
+def module_names(pid: int, limit: int = 0) -> list[str]:
+    """该进程加载的模块全路径（识别引擎、排错都用它）；失败返回空表。"""
     pid = int(pid or 0)
     if not pid:
-        return "unknown"
+        return []
+    out: list[str] = []
     try:
         import ctypes
         from ctypes import wintypes
@@ -84,31 +113,26 @@ def detect_engine(pid: int) -> str:
                                                ctypes.c_wchar_p, wintypes.DWORD]
         psapi.GetModuleFileNameExW.restype = wintypes.DWORD
         # 读模块名需要 VM_READ（只用 QUERY_LIMITED 会拿不到任何模块 → 引擎恒为 unknown）
-        ACCESS = 0x0400 | 0x0010
-        handle = kernel32.OpenProcess(ACCESS, False, pid)
+        handle = kernel32.OpenProcess(0x0400 | 0x0010, False, pid)
         if not handle:
-            return "unknown"
+            return []
         try:
-            LIST_MODULES_ALL = 0x03
             needed = wintypes.DWORD()
             modules = (ctypes.c_void_p * 512)()
-            size = ctypes.sizeof(modules)
-            if not kernel32.K32EnumProcessModules(handle, ctypes.byref(modules), size,
+            if not kernel32.K32EnumProcessModules(handle, ctypes.byref(modules),
+                                                  ctypes.sizeof(modules),
                                                   ctypes.byref(needed)):
-                return "unknown"
+                return []
             count = min(len(modules), max(0, needed.value // ctypes.sizeof(ctypes.c_void_p)))
             for index in range(count):
-                buffer = ctypes.create_unicode_buffer(512)
-                if psapi.GetModuleFileNameExW(handle, modules[index], buffer, 512):
-                    low = buffer.value.lower()
-                    for name, keys in ENGINE_SIGNATURES:
-                        if any(key in low for key in keys):
-                            return name
+                buffer = ctypes.create_unicode_buffer(1024)
+                if psapi.GetModuleFileNameExW(handle, modules[index], buffer, 1024):
+                    out.append(buffer.value)
         finally:
             kernel32.CloseHandle(handle)
     except Exception as exc:
-        config.log(f"engine detect failed: {exc}")
-    return "unknown"
+        config.log(f"module list failed: {exc}")
+    return out[:limit] if limit else out
 
 
 LINE_RE = re.compile(
@@ -242,7 +266,7 @@ def normalize_for_dedupe(text: str) -> str:
     同一句台词常以三种形态先后到达：带名字前缀版、逐字重复版、干净版。
     归一化后它们是同一个串，只翻一次就够。
     """
-    body = collapse_repeats(text)
+    body = clean_hook_text(text)
     body = NAME_PREFIX_RE.sub("", body).strip()
     body = collapse_doubling(body)
     return re.sub(r"[\s\u300c\u300d\u300e\u300f\u3010\u3011\[\]\uff08\uff09()、。，,.!\uff01?\uff1f"
@@ -280,6 +304,285 @@ def collapse_repeats(text: str) -> str:
             if block and block * (n // period) == body:
                 return collapse_runs(block)
     return collapse_runs(body)
+
+
+# --------------------------------------------------------------------------- #
+# 写缓冲痕迹的还原
+#
+# 实测（DRACU RIOT / TVP-KIRIKIRI）：钩子拿到的是游戏「往同一个对话框缓冲区
+# 反复写、每次重画都重写一遍」的过程，于是一行里会出现同一句台词的多个形态：
+#     【佑斗】【佑斗】【佑斗】ABC AABBCC ABC
+#     なななかかか…（逐字×3）  ・  …だだだ。。。今今にに至至るる…（×3 + ×2）
+# 直接送去翻译就会把三段都翻一遍、或者翻出带重复的怪句子（用户反馈的
+# 「三形态文本」）。下面这几个函数负责把「能证明是写缓冲痕迹」的部分还原成一句。
+# --------------------------------------------------------------------------- #
+def fold_char_runs(body: str, min_run: int = 3) -> str:
+    """同一个字连续 ≥min_run 次 → 折成 1 个；标点/长音符等天然连写的字符不动。
+
+    「なななかかか」→「なかなか」；「。。。」「！！」原样保留。
+    """
+    out: list[str] = []
+    i = 0
+    n = len(body)
+    while i < n:
+        ch = body[i]
+        j = i + 1
+        while j < n and body[j] == ch:
+            j += 1
+        run = j - i
+        if run >= min_run and ch not in KEEP_RUN_CHARS:
+            out.append(ch)
+        else:
+            out.append(ch * run)
+        i = j
+    return "".join(out)
+
+
+def _pair_run(body: str, start: int) -> int:
+    """从 start 开始「成对相同」的对数（ぺペ 这种平/片假名混写也算一对）。"""
+    pairs = 0
+    i = start
+    while i + 1 < len(body) and _kana_fold(body[i]) == _kana_fold(body[i + 1]):
+        pairs += 1
+        i += 2
+    return pairs
+
+
+def fold_doubling_spans(body: str, min_pairs: int = 3) -> str:
+    """折叠「整段逐字双写」的片段，只折能证明的：连续 ≥min_pairs 对全部成对相同。
+
+    「ここ」这类正常的叠字只有 1 对，永远不会被折；实测的引擎双写形态
+    （「今今にに至至るる」「おははよようう」）动辄十几对，一定能被抓到。
+    """
+    out: list[str] = []
+    i = 0
+    n = len(body)
+    while i < n:
+        pairs = _pair_run(body, i)
+        if pairs >= min_pairs:
+            out.append("".join(body[i + 2 * k] for k in range(pairs)))
+            i += 2 * pairs
+            continue
+        out.append(body[i])
+        i += 1
+    return "".join(out)
+
+
+_PUNCT_EDGE = "。、，．,.！？!?…‥・「」『』（）()[]【】 \t\u3000"
+
+
+def _skeleton(body: str) -> tuple[str, list[int], list[int]]:
+    """骨架：去掉标点/引号/空白、连续相同字符合一，并记下每个骨架字符在原文里
+    的起止位置（还原时把标点补回来）。"""
+    chars: list[str] = []
+    starts: list[int] = []
+    ends: list[int] = []
+    for index, ch in enumerate(body):
+        if ch in _PUNCT_EDGE or ch in "「」『』【】":
+            continue
+        if chars and chars[-1] == ch:
+            ends[-1] = index
+            continue
+        chars.append(ch)
+        starts.append(index)
+        ends.append(index)
+    return "".join(chars), starts, ends
+
+
+def longest_repeat(body: str) -> str:
+    """最长「至少出现两次」的子串（朴素后缀排序；台词行都很短，够用）。"""
+    n = len(body)
+    if n < 2:
+        return ""
+    order = sorted(range(n), key=lambda index: body[index:])
+    best = ""
+    for left, right in zip(order, order[1:]):
+        if left > right:
+            left, right = right, left
+        size = 0
+        while right + size < n and body[left + size] == body[right + size]:
+            size += 1
+        if size > len(best):
+            best = body[left:left + size]
+    return best
+
+
+def _repeat_coverage(body: str, core: str) -> int:
+    """整行里有多少字符属于「core 或它被截断的副本」。"""
+    variants = [core]
+    for cut in range(1, max(1, len(core) // 4) + 1):
+        variants.append(core[:-cut])
+    variants = [row for row in variants if len(row) >= 4]
+    covered = 0
+    index = 0
+    n = len(body)
+    while index < n:
+        hit = 0
+        for variant in variants:
+            if body.startswith(variant, index):
+                hit = len(variant)
+                break
+        if hit:
+            covered += hit
+        index += hit or 1
+    return covered
+
+
+def compare_key(text: str) -> str:
+    """比较用骨架：去掉标点引号空白，并把连续相同字符压成一个。"""
+    chars: list[str] = []
+    for ch in text:
+        if ch in _PUNCT_EDGE or ch in "「」『』【】":
+            continue
+        if chars and chars[-1] == ch:
+            continue
+        chars.append(ch)
+    return "".join(chars)
+
+
+def _similar(left: str, right: str, threshold: float = 0.6) -> bool:
+    if not left or not right:
+        return False
+    if left in right or right in left:
+        return True
+    return difflib.SequenceMatcher(None, left, right).ratio() >= threshold
+
+
+def _collapse_quote_forms(body: str) -> str:
+    """「形态1」「形态2」「形态3」——同一句被写多遍，各份之间是 」「。
+
+    实测（DRACU RIOT）每一行都是这个结构：逐字×3 形态、×2 形态、干净形态，
+    每份都被引号包住。只要判定这些份是同一句（骨架相似），就留最后一份
+    ——写缓冲越写越准，最后一份就是干净的那句。
+    """
+    if "」「" not in body:
+        return body
+    parts = [part for part in body.split("」「") if part.strip()]
+    if len(parts) < 2:
+        return body
+    folded = [collapse_repeats(fold_doubling_spans(fold_char_runs(part))) for part in parts]
+    keys = [compare_key(part) for part in folded]
+    last = keys[-1]
+    if len(last) < 6:
+        return body
+    if not any(_similar(last, key) for key in keys[:-1]):
+        return body
+    out = folded[-1].strip()
+    # 分隔符「」「」把最后一份的左引号留在了上一份的结尾，这里补/去多余括号，
+    # 免得译文里带一个孤零零的 」
+    while out and out[-1] in "」』" and out.count("「") < out.count("」"):
+        out = out[:-1].rstrip()
+    return out or body
+
+
+def _collapse_by_coverage(body: str) -> str:
+    """没有引号分隔时（例如「X。。X。X」「ABC AABBCC ABC」）按骨架重复判定。"""
+    n = len(body)
+    if n < 8 or n > 400:
+        return body
+    skeleton, starts, ends = _skeleton(body)
+    total = len(skeleton)
+    if total < 8:
+        return body
+    unit = longest_repeat(skeleton)
+    if len(unit) < 4:
+        return body
+    chosen = ""
+    best = (0, 0, 0)
+    for size in range(4, len(unit) + 1):
+        for candidate in (unit[:size], unit[-size:]):
+            if len(candidate) < 4 or skeleton.count(candidate) < 2:
+                continue
+            covered = _repeat_coverage(skeleton, candidate)
+            if covered < 0.85 * total:
+                continue
+            # 又长又铺得满的优先；打平时优先「落在行尾」的那份 —— 写缓冲最后写的
+            # 才是当前这一句（跨份错位选出来的候选不会落在行尾）
+            score = (covered * len(candidate), int(skeleton.endswith(candidate)),
+                     len(candidate))
+            if score > best:
+                best, chosen = score, candidate
+    if not chosen:
+        return body
+    last = skeleton.rfind(chosen)
+    if last < 0:
+        return body
+    begin = starts[last]
+    end = ends[last + len(chosen) - 1]
+    # 只把左引号/左括号补回来；句号、逗号属于上一句，不能吞
+    while begin > 0 and body[begin - 1] in "「『（([【":
+        begin -= 1
+    while end + 1 < n and body[end + 1] in _PUNCT_EDGE:      # 右引号/句读补回来
+        end += 1
+    return body[begin:end + 1].strip() or body
+
+
+def collapse_duplicated_sentence(body: str) -> str:
+    """同一句被写进同一行多遍（写缓冲的历史）时只留一份。
+
+    实测原文（DRACU RIOT，一行三个形态）：
+        【佑斗】×3「「「でででももも…？？？」」」「「ででもも…？？」」「でも…？」
+    先按「」「」拆形态（最常见），拆不出来再按骨架重复覆盖率兜底。
+    """
+    collapsed = _collapse_quote_forms(body)
+    if collapsed != body:
+        return collapsed
+    return _collapse_by_coverage(body)
+
+
+def fold_written_repeats(text: str) -> str:
+    """折叠全部写缓冲痕迹：逐字×N、成对双写、同句多份、整串重复。"""
+    return collapse_repeats(collapse_duplicated_sentence(
+        fold_doubling_spans(fold_char_runs(text))))
+
+
+def split_name_prefix(body: str) -> tuple[str, str]:
+    """拆开开头的【名字】前缀（可能重复写了多遍），返回 (名字, 正文)。"""
+    match = NAME_PREFIX_RE.match(body)
+    if not match:
+        return "", body
+    parts = re.findall(r"【[^】]{1,12}】|\[[^\]]{1,12}\]|［[^］]{1,12}］", match.group(0))
+    names: list[str] = []
+    for part in parts:
+        # 引擎重画名字时会插空格（实测「【 佑斗 】」），统一压掉，译文才会干净
+        clean = re.sub(r"\s+", "", part)
+        if clean not in names:
+            names.append(clean)
+    return "".join(names), body[match.end():].lstrip()
+
+
+def clean_hook_text(text: str) -> str:
+    """把写缓冲痕迹还原成一句台词；还原本就是重复噪声时返回空串。"""
+    body = " ".join(str(text or "").split())
+    if not body:
+        return ""
+    name, rest = split_name_prefix(body)
+    if not rest:
+        return ""                     # 只有名字（引擎单独重画了一次名字）→ 不是台词
+    rest = fold_written_repeats(rest).strip()
+    if not rest:
+        return ""
+    return f"{name}{rest}" if name else rest
+
+
+def residual_artifacts(text: str) -> list[str]:
+    """仍然存在的重复痕迹（自检用：干净的台词应当返回空表）。"""
+    body = str(text or "")
+    found: list[str] = []
+    for index in range(len(body) - 2):
+        if body[index] == body[index + 1] == body[index + 2] \
+                and body[index] not in KEEP_RUN_CHARS:
+            found.append("run3")
+            break
+    index = 0
+    while index < len(body) - 5:
+        if _pair_run(body, index) >= 3:
+            found.append("doubling")
+            break
+        index += 1
+    if _collapse_by_coverage(body) != body:
+        found.append("repeat")
+    return found
 
 
 GARBAGE_RE = re.compile(r"[\ue000-\uf8ff\ufffd\ufff0-\uffff\x00-\x08\x0b\x0c\x0e-\x1f]")
@@ -337,10 +640,11 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
 class VnTextEngine:
     """把钩子 / OCR 两种来源统一成一条文本流。"""
 
-    def __init__(self, *, settings_getter, on_line, on_status=None) -> None:
+    def __init__(self, *, settings_getter, on_line, on_status=None, on_raw=None) -> None:
         self._get_settings = settings_getter
         self._on_line = on_line
         self._on_status = on_status
+        self._on_raw = on_raw
         self._lock = threading.RLock()
         self._proc: subprocess.Popen | None = None
         self._procs: list[subprocess.Popen] = []
@@ -354,6 +658,7 @@ class VnTextEngine:
         self._locked = ""
         self._seen: dict[str, dict] = {}
         self._last_line = ""
+        self._last_norm = ""
         self._lines = 0
         self._error = ""
         self._region = {"x": 0.0, "y": 0.62, "w": 1.0, "h": 0.34}
@@ -432,6 +737,21 @@ class VnTextEngine:
             return self._leader
         return self._active_by_score()
 
+    def _note_engine_hint(self, *parts: str) -> None:
+        """从钩子输出里认出引擎（模块名认不出来时的兜底）。"""
+        if self._engine not in ("", "unknown"):
+            return
+        hay = " ".join(str(part or "").lower() for part in parts)
+        if not hay:
+            return
+        for name, keys in HOOK_ENGINE_HINTS:
+            if any(key in hay for key in keys):
+                self._engine = name
+                self._profile = profile_for(name)
+                config.log(f"vntext engine from hook output: {name}")
+                self._push_status()
+                return
+
     # ------------------------------------------------------------------ #
     def start(self, game_id: str, pid: int, mode: str = "auto", exe: str = "") -> dict:
         self.stop()
@@ -442,6 +762,7 @@ class VnTextEngine:
         self._error = ""
         self._lines = 0
         self._last_line = ""
+        self._last_norm = ""
         self._seen.clear()
         self._ocr_last = ""
         self._ocr_streak = 0
@@ -646,6 +967,7 @@ class VnTextEngine:
                 parsed = parse_hook_line(text)
                 if not parsed:
                     continue
+                self._note_engine_hint(parsed["text"], parsed["name"], parsed["code"])
                 key = parsed["thread"] or parsed["name"] or "默认"
                 self._buffer_fragment(key, parsed["text"], parsed["name"], parsed["code"])
                 continue
@@ -712,7 +1034,8 @@ class VnTextEngine:
         if pending:
             self._flush_thread(key)             # 上一句先落地
         with self._lock:
-            self._pending[key] = {"text": text, "at": time.time()}
+            self._pending[key] = {"text": text, "at": time.time(), "code": code,
+                                  "name": name}
 
     def _flush_loop(self) -> None:
         while not self._stop.is_set():
@@ -732,6 +1055,14 @@ class VnTextEngine:
         text = " ".join(str(row["text"]).split())
         if not text:
             return
+        if self._on_raw:
+            try:
+                self._on_raw({"text": text, "thread": key,
+                              "name": str(row.get("name") or ""),
+                              "code": str(row.get("code") or ""),
+                              "at": time.time()})
+            except Exception as exc:
+                config.log(f"vntext raw callback failed: {exc}")
         self._register_line(key, text)
 
     def _register_line(self, key: str, text: str) -> None:
@@ -739,8 +1070,11 @@ class VnTextEngine:
         # 同一句台词常以多种形态、甚至跨线程先后到达（实测 DRACU RIOT 是
         # 【人名】前缀版 + 逐字双写版 + 干净版三份）。这里先去重再走线程门禁，
         # 否则非领跑线程的那几份会在门禁处被丢弃、或各自翻一遍。
+        clean = clean_hook_text(text)
         norm = normalize_for_dedupe(text)
-        config.log(f"vntext in [{key[:8]}] {text[:50]!r} norm={norm[:50]!r}")
+        config.log(f"vntext in [{key[:8]}] {text[:50]!r} -> {clean[:50]!r}")
+        if not clean:
+            return
         window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
         if len(norm) >= 6:
             now0 = time.time()
@@ -749,7 +1083,6 @@ class VnTextEngine:
                 for old, _t in self._recent:
                     same = (norm == old or norm in old or old in norm)
                     if not same and abs(len(norm) - len(old)) <= max(3, 0.25 * len(old)):
-                        import difflib
                         same = difflib.SequenceMatcher(None, norm, old).ratio() >= 0.9
                     if same:
                         self._merged += 1
@@ -763,9 +1096,9 @@ class VnTextEngine:
                                               "sample": "", "dialogue": 0,
                                               "last_seen": time.time()})
             row["count"] += 1
-            if looks_like_dialogue(text):
+            if looks_like_dialogue(clean):
                 row["dialogue"] = row.get("dialogue", 0) + 1
-            row["sample"] = text[:60]
+            row["sample"] = clean[:60]
             leader = self._leader
             leader_seen = self._seen.get(leader, {}).get("last_seen", 0) if leader else 0
             if not leader or (leader != key and time.time() - leader_seen > 20):
@@ -778,7 +1111,7 @@ class VnTextEngine:
         # 已经有明确在说台词的线程时，其它线程不看（乱码多是别线程产物）
         if not self._locked and active and key != active and leader_dialogue >= 3:
             return
-        self._emit(text, "hook")
+        self._emit(clean, "hook")
 
     # ------------------------------------------------------------------ #
     def _start_ocr(self) -> bool:
@@ -839,15 +1172,21 @@ class VnTextEngine:
 
     # ------------------------------------------------------------------ #
     def _emit(self, text: str, source: str, dedupe: bool = True) -> None:
-        body = " ".join(collapse_repeats(str(text or "")).split())
+        # 钩子文本先还原写缓冲痕迹；OCR 文本是识别结果，不折（折了反而会改动原文）
+        body = clean_hook_text(text) if source == "hook" \
+            else " ".join(collapse_repeats(str(text or "")).split())
+        if not body:
+            return
         max_chars = int((self._get_settings() or {}).get("vntext_max_chars") or 1200)
         if looks_like_noise(body, max_chars):
             return
-        if dedupe and body == self._last_line:
+        norm = normalize_for_dedupe(body)
+        if dedupe and (body == self._last_line or (norm and norm == self._last_norm)):
             return
         # 去重统一放在 _register_line 里做（那里能拿到线程 key，也能跨线程合并）；
         # 这里只保留「与上一句完全相同」的快速判断。
         self._last_line = body
+        self._last_norm = norm
         self._lines += 1
         try:
             self._on_line({"text": body, "source": source, "game_id": self._game_id})
