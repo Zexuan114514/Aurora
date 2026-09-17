@@ -96,7 +96,9 @@ class Overlay:
             # 位置交给 pywebview 自己居中：屏幕指标与 create_window 的坐标空间在
             # 高 DPI 下不是同一套（实测 175% 缩放时会算出屏幕外的坐标），
             # 所以不再用「算出来的默认坐标」，避免把窗口丢到屏幕外。
-            place = {"x": view["x"], "y": view["y"]} if (view["x"] and view["y"]) else {}
+            # 位置一律交给 pywebview 居中：实测保存下来的坐标是「逻辑×dpr」的混合空间，
+            # 再喂回去会被乘第二次（本次现场：保存 y=1243、屏幕只高 1097 → 窗口在屏幕外）
+            place: dict = {}
             # 兜底：老配置可能存了屏幕外的坐标（DPI 混用过），钳回可见区域，
             # 否则窗口只有任务栏预览能看到，用户既看不到也拖不到
             if place and not (0 <= place["x"] <= screen_w * 1.3

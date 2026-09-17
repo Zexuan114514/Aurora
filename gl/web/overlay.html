@@ -121,6 +121,12 @@
   }
 
   window.vnUpdate = (payload) => {
+    if (payload.reset) {                 // 换游戏/重开翻译：历史与译文都清掉
+      state.lines = [];
+      state.index = -1;
+      state.notice = "";
+      state.status = "idle";
+    }
     if (payload.style) state.style = { ...state.style, ...payload.style };
     if ("clickThrough" in payload) state.clickThrough = !!payload.clickThrough;
     if (payload.lines) {

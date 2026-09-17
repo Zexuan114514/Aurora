@@ -578,6 +578,9 @@ class Api:
         self._hotkeys.start()
         if state.get("running"):
             self._overlay.show()
+            self._overlay.update({"reset": True, "status": "waiting",
+                                  "lines": {"source": "", "translation": "",
+                                            "status": "waiting"}})
             self._overlay.update({"status": "waiting",
                                   "notice": "" if settings.get("translate_api_key")
                                             else "没填 LLM Key：正在用免费接口，质量与速度较差"})

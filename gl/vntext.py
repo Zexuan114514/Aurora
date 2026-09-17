@@ -72,8 +72,9 @@ def detect_engine(pid: int) -> str:
         from ctypes import wintypes
         psapi = ctypes.WinDLL("psapi", use_last_error=True)
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
-        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        # 读模块名需要 VM_READ（只用 QUERY_LIMITED 会拿不到任何模块 → 引擎恒为 unknown）
+        ACCESS = 0x0400 | 0x0010
+        handle = kernel32.OpenProcess(ACCESS, False, pid)
         if not handle:
             return "unknown"
         try:
@@ -202,12 +203,20 @@ def parse_hook_line(raw: str) -> dict | None:
 NAME_PREFIX_RE = re.compile(r"^(?:\u3010[^\u3011]{1,12}\u3011|\[[^\]]{1,12}\]|\uff3b[^\uff3d]{1,12}\uff3d)+")
 
 
+def _kana_fold(ch: str) -> str:
+    """片假名折成平假名：引擎逐字双写时常出现「ぺペ」这种混写配对。"""
+    code = ord(ch)
+    if 0x30A1 <= code <= 0x30F6:
+        return chr(code - 0x60)
+    return ch
+
+
 def collapse_doubling(body: str) -> str:
     """每个字符恰好重复 2 次 → 压成 1 个。只用于「判断是不是同一句」，不动展示文本。"""
     out: list[str] = []
     i = 0
     while i < len(body):
-        if i + 1 < len(body) and body[i] == body[i + 1]:
+        if i + 1 < len(body) and _kana_fold(body[i]) == _kana_fold(body[i + 1]):
             out.append(body[i])
             i += 2
         else:
@@ -708,7 +717,7 @@ class VnTextEngine:
         # 【人名】前缀版 + 逐字双写版 + 干净版三份）。这里先去重再走线程门禁，
         # 否则非领跑线程的那几份会在门禁处被丢弃、或各自翻一遍。
         norm = normalize_for_dedupe(text)
-        window = float((self._profile or {}).get("dedupe_window") or 8.0)
+        window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
         if len(norm) >= 6:
             now0 = time.time()
             with self._lock:
