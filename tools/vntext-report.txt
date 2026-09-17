@@ -39,6 +39,26 @@ Aurora 游戏内翻译自检
   OK  历史记录累积  3 条
   OK  暂停后不再提交
 
+[同一句多形态去重（DRACU RIOT 实测样本）]
+  OK  三形态只翻一次，下一句正常  发出 2 条：['【佑斗】【佑斗】【佑斗】「お前、', '「また明日ね」と小さく呟いて、']
+  OK  合并计数有记录  2
+
+[重复折叠（保留有意义的双连）]
+  OK  AAABBBCCC -> ABC  ABC
+  OK  【佑斗】【佑斗】【佑斗】 -> 【佑斗】  【佑斗】
+  OK  ABC ABC -> ABC  ABC
+  OK  やった！！ -> やった！！  やった！！
+  OK  そう……。 -> そう……。  そう……。
+
+[引擎标识与规则集]
+  OK  TVP/KIRIKIRI 规则可取出
+  OK  WillPlus 规则里给出 OCR 建议
+  OK  未知引擎回落到 default
+  OK  detect_engine 对无效 pid 不炸
+
+[64 位主进程 + 32 位子进程：两套 CLI 同时挂]
+  OK  两种位数各起一个实例  实例数=2
+
 [TextractorCLI 位数选择]
   OK  能同时发现 x86 与 x64 两个版本  [(32, 'ractor\\x86\\TextractorCLI.exe'), (64, 'ractor\\x64\\TextractorCLI.exe')]
   OK  32 位游戏挑 x86 版  E:\Textractor\x86\TextractorCLI.exe
@@ -52,8 +72,8 @@ Aurora 游戏内翻译自检
   （要在本机用 OCR 模式：设置 → 时间和语言 → 语言和区域 → 添加日语 → 勾选「光学字符识别」）
 
 [窗口捕获]
-  OK  能抓到前台窗口画面  1303x854 print
-  OK  相对区域裁剪生效  1303x427
+  OK  能抓到前台窗口画面  1755x48 print
+  OK  相对区域裁剪生效  1755x24
 
 [文件对话框过滤器]
   OK  合法过滤器：可执行文件 (*.exe)

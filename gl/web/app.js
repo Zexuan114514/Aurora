@@ -1076,6 +1076,11 @@
     if (running && state.pid) parts.push(`PID ${state.pid}`);
     parts.push(`已译 ${state.lines || 0} 句`);
     if (running && !state.llm_ready) parts.push("没配 LLM Key：正在用免费接口，质量与速度较差");
+    if (state.engine_name && state.engine_name !== "unknown") {
+      parts.push(`引擎：${state.engine_name}`);
+    }
+    if (state.merged) parts.push(`已合并 ${state.merged} 份重复文本`);
+    if (state.hook_hint) parts.push(state.hook_hint);
     if (running && state.engine === "hook" && state.game_locale === false) {
       parts.push("这个游戏没开转区：日文原版很容易出乱码，建议用「⋯ → 转区启动…」开启后再翻译");
     }

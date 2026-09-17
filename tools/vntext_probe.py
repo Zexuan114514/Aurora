@@ -229,6 +229,53 @@ def main() -> int:
 
     # ------------------------------------------------------------ OCR 状态
     # ------------------------------------------------------------ 位数选择
+    # ------------------------------------------------------------ Phase 0/1 用例
+    write("\n[同一句多形态去重（DRACU RIOT 实测样本）]")
+    lines3: list[dict] = []
+    eng3 = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                               on_line=lines3.append)
+    for text in ("【佑斗】【佑斗】【佑斗】「お前、出発してからそればっかりだな」",
+                 "「おお前前、出出発発ししててかかららそそれればばっっかりりだだな」",
+                 "「お前、出発してからそればっかりだな」",
+                 "「また明日ね」と小さく呟いて、"):
+        eng3._register_line("thread-A", text)
+    check("三形态只翻一次，下一句正常", len(lines3) == 2,
+          f"发出 {len(lines3)} 条：{[row['text'][:16] for row in lines3]}")
+    check("合并计数有记录", eng3.status().get("merged", 0) >= 2,
+          str(eng3.status().get("merged")))
+
+    write("\n[重复折叠（保留有意义的双连）]")
+    for src, want in (("AAABBBCCC", "ABC"), ("【佑斗】【佑斗】【佑斗】", "【佑斗】"),
+                      ("ABC ABC", "ABC"), ("やった！！", "やった！！"),
+                      ("そう……。", "そう……。")):
+        got = vntext.collapse_repeats(src)
+        check(f"{src[:14]} -> {want[:10]}", got == want, got)
+
+    write("\n[引擎标识与规则集]")
+    check("TVP/KIRIKIRI 规则可取出",
+          vntext.profile_for("TVP/KIRIKIRI").get("collapse_doubling") is True
+          and "GetTextExtentPoint32W" in vntext.profile_for("TVP/KIRIKIRI")["hook_hint"])
+    check("WillPlus 规则里给出 OCR 建议",
+          "OCR" in vntext.profile_for("WillPlus")["hook_hint"])
+    check("未知引擎回落到 default", vntext.profile_for("不存在").get("name_prefix") is True)
+    check("detect_engine 对无效 pid 不炸", vntext.detect_engine(0) == "unknown")
+
+    write("\n[64 位主进程 + 32 位子进程：两套 CLI 同时挂]")
+    frag = SANDBOX / "multi_cli.py"
+    frag.write_text(FAKE_CLI_SRC, encoding="utf-8")
+    eng4 = vntext.VnTextEngine(settings_getter=lambda: {"vntext_tractor_path": str(frag),
+                                                        "vntext_max_chars": 1200},
+                               on_line=lambda row: None)
+    eng4._cli = str(frag)
+    eng4._cli_bits = 0
+    eng4._targets = [{"pid": 111, "bits": 64, "path": "C:\\g\\main.exe"},
+                     {"pid": 222, "bits": 32, "path": "C:\\g\\reader.exe"}]
+    ok4 = eng4._start_hook()
+    time.sleep(1.2)
+    procs4 = len(eng4._procs)
+    eng4.stop()
+    check("两种位数各起一个实例", ok4 and procs4 == 2, f"实例数={procs4}")
+
     write("\n[TextractorCLI 位数选择]")
     win = Path(os.environ.get("WINDIR", r"C:\Windows"))
     build_root = SANDBOX / "TL"

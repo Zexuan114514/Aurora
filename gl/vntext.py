@@ -27,6 +27,78 @@ NOISE_WORDS = ("設定", "セーブ", "ロード", "タイトル", "終了", "�
                "オプション", "コンフィグ", "ウィンドウ", "フルスクリーン", "音量", "戻る",
                "はじめから", "つづきから", "終わります", "よろしいですか")
 
+#: 引擎识别特征（按进程加载的模块名判断；这些都是我们自己观察到的模块名，
+#: 不复制 Textractor / LunaHook 的引擎表或钩子码数据）
+ENGINE_SIGNATURES = (
+    ("TVP/KIRIKIRI", ("tvp(kirikiri)", "kirikiri", "krkr", "tvp_", "krkrz")),
+    ("WillPlus", ("willplus", "advhd", "will_", "wpm")),
+    ("BGI/Ethornell", ("bgi", "ethornell", "buriko")),
+    ("Artemis/Siglus", ("siglus", "artemis", "ave;new")),
+)
+
+#: 每引擎的文本清洗规则。字段都可以按实测继续加：
+#:   name_prefix      —— 剥离开头的【人名】前缀
+#:   collapse_doubling—— 折叠「每个字重复 2 次」的版本
+#:   dedupe_window    —— 同一句多形态的去重窗口（秒）
+#:   hook_hint        —— 面板里给用户的建议
+ENGINE_PROFILES = {
+    "TVP/KIRIKIRI": {
+        "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
+        "hook_hint": "TVP/KIRIKIRI：优先用 GetTextExtentPoint32W:HQ8@0:gdi32.dll 这条钩子，"
+                     "它通常能给出完整正文（实测 DRACU RIOT）。",
+    },
+    "WillPlus": {
+        "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
+        "hook_hint": "WillPlus：Textractor 钩子常缺字（实测少女之剑），建议改用 OCR 模式。",
+    },
+    "default": {
+        "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
+        "hook_hint": "",
+    },
+}
+
+
+def profile_for(engine: str) -> dict:
+    return dict(ENGINE_PROFILES.get(engine) or ENGINE_PROFILES["default"])
+
+
+def detect_engine(pid: int) -> str:
+    """按进程加载的模块名猜引擎；读不到模块就返回 unknown（不影响功能）。"""
+    pid = int(pid or 0)
+    if not pid:
+        return "unknown"
+    try:
+        import ctypes
+        from ctypes import wintypes
+        psapi = ctypes.WinDLL("psapi", use_last_error=True)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+        if not handle:
+            return "unknown"
+        try:
+            LIST_MODULES_ALL = 0x03
+            needed = wintypes.DWORD()
+            modules = (ctypes.c_void_p * 512)()
+            size = ctypes.sizeof(modules)
+            if not kernel32.K32EnumProcessModules(handle, ctypes.byref(modules), size,
+                                                  ctypes.byref(needed)):
+                return "unknown"
+            count = min(len(modules), max(0, needed.value // ctypes.sizeof(ctypes.c_void_p)))
+            for index in range(count):
+                buffer = ctypes.create_unicode_buffer(512)
+                if psapi.GetModuleFileNameExW(handle, modules[index], buffer, 512):
+                    low = buffer.value.lower()
+                    for name, keys in ENGINE_SIGNATURES:
+                        if any(key in low for key in keys):
+                            return name
+        finally:
+            kernel32.CloseHandle(handle)
+    except Exception as exc:
+        config.log(f"engine detect failed: {exc}")
+    return "unknown"
+
+
 LINE_RE = re.compile(
     r"^\[([0-9A-Fa-f]+):([0-9A-Fa-f]+):([0-9A-Fa-f]+):([0-9A-Fa-f]+):([0-9A-Fa-f]+):"
     r"([^\]]*):([^\]]*)\]\s?(.*)$")
@@ -271,6 +343,9 @@ class VnTextEngine:
         self._interval = 0.9
         self._pending: dict[str, dict] = {}
         self._recent: list[tuple[str, float]] = []
+        self._merged = 0
+        self._engine = "unknown"
+        self._profile: dict = {}
         self._leader = ""
         self._cli_bits = 0
         self._target_bits = 0
@@ -302,6 +377,9 @@ class VnTextEngine:
                 "region": dict(self._region),
                 "lang": self._lang,
                 "lines": self._lines,
+                "merged": self._merged,
+                "engine_name": self._engine,
+                "hook_hint": (self._profile or {}).get("hook_hint") or "",
                 "error": self._error,
             }
 
@@ -342,6 +420,7 @@ class VnTextEngine:
         self._seen.clear()
         self._ocr_last = ""
         self._ocr_streak = 0
+        self._merged = 0
 
         settings = self._get_settings() or {}
         saved = str(settings.get("vntext_tractor_path") or "")
@@ -364,6 +443,8 @@ class VnTextEngine:
         self._leader = ""
         threading.Thread(target=self._flush_loop, daemon=True,
                          name="aurora-vntext-flush").start()
+        self._engine = detect_engine(self._pid)
+        self._profile = profile_for(self._engine)
         self._targets = self._collect_targets(self._pid, exe) if self._pid else []
         wanted_bits = {int(row.get("bits") or 0) for row in self._targets} - {0}
         started = False
@@ -623,6 +704,26 @@ class VnTextEngine:
 
     def _register_line(self, key: str, text: str) -> None:
         """记账（台词计数/领跑线程）并按需发射。"""
+        # 同一句台词常以多种形态、甚至跨线程先后到达（实测 DRACU RIOT 是
+        # 【人名】前缀版 + 逐字双写版 + 干净版三份）。这里先去重再走线程门禁，
+        # 否则非领跑线程的那几份会在门禁处被丢弃、或各自翻一遍。
+        norm = normalize_for_dedupe(text)
+        window = float((self._profile or {}).get("dedupe_window") or 8.0)
+        if len(norm) >= 6:
+            now0 = time.time()
+            with self._lock:
+                self._recent = [(n, t) for n, t in self._recent if now0 - t <= window]
+                for old, _t in self._recent:
+                    same = (norm == old or norm in old or old in norm)
+                    if not same and abs(len(norm) - len(old)) <= max(3, 0.25 * len(old)):
+                        import difflib
+                        same = difflib.SequenceMatcher(None, norm, old).ratio() >= 0.9
+                    if same:
+                        self._merged += 1
+                        self._push_status()
+                        return
+                self._recent.append((norm, now0))
+                del self._recent[:-8]
         with self._lock:
             row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
                                               "sample": "", "dialogue": 0,
@@ -665,8 +766,18 @@ class VnTextEngine:
     def _ocr_loop(self, window: dict) -> None:
         from . import ocr
 
+        last_frame = b""
         while not self._stop.is_set():
             shot = screencap.capture(window, self._region)
+            if shot.get("ok"):
+                # 画面没变就别浪费一次 OCR：按固定步长抽样比较
+                frame = shot["bgr"]
+                step = max(3, len(frame) // 2048 // 3) * 3
+                sample = frame[::step]
+                if sample and sample == last_frame:
+                    time.sleep(self._interval)
+                    continue
+                last_frame = sample
             if not shot.get("ok"):
                 self._error = str(shot.get("error") or "capture-failed")
                 self._push_status()
@@ -700,20 +811,8 @@ class VnTextEngine:
             return
         if dedupe and body == self._last_line:
             return
-        # 同一句的其它形态（带名字前缀 / 逐字重复）在几秒内还会再来一遍，
-        # 归一化后相同就跳过，避免同一句被翻两三次、界面来回跳
-        norm = normalize_for_dedupe(body)
-        if dedupe and len(norm) >= 6:
-            now = time.time()
-            self._recent = [(n, t) for n, t in self._recent if now - t <= 8]
-            for old, _t in self._recent:
-                if norm == old or norm in old or old in norm:
-                    return
-                if abs(len(norm) - len(old)) <= max(3, 0.25 * len(old)) \
-                        and __import__("difflib").SequenceMatcher(None, norm, old).ratio() >= 0.9:
-                    return          # 同一句的近似形态（多/少一两个字）也只翻一次
-            self._recent.append((norm, now))
-            del self._recent[:-8]
+        # 去重统一放在 _register_line 里做（那里能拿到线程 key，也能跨线程合并）；
+        # 这里只保留「与上一句完全相同」的快速判断。
         self._last_line = body
         self._lines += 1
         try:
