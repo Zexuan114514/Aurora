@@ -127,6 +127,36 @@ def parse_hook_line(raw: str) -> dict | None:
             "name": name, "code": code}
 
 
+NAME_PREFIX_RE = re.compile(r"^(?:\u3010[^\u3011]{1,12}\u3011|\[[^\]]{1,12}\]|\uff3b[^\uff3d]{1,12}\uff3d)+")
+
+
+def collapse_doubling(body: str) -> str:
+    """每个字符恰好重复 2 次 → 压成 1 个。只用于「判断是不是同一句」，不动展示文本。"""
+    out: list[str] = []
+    i = 0
+    while i < len(body):
+        if i + 1 < len(body) and body[i] == body[i + 1]:
+            out.append(body[i])
+            i += 2
+        else:
+            out.append(body[i])
+            i += 1
+    return "".join(out)
+
+
+def normalize_for_dedupe(text: str) -> str:
+    """去重用的归一化：折叠重复（含逐字双写）+ 去掉开头的【名字】+ 去掉标点空白。
+
+    同一句台词常以三种形态先后到达：带名字前缀版、逐字重复版、干净版。
+    归一化后它们是同一个串，只翻一次就够。
+    """
+    body = collapse_repeats(text)
+    body = NAME_PREFIX_RE.sub("", body).strip()
+    body = collapse_doubling(body)
+    return re.sub(r"[\s\u300c\u300d\u300e\u300f\u3010\u3011\[\]\uff08\uff09()、。，,.!\uff01?\uff1f"
+                  r"\u2026\u30fc\u301c~\u30fb:\uff1a;\uff1b-]", "", body)
+
+
 RUN_RE = re.compile(r"(.)\1{2,}", re.DOTALL)
 
 
@@ -240,6 +270,7 @@ class VnTextEngine:
         self._lang = "ja-JP"
         self._interval = 0.9
         self._pending: dict[str, dict] = {}
+        self._recent: list[tuple[str, float]] = []
         self._leader = ""
         self._cli_bits = 0
         self._target_bits = 0
@@ -669,6 +700,20 @@ class VnTextEngine:
             return
         if dedupe and body == self._last_line:
             return
+        # 同一句的其它形态（带名字前缀 / 逐字重复）在几秒内还会再来一遍，
+        # 归一化后相同就跳过，避免同一句被翻两三次、界面来回跳
+        norm = normalize_for_dedupe(body)
+        if dedupe and len(norm) >= 6:
+            now = time.time()
+            self._recent = [(n, t) for n, t in self._recent if now - t <= 8]
+            for old, _t in self._recent:
+                if norm == old or norm in old or old in norm:
+                    return
+                if abs(len(norm) - len(old)) <= max(3, 0.25 * len(old)) \
+                        and __import__("difflib").SequenceMatcher(None, norm, old).ratio() >= 0.9:
+                    return          # 同一句的近似形态（多/少一两个字）也只翻一次
+            self._recent.append((norm, now))
+            del self._recent[:-8]
         self._last_line = body
         self._lines += 1
         try:
