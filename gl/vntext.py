@@ -188,6 +188,8 @@ class VnTextEngine:
         self._on_status = on_status
         self._lock = threading.RLock()
         self._proc: subprocess.Popen | None = None
+        self._procs: list[subprocess.Popen] = []
+        self._targets: list[dict] = []
         self._threads: list[threading.Thread] = []
         self._stop = threading.Event()
         self._game_id = ""
@@ -298,10 +300,12 @@ class VnTextEngine:
         self._leader = ""
         threading.Thread(target=self._flush_loop, daemon=True,
                          name="aurora-vntext-flush").start()
+        self._targets = self._collect_targets(self._pid, exe) if self._pid else []
+        wanted_bits = {int(row.get("bits") or 0) for row in self._targets} - {0}
         started = False
-        # 位数不匹配就别注入：x64 的 CLI 注入不了 32 位游戏（反之亦然）
-        mismatch = (self._cli_bits and self._target_bits
-                    and self._cli_bits != self._target_bits)
+        # 显式指定的 CLI 与「所有」候选进程位数都不符时才报错
+        mismatch = (saved and self._cli_bits and wanted_bits
+                    and self._cli_bits not in wanted_bits)
         if mismatch:
             self._error = "wrong-bitness"
         elif mode in ("auto", "hook") and self._cli and self._pid:
@@ -324,9 +328,10 @@ class VnTextEngine:
 
     def stop(self) -> dict:
         self._stop.set()
-        proc = self._proc
+        procs = list(self._procs) or ([self._proc] if self._proc else [])
         self._proc = None
-        if proc is not None:
+        self._procs = []
+        for proc in procs:
             try:
                 if proc.stdin:
                     try:
@@ -346,9 +351,68 @@ class VnTextEngine:
         return self.status()
 
     # ------------------------------------------------------------------ #
+    def _collect_targets(self, pid: int, exe: str) -> list[dict]:
+        """哪些进程可能在产出文本：主进程 + 它的子孙进程，各读一下 PE 位数。
+
+        关键教训（实测反馈）：64 位游戏常由 32 位子进程渲染文本，文本线程的
+        位数与游戏主 exe 不一致；只按主 exe 挑 CLI 就会挂错位数、读出乱码。
+        """
+        from . import locale as locale_mod, process as process_mod, proctree
+
+        rows: list[dict] = []
+        try:
+            rows = proctree.snapshot()
+        except Exception:
+            rows = []
+        candidates: list[tuple[int, str]] = []
+        try:
+            image = process_mod.process_image(pid)
+            if image:
+                candidates.append((int(pid), image))
+        except Exception:
+            pass
+        if rows:
+            try:
+                for child in sorted(proctree.descendants(pid, rows) - {int(pid)}):
+                    image = process_mod.process_image(child)
+                    if image:
+                        candidates.append((int(child), image))
+            except Exception:
+                pass
+        out: list[dict] = []
+        for child_pid, image in candidates[:6]:
+            if os.path.normcase(image).startswith(os.path.normcase(os.environ.get("WINDIR", "C:\\Windows"))):
+                continue                      # 系统进程不挂
+            bits = int(locale_mod.pe_bits(image).get("bits") or 0)
+            out.append({"pid": child_pid, "bits": bits, "path": image})
+        if exe and not any(row["bits"] for row in out):
+            bits = int(locale_mod.pe_bits(exe).get("bits") or 0)
+            out.append({"pid": int(pid), "bits": bits, "path": str(exe)})
+        return out
+
     def _start_hook(self) -> bool:
+        targets = getattr(self, "_targets", None) or []
+        groups: dict[int, list[int]] = {}
+        for row in targets:
+            groups.setdefault(int(row.get("bits") or 0), []).append(int(row["pid"]))
+        if not groups:
+            groups = {self._target_bits or 0: [self._pid]}
+        started_any = False
+        for bits, pids in groups.items():
+            cli = self._cli if (not bits or not self._cli_bits
+                                or bits == self._cli_bits) else find_cli(
+                str((self._get_settings() or {}).get("vntext_tractor_path") or ""), bits)
+            if not cli:
+                continue
+            if self._start_hook_one(cli, pids):
+                started_any = True
+        self._mode = "hook" if started_any else ""
+        return started_any
+
+    def _start_hook_one(self, cli: str, pids: list[int]) -> bool:
+        self._cli = cli
         # 允许指向 .py / .cmd：自检里用假 CLI 模拟 TextractorCLI 的协议
-        cmd = [self._cli]
+        cmd = [cli]
         low = self._cli.lower()
         if low.endswith(".py"):
             cmd = [sys.executable, self._cli]
@@ -362,10 +426,12 @@ class VnTextEngine:
         except Exception as exc:
             config.log(f"textractor launch failed: {exc}")
             return False
+        self._procs.append(proc)
         self._proc = proc
         self._mode = "hook"
         try:
-            proc.stdin.write(f"attach -P{self._pid}\n".encode("utf-16-le"))
+            for target in pids:
+                proc.stdin.write(f"attach -P{int(target)}\n".encode("utf-16-le"))
             proc.stdin.flush()
         except Exception as exc:
             config.log(f"textractor attach failed: {exc}")
