@@ -151,6 +151,12 @@ def main() -> int:
         check("api.launch 返回 ok", bool(launched.get("ok")), str(launched))
         row = api._library.get(gid)
         check("启动次数 +1", int(row.get("play_count") or 0) == 1, str(row.get("play_count")))
+        # 回归：运行中调用 bootstrap/_public 曾经因为 self 未定义而崩（只在有活跃会话时触发）
+        boot = api.bootstrap()
+        running_now = [g for g in boot.get("games") or [] if g.get("running")]
+        check("运行中 bootstrap 正常且标记 running",
+              len(running_now) == 1 and int(running_now[0].get("session_started_at") or 0) > 0,
+              f"{len(running_now)} 个运行中")
         ended = wait_for(lambda: not api._pm.is_running(gid), 45, 1.0)
         row = api._library.get(gid)
         sessions = list(row.get("sessions") or [])

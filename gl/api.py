@@ -88,7 +88,7 @@ def _public(game: dict, pm: process.ProcessManager) -> dict:
         "queries": game.get("queries") or [],
         "strong_queries": game.get("strong_queries") or [],
         "running": running,
-        "session_started_at": int(self._pm.started_at(game["id"])) if running else 0,
+        "session_started_at": int(pm.started_at(game["id"])) if running else 0,
         "play_pid": int(game.get("play_pid") or 0) if running else 0,
         "play_time": int(play),
         "play_count": int(game.get("play_count") or 0),
@@ -1860,9 +1860,10 @@ class Api:
             if started <= 0:
                 continue
             if self._pm.attach(game, started):
+                # 接管后由 ProcessManager 自己的监控线程负责判定结束并回调
+                # _on_game_exit（旧实现这里调用已删除的 self._watch，会启动即崩）
                 config.log(f"reattached running game {game['id']} pid={game.get('play_pid')}")
                 self._start_heartbeat()
-                self._watch(game["id"])
                 continue
             beat = int(game.get("play_heartbeat") or 0) or started
             seconds = max(0, min(beat, now) - started)
