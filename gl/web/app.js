@@ -1132,7 +1132,8 @@
     $("setVnOpacityVal").textContent = opacity + "%";
     const ocrInfo = state.ocr || {};
     $("setVnOcr").textContent = ocrInfo.lang_ready
-      ? "日语 OCR 组件已就绪，可以只用 OCR 模式。"
+      ? "日语 OCR 组件已就绪，可以只用 OCR 模式。OCR 读的是屏幕上的对话框，"
+        + "所以游戏窗口要露在最前面（被别的窗口盖住时抓不到）。"
       : `系统还没装「日语 OCR」组件（当前可用：${(ocrInfo.languages || []).join(" / ") || "无"}）。`
         + "点「安装日语 OCR 组件…」按提示添加日语并勾选光学字符识别。";
     $("vnStatus").textContent = tractor.found

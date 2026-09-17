@@ -272,8 +272,9 @@ exe 路径 → 推断候选关键词 → 依次查询各资料源 → 相似度�
   | 引擎 | 状态 | 建议 |
   | --- | --- | --- |
   | TVP/KIRIKIRI（如 DRACU RIOT） | **可用（已固化规则）** | 同一行里是「逐字×3 形态 + 逐字×2 形态 + 干净形态」用 `」「` 连在一起，例如 `今今今ににに至至至…だだだ。。。今今にに至至る…けけだだ。。今に至るというわけだ。`；Aurora 会还原成一句 `今に至るというわけだ。` 再翻译。引擎名从 Textractor 的 `vnreng: INSERT KiriKiriZ` 状态行识别（进程模块名里看不出来） |
-  | WillPlus（如 少女之剑） | 钩子缺字 | **改用 OCR 模式**：面板 → 框选区域盖住对话框即可 |
+  | WillPlus/AdvHD（如 少女之剑） | **钩子无解（已定位）** | Textractor 的 `WillPlus` 找不到函数、`WillPlusW/A` 找不到特征码、`WillPlus2` 挂到了 **Intel 显卡驱动的 `igc32.dll`** 上（输出乱码）；只剩按字形抓的 `GetGlyphOutlineW`，而引擎的字形有缓存 → 一行只抓到零星几个字（实测「出会ってからしばらく経ったある日、僕は思い切って、彼女に想いを打ち明けた。」只抓到「出会　打明」）。**改用 OCR 模式**：开翻译 → 面板 → 重新框选 OCR 区域 |
   | 其它引擎 | 未实测 | 若译文缺字/重复，把线程列表与样例发我，按「逐引擎攻」的流程补规则 |
+- **OCR 模式的三个前提**（都踩过坑，现在都处理了）：① 系统装了日语 OCR 组件 —— Aurora 读的是 Windows 的识别器语言，Windows 报的是 `ja`、我们请求的是 `ja-JP`，按主语言匹配，不会再误判成「未安装」；② 游戏窗口**露在屏幕最前面** —— 被别的窗口盖住时 DWM 给的合成画会缺图层（AdvHD 的对话框就是这么丢的），开 OCR 时 Aurora 会先把游戏窗口抬到最上面（不抢焦点/不影响你打字）；③ 框选区域盖住对话框 —— 默认取窗口下部 66%~93%，避开底部那排菜单按钮。
 - **写缓冲痕迹怎么处理的**（`gl/vntext.py`）：① 逐字×N → 折成 1 个字（`！！`/`……` 这类有意义的连写不动）；② 成对双写（「今今にに至至」）→ 只在能证明整段都是双写时折叠，「ここ」这种正常叠字不会被误伤；③ 同句写了多份 → 先按 `」「` 拆形态、相似就只留最后那份（写缓冲越写越准），没有引号分隔时用「骨架最长重复 + 覆盖率」兜底；④ 纯名字行、Textractor 自己的状态行（`vnreng:`、`Usage:`、`Textractor:`）直接丢掉。
 - **钩子不全时先用 OCR**：OCR 不关心引擎，任何游戏都能用（需系统装日语 OCR 组件）；框选区域后连续翻页即可。
 - **再不行就用 LunaTranslator**：它的引擎识别 + 专用钩子码是核心资产（LunaHook 不单独发布），Aurora 不复制它的代码；遇到钩子无解的引擎，直接用 LunaTranslator 是最省事的选择。
@@ -353,6 +354,8 @@ python tools\theme_probe.py       # 主题自检：4 套配色 × 3 档模式，
 python tools\vntext_probe.py      # 游戏内翻译自检：假 TextractorCLI 协议 / 噪声过滤 / 线程锁定 / 流式翻译 / 术语表 / 缓存 / OCR 状态
 python tools\vntext_live.py       # 真机自测：自己启动游戏（含转区、多种启动方式兜底）→ 挂真实 TextractorCLI → 翻页收台词 → 断言「干净 + 有译文」
                                   #   --game 少女之剑 / --no-launch（游戏已在跑）/ --advance 16（自动翻页次数）
+python tools\vntext_rawdump.py    # 把 TextractorCLI 的原始输出逐行摊开（查「哪条线程才是完整文本 / 为什么缺字」）
+python tools\vntext_hookprobe.py  # 逐个试 Textractor 钩子名，看引擎专用钩子在目标游戏上能不能出干净文本
 python tools\make_icon.py         # 重新生成图标（7 种尺寸的 .ico）
 python tools\build_exe.py         # 重新打包成根目录的 Aurora.exe
 python tools\make_bat.py          # 重新生成启动脚本（GBK + CRLF，见下方说明）
@@ -375,6 +378,7 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 | `net_probe.py` | **全部通过**（五端点连通、代理地址补全与非法地址退化、直连与手动对比、坏代理下「失败自动换路」真的直连成功、关掉换路则按预期失败） |
 | `vntext_probe.py` | **全部通过**（假 TextractorCLI 走真实 UTF-16 协议：attach、逐行解析、菜单噪声过滤、线程自动选择与锁定、手写 hook 码透传；本地假 LLM 验证 SSE 流式、上下文、术语表注入、缓存命中与暂停；**DRACU RIOT 真机四行原文的三形态清洗**；OCR 缺日语组件时给出明确错误；窗口捕获与相对区域裁剪） |
 | `vntext_live.py` | **全部通过**（真机链路：自动用 Locale Emulator 启动 DRACU RIOT → 进程/窗口 → 挂 x86 TextractorCLI → 引擎识别为 `TVP/KIRIKIRI` → 自动翻页 16 次 → 5 句台词全部干净、5 句译文全部返回；报告见 `tools/vntext-live-report.txt`） |
+| `vntext_live.py`（OCR 模式） | **全部通过**（少女之剑：`--mode ocr` 自动翻页 → OCR 读出「なにより、初めて。対戦する相手であろうと、一切の手心を加えるつもりのない気概。」等 4 句完整台词，4 句译文全部返回 —— 而同一条钩子只抓到「より初めて対戦相手であろう 一切の手心加えつもの気概」） |
 | `theme_probe.py` | **全部通过**（4 预设 × 深色/浅色/跟随系统，强调色与 data-theme 正确；深色面板为白色低透明度、文字亮色；浅色面板为白色高透明度、文字深色） |
 - `analyze.py` 的区域与文字行检测已按大厅布局重排（工具条 / 左邻封面 / 焦点封面 / 右邻封面 / 底部信息带）。
 

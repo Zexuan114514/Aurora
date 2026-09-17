@@ -87,6 +87,9 @@ os.environ["AURORA_DATA"] = str(DATA)
 
 from gl import config, linetrans, locale, proctree, screencap, vntext, winapi  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from vntext_advance import advance  # noqa: E402  左键推进（空格在这类引擎里是隐藏文本框）
+
 
 def load_library() -> dict:
     return json.loads((DATA / "library.json").read_text(encoding="utf-8"))
@@ -173,39 +176,11 @@ def launch_game(game: dict, settings: dict, note) -> tuple[list[int], str]:
     return [], ""
 
 
-def advance(hwnd: int, key: int) -> str:
-    """让游戏往前翻一句；返回用了哪种方式（空串 = 都没成功）。"""
-    if not hwnd:
-        return ""
-    # 1) 能拿到前台就用真实按键（最通用）
+def _advance(hwnd: int) -> str:
+    """先把游戏拉到前台，再左键点文本框（见 vntext_advance 模块注释）。"""
     winapi.focus_window(hwnd)
     time.sleep(0.25)
-    try:
-        if int(user32.GetForegroundWindow() or 0) == int(hwnd):
-            user32.keybd_event(key, 0, 0, None)
-            time.sleep(0.05)
-            user32.keybd_event(key, 0, 2, None)      # KEYEVENTF_KEYUP
-            return "前台按键"
-    except Exception:
-        pass
-    # 2) 拿不到前台（Windows 会拒绝后台进程抢焦点）就投递窗口消息：
-    #    TVP/KIRIKIRI 在 WndProc 里收键盘/鼠标消息，PostMessage 也能翻页，
-    #    而且不会影响到别的窗口。
-    try:
-        if user32.PostMessageW(wintypes.HWND(hwnd), WM_KEYDOWN, key, 0):
-            user32.PostMessageW(wintypes.HWND(hwnd), WM_KEYUP, key, 0)
-            return "窗口消息"
-    except Exception:
-        pass
-    try:
-        rect = wintypes.RECT()
-        user32.GetClientRect(wintypes.HWND(hwnd), ctypes.byref(rect))
-        point = ((rect.right // 2) & 0xFFFF) | (((rect.bottom * 4 // 5) & 0xFFFF) << 16)
-        user32.PostMessageW(wintypes.HWND(hwnd), WM_LBUTTONDOWN, 1, point)
-        user32.PostMessageW(wintypes.HWND(hwnd), WM_LBUTTONUP, 0, point)
-        return "窗口点击"
-    except Exception:
-        return ""
+    return advance(hwnd)
 
 
 def main() -> int:
@@ -253,6 +228,7 @@ def main() -> int:
     raw_lines: list[dict] = []
     lines: list[dict] = []
     results: list[dict] = []
+    distinct: set[str] = set()
     lock = threading.Lock()
     done = threading.Event()
 
@@ -284,10 +260,13 @@ def main() -> int:
         with lock:
             results.append(row)
             lines.append(payload)
+            distinct.add(vntext.normalize_for_dedupe(text))
         note(f"台词：{text}")
         if translator is not None:
             translator.submit(text, game_id=game_id, source=str(payload.get("source") or "hook"))
-        if len(results) >= ARGS.want:
+        # 「收到 N 句」按**不同的句子**算：OCR 模式下一屏会被反复识别，
+        # 按条数算会让脚本刚抓到同一句就收工、一次都不翻页
+        if len([row for row in distinct if row]) >= ARGS.want:
             done.set()
 
     engine = vntext.VnTextEngine(settings_getter=lambda: settings, on_line=on_line,
@@ -312,7 +291,7 @@ def main() -> int:
             if got >= ARGS.want:
                 break
             if window and advances < ARGS.advance and time.time() >= next_advance:
-                how = advance(int(window["hwnd"]), VK_SPACE)
+                how = _advance(int(window["hwnd"]))
                 advances += 1
                 next_advance = time.time() + ARGS.advance_gap
                 note(f"自动翻页 {advances}/{ARGS.advance}（{how or '没能送出'}）")

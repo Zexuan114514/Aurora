@@ -67,7 +67,10 @@ ENGINE_PROFILES = {
     },
     "WillPlus": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
-        "hook_hint": "WillPlus：Textractor 钩子常缺字（实测少女之剑），建议改用 OCR 模式。",
+        "hook_hint": "WillPlus/AdvHD：Textractor 的 WillPlus 系钩子对不上这个引擎版本"
+                     "（实测少女之剑：WillPlus 找不到函数、WillPlusW/A 找不到特征码、"
+                     "WillPlus2 挂到了 Intel 显卡驱动的 DLL 上），只剩按字形抓的 GDI 钩子，"
+                     "而字形有缓存 → 缺字严重。请改用 OCR 模式（面板 → 重新框选 OCR 区域）。",
     },
     "default": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
@@ -536,6 +539,17 @@ def fold_written_repeats(text: str) -> str:
         fold_doubling_spans(fold_char_runs(text))))
 
 
+_CJK = r"\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff66-\uff9f"
+_CJK_GAP_RE = re.compile(rf"(?<=[{_CJK}])[ \t\u3000]+(?=[{_CJK}])")
+
+
+def tidy_ocr_text(text: str) -> str:
+    """整理 OCR 结果：Windows OCR 会把日文按字切开（「出 会 っ て」），
+    汉字/假名之间的空格要去掉，否则译文会被当成一堆孤立字。"""
+    body = " ".join(str(text or "").split())
+    return _CJK_GAP_RE.sub("", body)
+
+
 def split_name_prefix(body: str) -> tuple[str, str]:
     """拆开开头的【名字】前缀（可能重复写了多遍），返回 (名字, 正文)。"""
     match = NAME_PREFIX_RE.match(body)
@@ -661,7 +675,8 @@ class VnTextEngine:
         self._last_norm = ""
         self._lines = 0
         self._error = ""
-        self._region = {"x": 0.0, "y": 0.62, "w": 1.0, "h": 0.34}
+        # 默认框选：对话框常见位置（下三分之一），并避开底部的菜单按钮行
+        self._region = {"x": 0.05, "y": 0.66, "w": 0.90, "h": 0.27}
         self._ocr_last = ""
         self._ocr_streak = 0
         self._lang = "ja-JP"
@@ -770,6 +785,14 @@ class VnTextEngine:
 
         settings = self._get_settings() or {}
         saved = str(settings.get("vntext_tractor_path") or "")
+        # 有些引擎会把窗口标题/进程名塞进文本流（实测 AdvHD 的「剪贴板」线程
+        # 一直回显 AdvHD_crack），这类只等于 exe 名的行直接丢掉
+        self._noise_names: set[str] = set()
+        for candidate in (exe, str(settings.get("_game_exe") or "")):
+            if candidate:
+                stem = Path(str(candidate))
+                self._noise_names.add(stem.name.lower())
+                self._noise_names.add(stem.stem.lower())
         if exe:
             from . import locale as locale_mod
 
@@ -1075,6 +1098,8 @@ class VnTextEngine:
         config.log(f"vntext in [{key[:8]}] {text[:50]!r} -> {clean[:50]!r}")
         if not clean:
             return
+        if clean.strip().lower() in getattr(self, "_noise_names", ()):
+            return
         window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
         if len(norm) >= 6:
             now0 = time.time()
@@ -1123,6 +1148,14 @@ class VnTextEngine:
         if not window:
             return False
         self._mode = "ocr"
+        # 把游戏窗口抬到最上面再开抓：被别的窗口盖住时 DWM 给的合成画面会缺图层
+        # （实测 AdvHD 的对话框就是被盖住时抓不到的），抬起不抢焦点。
+        try:
+            from . import winapi
+
+            winapi.raise_window(int(window.get("hwnd") or 0))
+        except Exception:
+            pass
         thread = threading.Thread(target=self._ocr_loop, args=(window,), daemon=True,
                                   name="aurora-vntext-ocr")
         self._threads.append(thread)
@@ -1157,7 +1190,7 @@ class VnTextEngine:
                 time.sleep(1.5)
                 continue
             self._error = ""
-            text = " ".join(result["text"].split())
+            text = tidy_ocr_text(result["text"])
             if text and text == self._ocr_last:
                 self._ocr_streak += 1
             else:
@@ -1167,7 +1200,9 @@ class VnTextEngine:
             if text and self._ocr_streak >= 2:
                 max_chars = int((self._get_settings() or {}).get("vntext_max_chars") or 1200)
                 if not looks_like_noise(text, max_chars):
-                    self._emit(text, "ocr", dedupe=False)
+                    # dedupe=True：同一屏文字只翻一次（OCR 每 0.9 秒抓一次，
+                    # 不去重就会把同一句反复送给翻译）
+                    self._emit(text, "ocr")
             time.sleep(self._interval)
 
     # ------------------------------------------------------------------ #
@@ -1182,6 +1217,12 @@ class VnTextEngine:
             return
         norm = normalize_for_dedupe(body)
         if dedupe and (body == self._last_line or (norm and norm == self._last_norm)):
+            return
+        if source == "ocr" and self._last_line and len(body) >= 8 \
+                and len(self._last_line) >= 8 \
+                and difflib.SequenceMatcher(None, body, self._last_line).ratio() >= 0.92:
+            # OCR 每次识别的结果会有轻微抖动（多一个空格、掉一个标点），
+            # 归一化去重抓不住，这里再挡一层
             return
         # 去重统一放在 _register_line 里做（那里能拿到线程 key，也能跨线程合并）；
         # 这里只保留「与上一句完全相同」的快速判断。

@@ -43,7 +43,7 @@
   OK   'Hollow Knight' -> steam:367520 'Hollow Knight' score=1.0 (0.0s)
   OK   'Baldurs Gate 3' -> steam:1086940 "Baldur's Gate 3" score=1.0 (0.0s)
   OK   'It Takes Two' -> steam:1426210 'It Takes Two' score=1.0 (0.0s)
-  OK   '黑神话悟空' -> steam:2358720 '黑神话：悟空' score=1.0 (3.1s)
+  OK   '黑神话悟空' -> steam:2358720 '黑神话：悟空' score=1.0 (2.4s)
   OK   'witcher3' -> steam:292030 'The Witcher 3: Wild Hunt - Complete Edition' score=0.8375 (0.0s)
 
 ==============================================================================

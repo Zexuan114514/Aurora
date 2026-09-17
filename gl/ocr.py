@@ -55,7 +55,29 @@ def languages() -> list[str]:
 
 
 def has_language(lang: str = "ja-JP") -> bool:
-    return lang.lower() in (x.lower() for x in languages())
+    """系统里有没有这个语言的 OCR 引擎。
+
+    注意：Windows 报的是 `ja`，我们请求的是 `ja-JP`（实测 AvailableRecognizerLanguages
+    返回 ['en-US', 'ja', 'zh-Hans-CN']，但 try_create_from_language('ja-JP') 是能成的）。
+    只比字符串会把已经装了日语 OCR 的机器误判成「没装」，所以按主语言子标签比。
+    """
+    want = str(lang or "").lower().replace("_", "-")
+    want_primary = want.split("-")[0]
+    for item in languages():
+        have = str(item or "").lower().replace("_", "-")
+        if have == want or have.split("-")[0] == want_primary:
+            return True
+    return False
+
+
+def real_tag(lang: str = "ja-JP") -> str:
+    """系统里实际可用的语言标签（`ja-JP` → `ja`），没有就用原样。"""
+    want = str(lang or "").lower().replace("_", "-")
+    for item in languages():
+        have = str(item or "").lower().replace("_", "-")
+        if have == want or have.split("-")[0] == want.split("-")[0]:
+            return item
+    return lang
 
 
 def status(lang: str = "ja-JP") -> dict:
@@ -70,6 +92,7 @@ def status(lang: str = "ja-JP") -> dict:
 
 
 def _engine(lang: str):
+    lang = real_tag(lang)          # ja-JP → 系统里的 ja，否则 try_create 会返回 None
     with _lock:
         if lang in _engines:
             return _engines[lang]

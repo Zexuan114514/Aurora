@@ -353,6 +353,26 @@ def main() -> int:
         check("缺日语 OCR 组件时给出明确错误",
               (ocr.recognize_bgr(b"\x00" * 300, 10, 10, "ja-JP").get("error") == "no-language"))
         write("  （要在本机用 OCR 模式：设置 → 时间和语言 → 语言和区域 → 添加日语 → 勾选「光学字符识别」）")
+    # Windows 报的语言标签是 ja，我们请求的是 ja-JP —— 只比字符串会把装了日语 OCR
+    # 的机器误判成没装（实测踩过），这里锁住子标签匹配的行为
+    saved_langs = ocr._langs
+    try:
+        ocr._langs = ("en-US", "ja", "zh-Hans-CN")
+        check("ja-JP 能匹配到系统的 ja", ocr.has_language("ja-JP") and ocr.real_tag("ja-JP") == "ja")
+        ocr._langs = ("en-US", "zh-Hans-CN")
+        check("没装日语时不误报", not ocr.has_language("ja-JP"))
+    finally:
+        ocr._langs = saved_langs
+    check("OCR 逐字空格被去掉",
+          vntext.tidy_ocr_text("出 会 っ て 、 A B") == "出会って 、 A B",
+          vntext.tidy_ocr_text("出 会 っ て 、 A B"))
+    # OCR 每 0.9 秒抓一屏，同一句不能反复送翻译
+    ocr_lines: list[str] = []
+    eng_ocr = vntext.VnTextEngine(settings_getter=lambda: {}, on_line=ocr_lines.append)
+    same = "なにより 、 初めて 。 対戦する相手であろうと 、 一切の手心を加えるつもりのない気概 。"
+    for _ in range(4):
+        eng_ocr._emit(same, "ocr")
+    check("同一屏 OCR 只翻一次", len(ocr_lines) == 1, f"发出 {len(ocr_lines)} 条")
 
     write("\n[窗口捕获]")
     import ctypes

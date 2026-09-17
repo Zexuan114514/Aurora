@@ -1,9 +1,9 @@
 Aurora 游戏内翻译 · 真机自测报告
-生成时间：2026-09-17 22:55:27
-游戏：DRACU-RIOT!  exe=E:\Games\Galgames\DRACU-RIOT!\dracuriot.exe  pid=[29816]
-文本源：mode= 引擎=TVP/KIRIKIRI cli=E:\Textractor\x86\TextractorCLI.exe error=
+生成时间：2026-09-17 23:44:17
+游戏：少女之剑与秘密的协奏曲  exe=E:\Games\Galgames\少女之剑与秘密的协奏曲\1\AdvHD_crack.exe  pid=[18588]
+文本源：mode= 引擎=WillPlus cli=E:\Textractor\x86\TextractorCLI.exe error=
 进程模块：
-  E:\Games\Galgames\DRACU-RIOT!\dracuriot.exe
+  E:\Games\Galgames\少女之剑与秘密的协奏曲\1\AdvHD_crack.exe
   C:\WINDOWS\SYSTEM32\ntdll.dll
   C:\WINDOWS\System32\wow64.dll
   C:\WINDOWS\System32\wow64base.dll
@@ -13,110 +13,37 @@ Aurora 游戏内翻译 · 真机自测报告
 
 结论：全部通过
 
---- 原始钩子行（28 条）---
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 管道已连接
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: hijacking process located from 0x00510000 to 0x009F1000
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: ID3DXFont::DrawTextW
-[默认] name= code=
-    Usage: {'attach'|'detach'|hookcode} -Pprocessid
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: GetCharABCWidthsFloatW
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: GdipMeasureCharacterRanges
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng: INSERT KiriKiriZ
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: KiriKiriZ
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng:KiriKiriZ: disable GDI hooks
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng: KiriKiriZ2 inserted
-[3:7478:7531B850:680BA3:0] name=GetTextExtentPoint32W:HQ8@0:gdi32.dll code=GetTextExtentPoint32W
-    今今今ににに至至至るるるととといいいうううわわわけけけだだだ。。。今今にに至至るるとといいううわわけけだだ。。今に至るというわけだ。
-[2:7478:7531B370:680B78:0] name=GetGlyphOutlineW:HW8@0:gdi32.dll code=GetGlyphOutlineW
-    今今今ににに至至至るるるととといいいうううわわわけけけだだだ。。。今今にに至至るるとといいううわわけけだだ。。今に至るというわけだ。
-[4:7478:60C530:60EA05:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    【 佑斗 】【 佑斗 】【 佑斗 】
-[2:7478:7531B370:680B78:0] name=GetGlyphOutlineW:HW8@0:gdi32.dll code=GetGlyphOutlineW
-    【 佑斗 】【 佑斗 】【 佑斗 】「「「でででもももおおお前前前、、、どどどうううしししててて俺俺俺ををを誘誘誘っっってててくくくれれれたたたんんんだだだ？？？」」」「「ででももおお前前、、どどううししてて俺俺をを誘誘っっててくくれれたたんんだだ？？」」「でもお前、どうして俺を誘ってくれたんだ？」
-[3:7478:7531B850:680BA3:0] name=GetTextExtentPoint32W:HQ8@0:gdi32.dll code=GetTextExtentPoint32W
-    【 佑斗 】【 佑斗 】【 佑斗 】「「「でででもももおおお前前前、、、どどどうううしししててて俺俺俺ををを誘誘誘っっってててくくくれれれたたたんんんだだだ？？？」」」「「ででももおお前前、、どどううししてて俺俺をを誘誘っっててくくれれたたんんだだ？？」」「でもお前、どうして俺を誘ってくれたんだ？」
-[5:7478:60C530:60E590:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    「「「でででもももおおお前前前、、、どどどうううしししててて俺俺俺ををを誘誘誘っっってててくくくれれれたたたんんんだだだ？？？」」」「「ででももおお前前、、どどううししてて俺俺をを誘誘っっててくくれれたたんんだだ？？」」「でもお前、どうして俺を誘ってくれたんだ？」
-[4:7478:60C530:60EA05:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    【旅の相方】【旅の相方】【旅の相方】
-[3:7478:7531B850:680BA3:0] name=GetTextExtentPoint32W:HQ8@0:gdi32.dll code=GetTextExtentPoint32W
-    【旅の相方】【旅の相方】【旅の相方】「「「えええ？？？ あああーーー、、、そそそれれれははは、、、そそそのののーーー」」」「「ええ？？ ああーー、、そそれれはは、、そそののーー」」「え？ あー、それは、そのー」
-[2:7478:7531B370:680B78:0] name=GetGlyphOutlineW:HW8@0:gdi32.dll code=GetGlyphOutlineW
-    【旅の相方】【旅の相方】【旅の相方】「「「えええ？？？ あああーーー、、、そそそれれれははは、、、そそそのののーーー」」」「「ええ？？ ああーー、、そそれれはは、、そそののーー」」「え？ あー、それは、そのー」
-[5:7478:60C530:60E590:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    「「「えええ？？？ あああーーー、、、そそそれれれははは、、、そそそのののーーー」」」「「ええ？？ ああーー、、そそれれはは、、そそののーー」」「え？ あー、それは、そのー」
-[4:7478:60C530:60EA05:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    【旅の相方】【旅の相方】【旅の相方】
-[2:7478:7531B370:680B78:0] name=GetGlyphOutlineW:HW8@0:gdi32.dll code=GetGlyphOutlineW
-    【旅の相方】【旅の相方】【旅の相方】「「「あああっっっ、、、ああああああ！！！ そそそろろろそそそろろろ着着着くくくみみみたたたいいいだだだ！！！ 用用用いいいだだだ！！！ 用用用意意意しししななな意意意しししなななくくくちちちゃゃゃ！！！くくくちちちゃゃゃ！！！」」」」」」「「「「ああああっっっっ、、、、ああああああああ！！！！ そそそそろろろろそそそそろろろろ着着着着くくくくみみみみたたたたいいいいだだだだ！！！！ 用用用用意意意意ししししななななくくくくちちちちゃゃゃゃ！！！！」」」」「「ああっっ、、ああああ！！ そそろろそそろろ着着くくみみたたいいだだ！！ 用用意意ししななくくちちゃゃ！！」」
-[3:7478:7531B850:680BA3:0] name=GetTextExtentPoint32W:HQ8@0:gdi32.dll code=GetTextExtentPoint32W
-    【旅の相方】【旅の相方】【旅の相方】「「「あああっっっ、、、ああああああ！！！ そそそろろろそそそろろろ着着着くくくみみみたたたいいいだだだ！！！ 用用用いいいだだだ！！！ 用用用意意意しししななな意意意しししなななくくくちちちゃゃゃ！！！くくくちちちゃゃゃ！！！」」」」」」「「「「ああああっっっっ、、、、ああああああああ！！！！ そそそそろろろろそそそそろろろろ着着着着くくくくみみみみたたたたいいいいだだだだ！！！！ 用用用用意意意意ししししななななくくくくちちちちゃゃゃゃ！！！！」」」」「「ああっっ、、ああああ！！ そそろろそそろろ着着くくみみたたいいだだ！！ 用用意意ししななくくちちゃゃ！！」」
-[5:7478:60C530:60E590:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    「「「あああっっっ、、、ああああああ！！！ そそそろろろそそそろろろ着着着くくくみみみたたたいいいだだだ！！！ 用用用いいいだだだ！！！ 用用用意意意しししななな意意意しししなななくくくちちちゃゃゃ！！！くくくちちちゃゃゃ！！！」」」」」」「「「「ああああっっっっ、、、、ああああああああ！！！！ そそそそろろろろそそそそろろろろ着着着着くくくくみみみみたたたたいいいいだだだだ！！！！ 用用用用意意意意ししししななななくくくくちちちちゃゃゃゃ！！！！」」」」「「ああっっ、、ああああ！！ そそろろそそろろ着着くくみみたたいいだだ！！ 用用意意ししななくくちちゃゃ！！」」
-[4:7478:60C530:60EA05:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    【 佑斗 】【 佑斗 】【 佑斗 】
-[2:7478:7531B370:680B78:0] name=GetGlyphOutlineW:HW8@0:gdi32.dll code=GetGlyphOutlineW
-    【 佑斗 】【 佑斗 】【 佑斗 】「「「………………？？？ まままあああ、、、別別別にににいいいいいいんんんだだだががが」」」「「…………？？ ままああ、、別別ににいいいいんんだだがが」」「……？ まあ、別にいいんだが」
-[3:7478:7531B850:680BA3:0] name=GetTextExtentPoint32W:HQ8@0:gdi32.dll code=GetTextExtentPoint32W
-    【 佑斗 】【 佑斗 】【 佑斗 】「「「………………？？？ まままあああ、、、別別別にににいいいいいいんんんだだだががが」」」「「…………？？ ままああ、、別別ににいいいいんんだだがが」」「……？ まあ、別にいいんだが」
-[5:7478:60C530:60E590:30] name=KiriKiriZ:HW-8*14:-8*0@FC530 code=dracuriot.exe
-    「「「………………？？？ まままあああ、、、別別別にににいいいいいいんんんだだだががが」」」「「…………？？ ままああ、、別別ににいいいいんんだだがが」」「……？ まあ、別にいいんだが」
+--- 原始钩子行（0 条）---
 
---- 清洗后的台词 + 译文（5 条）---
-原文：今に至るというわけだ。
-译文：这就是我们将要得到的。  [free] artifacts=[]
+--- 清洗后的台词 + 译文（4 条）---
+原文：なにより 、 初めて 。 対戦する相手であろうと 、 一切の手心を加えるつもりのない気概 。
+译文：最重要的是，无论你面对的是谁，你都不会添加任何内容。  [cache] artifacts=[]
 
-原文：【 佑斗 】でもお前、どうして俺を誘ってくれたんだ？
-译文：[Yuto]但是你为什么邀请我？  [free] artifacts=[]
+原文：けど 、 オレたってっ
+译文：但是我……  [free] artifacts=[]
 
-原文：【旅の相方】え？ あー、それは、そのー
-译文：[Travel Companion]什么？啊，那是，嗯…  [free] artifacts=[]
+原文：日向
+译文：日向  [free] artifacts=[]
 
-原文：【旅の相方】あっ、あ！！ そろそろ着くみたいだ！ 用意しなくちゃ！
-译文：【旅途同伴】啊，啊！ ！看来我们就快大功告成了！我们需要做好准备！  [free] artifacts=[]
-
-原文：【 佑斗 】……？ まあ、別にいいんだが
-译文：[Yuto] …… ？嗯，没关系。  [free] artifacts=[]
+原文：思わず張り上げかけた声を 、 咄嗟に呑む 。
+译文：他猛地咽了咽口水。  [free] artifacts=[]
 
 --- 过程日志 ---
-[22:51:53] 目标游戏：DRACU-RIOT! (E:\Games\Galgames\DRACU-RIOT!\dracuriot.exe)
-[22:51:53] 清理残留 TextractorCLI：0 个
-[22:51:53] 尝试启动方式：locale-emulator
-[22:51:54]   进程已创建 pid=[29816]
-[22:51:54] 游戏进程 pid=29816 bits=32
-[22:51:54] 进程模块 7 个：dracuriot.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
-[22:51:56] 游戏窗口：{'hwnd': 397060, 'rect': (491, 247, 1111, 654)}
-[22:51:56] 文本源：mode=hook 引擎=unknown cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
-[22:51:56] 候选进程：['Games\\Galgames\\DRACU-RIOT!\\dracuriot.exe']
-[22:51:58] 台词：今に至るというわけだ。
-[22:52:03] 自动翻页 1/16（前台按键）
-[22:52:06] 自动翻页 2/16（前台按键）
-[22:52:08] 台词：【 佑斗 】でもお前、どうして俺を誘ってくれたんだ？
-[22:52:10] 自动翻页 3/16（前台按键）
-[22:52:12] 台词：【旅の相方】え？ あー、それは、そのー
-[22:52:14] 自动翻页 4/16（前台按键）
-[22:52:16] 台词：【旅の相方】あっ、あ！！ そろそろ着くみたいだ！ 用意しなくちゃ！
-[22:52:18] 自动翻页 5/16（前台按键）
-[22:52:19] 台词：【 佑斗 】……？ まあ、別にいいんだが
-[22:52:22] 自动翻页 6/16（前台按键）
-[22:52:26] 自动翻页 7/16（前台按键）
-[22:52:29] 自动翻页 8/16（前台按键）
-[22:52:33] 自动翻页 9/16（前台按键）
-[22:52:37] 自动翻页 10/16（前台按键）
-[22:52:41] 自动翻页 11/16（前台按键）
-[22:52:45] 自动翻页 12/16（前台按键）
-[22:52:48] 自动翻页 13/16（前台按键）
-[22:52:52] 自动翻页 14/16（前台按键）
-[22:52:56] 自动翻页 15/16（前台按键）
-[22:53:00] 自动翻页 16/16（前台按键）
-[22:55:27] 停止文本源：lines=5 merged=9 引擎=TVP/KIRIKIRI
-[22:55:27] 已关闭游戏进程（--keep-game 可保留）
+[23:43:42] 目标游戏：少女之剑与秘密的协奏曲 (E:\Games\Galgames\少女之剑与秘密的协奏曲\1\AdvHD_crack.exe)
+[23:43:42] 清理残留 TextractorCLI：0 个
+[23:43:42] 游戏进程 pid=18588 bits=32
+[23:43:42] 进程模块 7 个：AdvHD_crack.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
+[23:43:42] 游戏窗口：{'hwnd': 2820122, 'rect': (1655, 399, 1304, 784)}
+[23:43:43] 文本源：mode=ocr 引擎=WillPlus cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
+[23:43:43] 候选进程：['s\\Galgames\\少女之剑与秘密的协奏曲\\1\\AdvHD_crack.exe']
+[23:43:43] 引擎建议：WillPlus：Textractor 钩子常缺字（实测少女之剑），建议改用 OCR 模式。
+[23:43:44] 台词：なにより 、 初めて 。 対戦する相手であろうと 、 一切の手心を加えるつもりのない気概 。
+[23:43:49] 自动翻页 1/8（左键点击 (2307,1012)）
+[23:43:55] 自动翻页 2/8（左键点击 (2307,1012)）
+[23:44:00] 自动翻页 3/8（左键点击 (2307,1012)）
+[23:44:04] 台词：けど 、 オレたってっ
+[23:44:06] 自动翻页 4/8（左键点击 (2307,1012)）
+[23:44:10] 台词：日向
+[23:44:11] 自动翻页 5/8（左键点击 (2307,1012)）
+[23:44:15] 台词：思わず張り上げかけた声を 、 咄嗟に呑む 。
+[23:44:17] 停止文本源：lines=4 merged=0 引擎=WillPlus

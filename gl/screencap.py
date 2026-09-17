@@ -23,6 +23,11 @@ user32.PrintWindow.argtypes = [wintypes.HWND, wintypes.HDC, wintypes.UINT]
 user32.GetDC.argtypes = [wintypes.HWND]
 user32.GetDC.restype = wintypes.HDC
 user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+user32.IsIconic.argtypes = [wintypes.HWND]
+user32.WindowFromPoint.argtypes = [wintypes.POINT]
+user32.WindowFromPoint.restype = wintypes.HWND
+user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+user32.GetAncestor.restype = wintypes.HWND
 
 gdi32.CreateCompatibleDC.argtypes = [wintypes.HDC]
 gdi32.CreateCompatibleDC.restype = wintypes.HDC
@@ -82,6 +87,35 @@ def windows_of(pid: int) -> list[dict]:
 def main_window(pid: int) -> dict | None:
     rows = windows_of(pid)
     return rows[0] if rows else None
+
+
+def is_exposed(hwnd: int) -> bool:
+    """窗口是否真的显示在屏幕上（没被别的窗口盖住）。
+
+    实测：D3D 引擎（如少女之剑的 AdvHD）用 PrintWindow 抓到的画面**没有对话框图层**
+    —— 只有背景 CG；而对话框就在窗口里，用户看得见。所以 OCR 要用「屏幕上真实的
+    像素」，必须先确认窗口是露出来的。
+    """
+    if not hwnd:
+        return False
+    try:
+        handle = wintypes.HWND(int(hwnd))
+        if not user32.IsWindowVisible(handle) or user32.IsIconic(handle):
+            return False
+        rect = wintypes.RECT()
+        if not user32.GetWindowRect(handle, ctypes.byref(rect)):
+            return False
+        GA_ROOT = 2
+        for fx, fy in ((0.5, 0.5), (0.5, 0.8), (0.3, 0.5)):
+            point = wintypes.POINT(int(rect.left + (rect.right - rect.left) * fx),
+                                   int(rect.top + (rect.bottom - rect.top) * fy))
+            top = user32.WindowFromPoint(point)
+            # 注意：HWND 是 c_void_p，直接和 int 比会恒为 False（实测踩过），统一转 int
+            if top and int(user32.GetAncestor(top, GA_ROOT) or 0) == int(hwnd):
+                return True
+        return False
+    except Exception:
+        return False
 
 
 def _grab_bitmap(hwnd: int, width: int, height: int, use_print: bool):
@@ -151,6 +185,8 @@ def capture(window: dict, region: dict | None = None) -> dict:
     """抓一个窗口（或窗口内的相对区域）。
 
     region 用相对窗口的百分比 {x, y, w, h}（0~1），窗口移动/缩放后依然有效。
+    窗口露在屏幕上时优先抓屏幕像素：D3D 引擎（实测 AdvHD）用 PrintWindow 抓到的是
+    没有对话框图层的旧画面，OCR 会认出一片空白背景。
     """
     hwnd = int(window.get("hwnd") or 0)
     rect = wintypes.RECT()
@@ -161,7 +197,8 @@ def capture(window: dict, region: dict | None = None) -> dict:
     if full_w <= 0 or full_h <= 0:
         return {"ok": False, "error": "bad-window"}
 
-    for use_print in (True, False):
+    order = (False, True) if is_exposed(hwnd) else (True, False)
+    for use_print in order:
         data = _grab_bitmap(hwnd, full_w, full_h, use_print)
         if not data:
             continue

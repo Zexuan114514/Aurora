@@ -100,7 +100,31 @@ def focus_window(hwnd: int | None) -> bool:
         # 自检脚本时 SetForegroundWindow 直接返回失败）。把当前前台线程
         # 和游戏窗口线程临时「合流」再抢，就不受限了。
         _attach_thread_input(handle)
-        return int(_user32.GetForegroundWindow() or 0) == int(handle)
+        if int(_user32.GetForegroundWindow() or 0) == int(handle):
+            return True
+        # 还是抢不到前台（用户正在别的窗口打字时 Windows 会锁前台）：至少把窗口
+        # 抬到最上面 —— 用户看得见、鼠标点得到，OCR 抓屏幕也有内容。
+        return raise_window(handle)
+    except Exception:
+        return False
+
+
+def raise_window(hwnd) -> bool:
+    """把窗口抬到 z 序最上面（不需要前台权限）。"""
+    if not hwnd:
+        return False
+    try:
+        HWND_TOP = 0
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOACTIVATE = 0x0010
+        SWP_SHOWWINDOW = 0x0040
+        _user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int,
+                                         ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                         ctypes.c_uint]
+        _user32.SetWindowPos(wintypes.HWND(int(hwnd)), wintypes.HWND(HWND_TOP), 0, 0, 0, 0,
+                             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW)
+        return True
     except Exception:
         return False
 
@@ -113,6 +137,12 @@ def _attach_thread_input(handle) -> None:
         current = wintypes.HWND(_user32.GetForegroundWindow() or 0)
         foreground_thread = _user32.GetWindowThreadProcessId(current, None) if current else 0
         my_thread = kernel32.GetCurrentThreadId()
+        # 前台锁：Windows 在用户刚操作过别的窗口时会拒绝 SetForegroundWindow。
+        # 敲一下 ALT 是业界通行的「解锁」手法（合成键，不影响用户输入）。
+        VK_MENU = 0x12
+        KEYEVENTF_KEYUP = 0x0002
+        _user32.keybd_event(VK_MENU, 0, 0, None)
+        _user32.keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, None)
         attached = []
         for thread in {target_thread, foreground_thread}:
             if thread and thread != my_thread:
