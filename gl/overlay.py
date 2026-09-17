@@ -91,8 +91,9 @@ class Overlay:
                 return False
             view = self._view()
             screen_w, screen_h = _screen_size()
-            width = min(max(320, view["width"]), screen_w - 40)
-            height = min(max(80, view["height"]), screen_h - 40)
+            # 几何一律用默认值：实测保存/恢复会被 DPI 放大成整屏（3078x1887 落在
+            # 1755x1097 的屏幕上），而且用户希望的正是「每次启动都回到合适大小」
+            width, height = 760, 150
             # 位置交给 pywebview 自己居中：屏幕指标与 create_window 的坐标空间在
             # 高 DPI 下不是同一套（实测 175% 缩放时会算出屏幕外的坐标），
             # 所以不再用「算出来的默认坐标」，避免把窗口丢到屏幕外。
@@ -101,10 +102,7 @@ class Overlay:
             place: dict = {}
             # 兜底：老配置可能存了屏幕外的坐标（DPI 混用过），钳回可见区域，
             # 否则窗口只有任务栏预览能看到，用户既看不到也拖不到
-            if place and not (0 <= place["x"] <= screen_w * 1.3
-                              and 0 <= place["y"] <= screen_h * 1.3):
-                place.clear()                      # 存了离谱坐标就回到居中
-                self._save({"x": 0, "y": 0})
+            place.clear()
             view["width"], view["height"] = width, height
             try:
                 self._window = webview.create_window(

@@ -23,7 +23,7 @@ CLI_NAME = "TextractorCLI.exe"
 TEXTRACTOR_URL = "https://github.com/Artikash/Textractor/releases"
 
 #: 钩子文本里常见的菜单/系统提示，翻译它们只会干扰阅读
-NOISE_WORDS = ("設定", "セーブ", "ロード", "タイトル", "終了", "バックログ", "スキップ",
+NOISE_WORDS = ("无法注入", "Usage:", "Textractor:", "请以管理员", "注入失败","設定", "セーブ", "ロード", "タイトル", "終了", "バックログ", "スキップ",
                "オプション", "コンフィグ", "ウィンドウ", "フルスクリーン", "音量", "戻る",
                "はじめから", "つづきから", "終わります", "よろしいですか")
 
@@ -72,6 +72,17 @@ def detect_engine(pid: int) -> str:
         from ctypes import wintypes
         psapi = ctypes.WinDLL("psapi", use_last_error=True)
         kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        # 必须声明参数类型：否则 HMODULE（指针）会被当作 64 位 int 传给 32 位形参，
+        # 实测报「OverflowError: int too long to convert」→ 引擎恒为 unknown
+        kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+        kernel32.OpenProcess.restype = wintypes.HANDLE
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.K32EnumProcessModules.argtypes = [wintypes.HANDLE, ctypes.c_void_p,
+                                                   wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+        kernel32.K32EnumProcessModules.restype = wintypes.BOOL
+        psapi.GetModuleFileNameExW.argtypes = [wintypes.HANDLE, ctypes.c_void_p,
+                                               ctypes.c_wchar_p, wintypes.DWORD]
+        psapi.GetModuleFileNameExW.restype = wintypes.DWORD
         # 读模块名需要 VM_READ（只用 QUERY_LIMITED 会拿不到任何模块 → 引擎恒为 unknown）
         ACCESS = 0x0400 | 0x0010
         handle = kernel32.OpenProcess(ACCESS, False, pid)
@@ -389,6 +400,11 @@ class VnTextEngine:
                 "merged": self._merged,
                 "engine_name": self._engine,
                 "hook_hint": (self._profile or {}).get("hook_hint") or "",
+                "probe": {
+                    "targets": [str(row.get("path") or "")[-40:] for row in (self._targets or [])][:3],
+                    "threads": [f"{row['name']}:{row['count']}" for row in
+                                sorted(self._seen.values(), key=lambda r: -r["count"])[:3]],
+                },
                 "error": self._error,
             }
 
@@ -453,8 +469,15 @@ class VnTextEngine:
         threading.Thread(target=self._flush_loop, daemon=True,
                          name="aurora-vntext-flush").start()
         self._engine = detect_engine(self._pid)
-        self._profile = profile_for(self._engine)
         self._targets = self._collect_targets(self._pid, exe) if self._pid else []
+        if self._engine in ("", "unknown"):
+            # 候选进程（含子进程）的镜像路径里常直接带引擎 DLL 名
+            haystack = " ".join(str(row.get("path") or "").lower() for row in self._targets)
+            for name, keys in ENGINE_SIGNATURES:
+                if any(key in haystack for key in keys):
+                    self._engine = name
+                    break
+        self._profile = profile_for(self._engine)
         wanted_bits = {int(row.get("bits") or 0) for row in self._targets} - {0}
         started = False
         # 显式指定的 CLI 与「所有」候选进程位数都不符时才报错
@@ -717,6 +740,7 @@ class VnTextEngine:
         # 【人名】前缀版 + 逐字双写版 + 干净版三份）。这里先去重再走线程门禁，
         # 否则非领跑线程的那几份会在门禁处被丢弃、或各自翻一遍。
         norm = normalize_for_dedupe(text)
+        config.log(f"vntext in [{key[:8]}] {text[:50]!r} norm={norm[:50]!r}")
         window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
         if len(norm) >= 6:
             now0 = time.time()
@@ -729,6 +753,7 @@ class VnTextEngine:
                         same = difflib.SequenceMatcher(None, norm, old).ratio() >= 0.9
                     if same:
                         self._merged += 1
+                        config.log(f"vntext dup merged: {text[:40]!r}")
                         self._push_status()
                         return
                 self._recent.append((norm, now0))
