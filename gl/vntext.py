@@ -137,11 +137,14 @@ def looks_like_garbage(text: str) -> bool:
         return True
     if GARBAGE_RE.search(body):
         return True
-    if len(body) >= 4:
+    # 注意：这一条不能太激进。钩子是分片吐文本的，被截断的短句很容易凑不够
+    # 有效字符比例，如果因此判成乱码，真文本所在线程会连着被误杀（反馈里的
+    # 「真文本线程被丢弃，之后再也不翻译」就是这么来的）。
+    if len(body) >= 6:
         good = len(GOOD_RE.findall(body))
-        if good / len(body) < 0.7:      # 大半是看不懂的符号/生僻字
+        if good / len(body) < 0.5:
             return True
-        if len(set(body)) <= 3 and len(body) >= 5:
+        if len(set(body)) <= 3:
             return True
     return False
 
@@ -201,6 +204,8 @@ class VnTextEngine:
         self._ocr_streak = 0
         self._lang = "ja-JP"
         self._interval = 0.9
+        self._pending: dict[str, dict] = {}
+        self._leader = ""
         self._cli_bits = 0
         self._target_bits = 0
 
@@ -242,14 +247,21 @@ class VnTextEngine:
         except Exception as exc:
             config.log(f"vntext status callback failed: {exc}")
 
+    def _active_kkey_placeholder(self) -> str:
+        return ""
+
+    def _active_by_score(self) -> str:
+        if not self._seen:
+            return ""
+        return max(self._seen.items(),
+                   key=lambda item: (item[1].get("dialogue", 0), item[1]["count"]))[0]
+
     def _active_key(self) -> str:
         if self._locked:
             return self._locked
-        if not self._seen:
-            return ""
-        # 优先挑「像台词」的行数最多的线程，其次才看总行数
-        return max(self._seen.items(),
-                   key=lambda item: (item[1].get("dialogue", 0), item[1]["count"]))[0]
+        if self._leader and self._leader in self._seen:
+            return self._leader
+        return self._active_by_score()
 
     # ------------------------------------------------------------------ #
     def start(self, game_id: str, pid: int, mode: str = "auto", exe: str = "") -> dict:
@@ -282,6 +294,10 @@ class VnTextEngine:
             self._cli_bits = 0
         self._interval = max(0.3, float(settings.get("vntext_ocr_interval") or 0.9))
 
+        self._pending.clear()
+        self._leader = ""
+        threading.Thread(target=self._flush_loop, daemon=True,
+                         name="aurora-vntext-flush").start()
         started = False
         # 位数不匹配就别注入：x64 的 CLI 注入不了 32 位游戏（反之亦然）
         mismatch = (self._cli_bits and self._target_bits
@@ -388,6 +404,8 @@ class VnTextEngine:
                 if not parsed:
                     continue
                 key = parsed["thread"] or parsed["name"] or "默认"
+                self._buffer_fragment(key, parsed["text"], parsed["name"], parsed["code"])
+                continue
                 with self._lock:
                     row = self._seen.setdefault(key, {"name": parsed["name"] or key,
                                                       "code": parsed["code"], "count": 0,
@@ -415,6 +433,77 @@ class VnTextEngine:
         if not self._stop.is_set():
             self._error = self._error or "hook-closed"
             self._push_status()
+
+    # ------------------------------------------------------------------ #
+    # 钩子文本是分片到达的：先按线程缓冲、合并成完整一句，静默 0.35s 再翻译。
+    # 不这样做的话，截断的半句会被翻译错，还容易被误判成乱码。
+    FRAGMENT_IDLE = 0.35
+
+    def _buffer_fragment(self, key: str, text: str, name: str, code: str) -> None:
+        now = time.time()
+        with self._lock:
+            row = self._seen.setdefault(key, {"name": name or key, "code": code,
+                                              "count": 0, "sample": "", "dialogue": 0,
+                                              "last_seen": now})
+            row["last_seen"] = now
+            if code:
+                row["code"] = code
+            pending = self._pending.get(key)
+            if pending and text.startswith(pending["text"]) and len(text) > len(pending["text"]):
+                pending["text"] = text          # 同一句被补全
+                pending["at"] = now
+                return
+            if pending and pending["text"].startswith(text):
+                pending["at"] = now             # 重复/回退，忽略
+                return
+        if pending:
+            self._flush_thread(key)             # 上一句先落地
+        with self._lock:
+            self._pending[key] = {"text": text, "at": time.time()}
+
+    def _flush_loop(self) -> None:
+        while not self._stop.is_set():
+            time.sleep(0.12)
+            now = time.time()
+            with self._lock:
+                keys = [k for k, row in self._pending.items()
+                        if now - row["at"] >= self.FRAGMENT_IDLE]
+            for key in keys:
+                self._flush_thread(key)
+
+    def _flush_thread(self, key: str) -> None:
+        with self._lock:
+            row = self._pending.pop(key, None)
+        if not row:
+            return
+        text = " ".join(str(row["text"]).split())
+        if not text:
+            return
+        self._register_line(key, text)
+
+    def _register_line(self, key: str, text: str) -> None:
+        """记账（台词计数/领跑线程）并按需发射。"""
+        with self._lock:
+            row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
+                                              "sample": "", "dialogue": 0,
+                                              "last_seen": time.time()})
+            row["count"] += 1
+            if looks_like_dialogue(text):
+                row["dialogue"] = row.get("dialogue", 0) + 1
+            row["sample"] = text[:60]
+            leader = self._leader
+            leader_seen = self._seen.get(leader, {}).get("last_seen", 0) if leader else 0
+            if not leader or (leader != key and time.time() - leader_seen > 20):
+                if row.get("dialogue", 0) >= 3:
+                    self._leader = self._active_by_score()
+            active = self._active_key()
+            leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
+        if self._locked and not (key == self._locked or key.startswith(self._locked)):
+            return
+        # 已经有明确在说台词的线程时，其它线程不看（乱码多是别线程产物）
+        if not self._locked and active and key != active and leader_dialogue >= 3:
+            return
+        self._emit(text, "hook")
 
     # ------------------------------------------------------------------ #
     def _start_ocr(self) -> bool:
