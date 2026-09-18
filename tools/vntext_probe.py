@@ -403,6 +403,38 @@ def main() -> int:
     check("活动线程指向真文本线程", eng_wa2._active_key().startswith("7:3EBC"),
           eng_wa2._active_key())
 
+    # SUMMER POCKETS REFLECTION BLUE（SiglusEngine）实测：系统线程疯狂刷场景名/资源表，
+    # 另有只吐汉字的「缺字变体」；真台词线程有 4 条（SiglusEngine2/3/4）
+    write("\n[SiglusEngine 实测：系统刷屏 + 缺字变体]")
+    check("场景名刷屏判为系统刷屏",
+          vntext.looks_like_system_spam("10_プロローグ0725" * 6))
+    check("资源表判为系统刷屏",
+          vntext.looks_like_system_spam("bg_siro|" + "none" * 8))
+    check("内部标记判为系统刷屏", vntext.looks_like_system_spam("__sys_scdata_init__" * 3))
+    check("正常台词不是系统刷屏",
+          not vntext.looks_like_system_spam("潮風が顔に吹き付ける。俺は目を細めた。"))
+    sprb: list[dict] = []
+    eng_sprb = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                   on_line=sprb.append)
+    for key, text in (("sys", "10_プロローグ0725" * 6),
+                      ("sys", "__sys_scdata_init__" * 3),
+                      ("real", "鳥の群れが飛んでいる。"),
+                      ("gdi", "群群飛飛"),
+                      ("real", "船を追い越して。島に向かって。"),
+                      ("gdi", "越島"),
+                      ("real", "珍しい光景だな、と思った。")):
+        eng_sprb._register_line(key, text)
+    check("只发射真台词（刷屏与缺字变体都挡掉）",
+          [row["text"] for row in sprb] == ["鳥の群れが飛んでいる。",
+                                            "船を追い越して。島に向かって。",
+                                            "珍しい光景だな、と思った。"],
+          str([row["text"][:16] for row in sprb]))
+    check("活动线程落在真文本线程", eng_sprb._active_key().startswith("real"),
+          eng_sprb._active_key())
+    check("整串成对的名字才折一半",
+          vntext.fold_full_doubling("女女子子") == "女子"
+          and vntext.fold_full_doubling("アマリリス") == "アマリリス")
+
     write("\n[引擎标识与规则集]")
     check("TVP/KIRIKIRI 规则可取出",
           vntext.profile_for("TVP/KIRIKIRI").get("collapse_doubling") is True

@@ -17,13 +17,14 @@
 | **Leaf（Aquaplus）** | WHITE ALBUM2 | ✅ 可用 | 同进程内有乱码线程、菜单栏线程、视频窗口标题（`ActiveMovie Window`）、视频文件名（`mv01`）需要过滤；短台词「あ…」也要算台词 |
 | **CatSystem2 / cs2（Ares）** | 灰色的果实 | ✅ 可用 | 用户私测通过 |
 | **CMVS** | 天津罪 | 待补实测记录 | 库里已有该作品，随时可回归 |
+| **SiglusEngine / Siglus（VisualArts·KEY）** | Summer Pockets REFLECTION BLUE | ✅ 可用（规则已固化） | 一个进程里会有 12+ 条钩子线程：系统线程**疯狂刷屏**（场景名 `10_プロローグ0725` 重复 257 次、`__sys_scdata_init__`、资源表 `l_rb__sys_…`、`nonenonenone…`），另有若干条只吐汉字、缺假名的「缺字变体」。Aurora 现在：把系统刷屏按**原始文本**判掉（重复 token / 超长无句读 / 片段反复出现 → 整个线程标记为刷屏，后续全丢）、领跑线程改按「带句读的句子数」选（所以自动锁到真文本线程）、同一句的缺字变体（干净句的**子序列**）直接并掉。实测 8 句连续翻页全对、原始行审计漏掉 0 |
 | **WillPlus / AdvHD** | 少女之剑与秘密的协奏曲 | ❌ 钩子无解 → 用 OCR | `WillPlus` 找不到函数、`WillPlusW/A` 找不到特征码、`WillPlus2` 挂到了 Intel 显卡驱动 `igc32.dll` 上；只剩按字形抓的 GDI 钩子，而引擎字形有缓存 → 缺字严重 |
 
 ## 二、待测：Textractor 有专用钩子，按优先级排
 
 | 优先级 | 引擎（钩子名） | 代表作品 | 为什么值得测 |
 | --- | --- | --- | --- |
-| ★★★ | **SiglusEngine** | Summer Pockets、Angel Beats! -1st beat- | VisualArts/KEY 的引擎，2010 年后 KEY 系几乎都用它 |
+| ~~★★★~~ | ~~**SiglusEngine**~~ | ~~Summer Pockets、Angel Beats! -1st beat-~~ | 已用 Summer Pockets REFLECTION BLUE 实测通过（见上表），换成其它 Siglus 作品可以再验一次规则通用性 |
 | ★★★ | **Ethornell / BGI** | 穢翼のユースティア（オーガスト）、蒼の彼方のフォーリズム（Sprite）、大図書館の羊飼い | 日文维基明确列出的采用作品；八月社/Sprite 一大批 |
 | ★★★ | **CatSystem2** | グリザイア三部曲（フロントウイング）、ういんどみる、クロシェット | 已用「灰色的果实」私测通过，可再补一部确认规则通用 |
 | ★★☆ | **RUGP** | マブラヴ、君が望む永遠（âge） | 老牌大厂自研引擎，钩子单独存在 |

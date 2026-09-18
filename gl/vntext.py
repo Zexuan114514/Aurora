@@ -306,8 +306,9 @@ def normalize_for_dedupe(text: str) -> str:
     body = clean_hook_text(text)
     body = NAME_PREFIX_RE.sub("", body).strip()
     body = collapse_doubling(body)
+    # 注意：长音符 `ー` 不算标点，"あー" 折成 "あ" 会让短句去重失效（实测 Siglus）
     return re.sub(r"[\s\u300c\u300d\u300e\u300f\u3010\u3011\[\]\uff08\uff09()、。，,.!\uff01?\uff1f"
-                  r"\u2026\u30fc\u301c~\u30fb:\uff1a;\uff1b-]", "", body)
+                  r"\u2026\u301c~\u30fb:\uff1a;\uff1b-]", "", body)
 
 
 RUN_RE = re.compile(r"(.)\1{2,}", re.DOTALL)
@@ -632,6 +633,61 @@ def norm_name(text: str) -> str:
     return re.sub(r"[\s\-_.·]+", "", str(text or "").lower())
 
 
+_SENTENCE_END_RE = re.compile(r"[。．！？!?…」』]")
+
+
+def fold_full_doubling(text: str) -> str:
+    """整串都成对时才折一半（`女女子子`→`女子`）；`アマリリス` 这种正常叠音不动。"""
+    body = str(text or "")
+    if len(body) < 2 or len(body) % 2:
+        return body
+    if all(_kana_fold(body[i]) == _kana_fold(body[i + 1])
+           for i in range(0, len(body), 2)):
+        return body[::2]
+    return body
+
+
+def is_subsequence(short: str, long: str) -> bool:
+    """short 的字符是否按顺序出现在 long 里（用来认「缺字变体」）。
+
+    实测 Siglus 的 GDI 钩子会把同一句吐成只剩汉字的版本：`空雲落み` 之于
+    `まるで、空から白い雲のかたまりが落ちてきたみたいに。`，正好是子序列。
+    """
+    if not short or not long or len(short) > len(long):
+        return False
+    it = iter(long)
+    return all(ch in it for ch in short)
+
+
+def looks_like_system_spam(text: str, min_repeat: int = 4) -> bool:
+    """系统字符串特征：同一个片段被下划线/空白重复很多遍。
+
+    实测 SiglusEngine（SUMMER POCKETS REFLECTION BLUE）会疯狂重发场景名与资源表：
+        `10_プロローグ072510_プロローグ072510_プロローグ0725…`（同一段重复 257 次）
+    这类行没有句读、同一片段反复出现。必须拿**原始文本**判：清洗会把重复折掉，
+    折完只剩 `10_プロローグ0725`，反而更像一句台词了。
+    """
+    body = str(text or "")
+    if not body or _SENTENCE_END_RE.search(body):
+        return False                     # 有句读 → 更像台词，放行
+    if "__sys_" in body:
+        return True
+    tokens = [token for token in re.split(r"[_\s]+", body) if token]
+    counts: dict[str, int] = {}
+    for token in tokens:
+        counts[token] = counts.get(token, 0) + 1
+    if tokens and max(counts.values()) >= min_repeat:
+        return True
+    # 超长又没有句读 → 资源表；再退一步：某个片段在行里反复出现（`nonenonenone…`）
+    if len(body) > 300:
+        return True
+    head = body[:800]
+    repeat = longest_repeat(head)
+    if len(repeat) >= 3 and len(repeat) * head.count(repeat) >= 0.5 * len(head):
+        return True
+    return False
+
+
 def clean_hook_text(text: str) -> str:
     """把写缓冲痕迹还原成一句台词；还原本就是重复噪声时返回空串。"""
     body = " ".join(str(text or "").split())
@@ -728,6 +784,10 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
         return True
     if any(word in body for word in NOISE_WORDS):
         return True
+    if "__sys_" in body:
+        return True        # 引擎内部标记（实测 Siglus：__sys_scdata_init__ / __sys_bk_selline…）
+    if re.match(r"^\d{1,3}_", body) and not _SENTENCE_END_RE.search(body):
+        return True        # Siglus 场景名（10_プロローグ0725…），正常台词不会这么开头
     if len(re.findall(r"\(&\w\)", body)) >= 2:
         return True                    # 「ファイル(&F)画面(&S)…」菜单栏
     # 视频/窗口/文件名之类（实测白色相簿2 的 `mv01`、`ActiveMovie Window`）：
@@ -773,6 +833,7 @@ class VnTextEngine:
         self._interval = 0.9
         self._pending: dict[str, dict] = {}
         self._recent: list[tuple[str, float]] = []
+        self._recent_text: list[str] = []      # 最近几条「清洗后原文」（短句去重用）
         self._name_pending: dict | None = None
         self._merged = 0
         self._gated = 0
@@ -836,8 +897,11 @@ class VnTextEngine:
     def _active_by_score(self) -> str:
         if not self._seen:
             return ""
+        # 优先「像正经句子」的线程（带句读/引号），其次才是台词计数与总行数 ——
+        # 系统刷屏线程往往有大量含假名的资源名，光看行数会把它们排到前面
         return max(self._seen.items(),
-                   key=lambda item: (item[1].get("dialogue", 0), item[1]["count"]))[0]
+                   key=lambda item: (item[1].get("prose", 0), item[1].get("dialogue", 0),
+                                     item[1]["count"]))[0]
 
     def _active_key(self) -> str:
         if self._locked:
@@ -936,6 +1000,8 @@ class VnTextEngine:
         self._leader = ""
         self._last_record = None
         self._name_pending = None
+        self._recent_text.clear()
+        self._recent.clear()
         threading.Thread(target=self._flush_loop, daemon=True,
                          name="aurora-vntext-flush").start()
         self._engine = detect_engine(self._pid)
@@ -1260,6 +1326,22 @@ class VnTextEngine:
             return
         if norm_name(clean) in getattr(self, "_noise_names", ()):
             return
+        # 系统刷屏（Siglus 的场景名/资源表）要拿**原始文本**判：
+        # 清洗会把重复折掉、折完反而像一句正常台词
+        known_spam = False
+        with self._lock:
+            known_spam = bool(self._seen.get(key, {}).get("spam"))
+        if known_spam or looks_like_system_spam(text) \
+                or looks_like_noise(text, 1200):
+            with self._lock:
+                row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
+                                                  "sample": "", "dialogue": 0,
+                                                  "last_seen": time.time()})
+                row["count"] = row.get("count", 0) + 1
+                row["last_seen"] = time.time()
+                if not known_spam:
+                    row["spam"] = True      # 这个线程整体是系统刷屏，后面全丢
+            return
         # 菜单/系统行（セーブ・ロード・設定…）在这里就拦掉：
         # 它们既不该发射，更不能被下面的「说话人名字」逻辑当成名字，
         # 否则会把下一句台词污染成「【ロード】教室をあとにする。」而整句被丢掉
@@ -1272,6 +1354,32 @@ class VnTextEngine:
                 row["count"] = row.get("count", 0) + 1
                 row["last_seen"] = time.time()
             return
+        # 缺字变体抑制（要放在「说话人名字」判定之前，否则 `越島` 这种残片会被
+        # 当成名字挂到下一句上）：
+        # ① 这句是刚发过那句的子序列（Siglus 的 GDI 钩子晚一步吐的汉字版）
+        # ② 汉字 ≥2、没句读、比最近任一句都短，且每个字都能在最近几行里找到
+        #   （变体有时是相邻两句拼起来的，例如 `遅２羽励寄添`）
+        probe = collapse_doubling(clean)
+        kanji = len(CJK_RE.findall(probe))
+        # 只对「汉字为主」的残片动手：Siglus 的 GDI 钩子只吐汉字，
+        # 而说话人名字常是纯假名（`アマリリス` ⊂ `アマリリス` 不能算缺字变体）
+        if 2 <= len(probe) <= 12 and not _SENTENCE_END_RE.search(probe) \
+                and kanji >= max(2, len(probe) // 2):
+            with self._lock:
+                recent = list(self._recent_text)
+            if any(len(old) >= 4 and is_subsequence(probe, old) for old in recent):
+                self._merged += 1
+                config.log(f"vntext short fragment merged: {clean[:30]!r}")
+                self._push_status()
+                return
+            if recent:
+                pool = "".join(recent[-4:])
+                if len(probe) <= 0.7 * max(len(row) for row in recent[-4:]) \
+                        and all(ch in pool for ch in probe):
+                    self._merged += 1
+                    config.log(f"vntext fragment merged: {clean[:30]!r}")
+                    self._push_status()
+                    return
         with self._lock:
             row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
                                               "sample": "", "dialogue": 0,
@@ -1289,44 +1397,99 @@ class VnTextEngine:
             name_thread = name_like >= 2 and not row.get("long", 0)
             if looks_like_dialogue(clean):
                 row["dialogue"] = row.get("dialogue", 0) + 1
+            if _SENTENCE_END_RE.search(clean):
+                row["prose"] = row.get("prose", 0) + 1      # 带句读 = 更像正经台词
             row["sample"] = clean[:60]
             leader = self._leader
             leader_seen = self._seen.get(leader, {}).get("last_seen", 0) if leader else 0
             if not leader or (leader != key and time.time() - leader_seen > 20):
                 if row.get("dialogue", 0) >= 3:
                     self._leader = self._active_by_score()
+            else:
+                # 领跑线程要跟着「最像正经台词」的线程走：Siglus 这类引擎会先冒出
+                # 若干半截/缺字的线程，等真文本线程攒够句读就该换它当领跑
+                best_key = self._active_by_score()
+                if best_key and best_key != self._leader \
+                        and self._seen.get(best_key, {}).get("prose", 0) \
+                        > self._seen.get(self._leader, {}).get("prose", 0) + 1:
+                    self._leader = best_key
             active = self._active_key()
             leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
+            best_prose = max((info.get("prose", 0) for info in self._seen.values()),
+                             default=0)
+            best_dialogue = max((info.get("dialogue", 0) for info in self._seen.values()),
+                                default=0)
+            best_key = self._active_by_score()
         if name_thread:
             # 先攒着，等下一句台词拼成【名字】；超过 3 秒没有台词就当普通台词发出去
-            self._name_pending = {"text": clean, "key": key, "at": time.time()}
+            # 名字本身也可能被引擎双写（实测 `女女子子`），压一下再用
+            self._name_pending = {"text": fold_full_doubling(clean), "key": key,
+                                  "at": time.time()}
             return
         if self._name_pending:
             with self._lock:
                 pending, self._name_pending = self._name_pending, None
             if pending and pending["key"] != key and time.time() - pending["at"] <= 3.0:
-                clean = f"【{pending['text']}】{clean}"
+                # 这句话自己已经带了同一个名字（另一条线程的变体）就别再叠一层，
+                # 否则会出现「【羽依里】羽依里「あの」」
+                if not clean.startswith(pending["text"]):
+                    clean = f"【{pending['text']}】{clean}"
         if self._locked and not (key == self._locked or key.startswith(self._locked)):
             self._gated += 1
             return
-        # 已经有明确在说台词的线程时，其它线程里**不像台词**的输出不看
+        # 一字不差的重复（短句归一化后可能只剩一两个字，下面的规则够不着）。
+        # 放在名字合并之后，免得把「说话人名字重复出现」也算成重复丢掉
+        if len(clean) >= 2:
+            with self._lock:
+                if clean in self._recent_text:
+                    self._merged += 1
+                    config.log(f"vntext same text merged: {clean[:30]!r}")
+                    self._push_status()
+                    return
+                self._recent_text.append(clean)
+                del self._recent_text[:-8]
         # （乱码/菜单动画多是它们产的）；像台词的照常走，交给下面的去重合并 ——
         # 两个同步在吐同一句的线程（RIDDLE JOKER）不该被整条丢掉
-        if not self._locked and active and key != active and leader_dialogue >= 3 \
-                and not looks_like_dialogue(clean):
+        # 领跑线程已经明显在说正经句子（带句读）时，其它线程只放行同样像正经句子的：
+        # Siglus/WA2 这类引擎的 GDI 钩子会吐「缺字的同一句」（`海向てぶや`），
+        # 它们没有句读，正好被挡在外面
+        leader_prose = self._seen.get(active, {}).get("prose", 0)
+        weak = not looks_like_dialogue(clean) \
+            or (max(leader_prose, best_prose) >= 3 and not _SENTENCE_END_RE.search(clean))
+        if not self._locked and active and key != active and weak \
+                and max(leader_dialogue, best_dialogue) >= 2:
             self._gated += 1
             config.log(f"vntext gated: {clean[:40]!r} ({key[:8]})")
             self._push_status()
             return
         window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
-        if len(norm) >= 6:
+        if len(norm) >= 2:
             now0 = time.time()
             with self._lock:
                 self._recent = [(n, t) for n, t in self._recent if now0 - t <= window]
                 for old, _t in self._recent:
-                    same = (norm == old or norm in old or old in norm)
-                    if not same and abs(len(norm) - len(old)) <= max(3, 0.25 * len(old)):
+                    same = norm == old
+                    if not same and len(norm) >= 6 and len(old) >= 6:
+                        same = norm in old or old in norm
+                    if not same and len(norm) >= 6 and len(old) >= 6 \
+                            and abs(len(norm) - len(old)) <= max(3, 0.25 * len(old)):
                         same = difflib.SequenceMatcher(None, norm, old).ratio() >= 0.9
+                    if not same:
+                        # 名字前缀/后缀差异（Siglus 实测：`羽依里「あー……」` 与 `「あー……」`，
+                        # 还有 GDI 钩子的半截句 `さしず…`）：多出来的那段当名字看 ——
+                        # 2~12 个字、不带句读。这样「そう」→「そうか」不会误并
+                        longer, shorter = (old, norm) if len(old) > len(norm) else (norm, old)
+                        added = ""
+                        if longer.endswith(shorter):
+                            added = longer[:len(longer) - len(shorter)]
+                        elif longer.startswith(shorter):
+                            added = longer[len(shorter):]
+                        # 只在「短句 + 名字/半截」这种形态上动手：短句限 2~4 字，
+                        # 免得把相邻的两句（`こんにちは` → `こんにちは、元気？`）错并
+                        if 2 <= len(shorter) <= 4 and added and 2 <= len(added) <= 12 \
+                                and not _SENTENCE_END_RE.search(added) \
+                                and re.search(rf"[{_CJK}]", added):
+                            same = True
                     if same:
                         self._merged += 1
                         config.log(f"vntext dup merged: {text[:40]!r}")

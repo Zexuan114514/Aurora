@@ -349,6 +349,10 @@ def main() -> int:
     audit = {"ok": 0, "empty": 0, "noise": 0, "fragment": 0, "missing": []}
     with lock:
         raw_snapshot = [row["text"] for row in raw_lines]
+    # 缺字变体（Siglus 的 GDI 钩子会吐只剩汉字的同一句）会被引擎按设计并掉，
+    # 审计要认得出来，别报成「漏掉」
+    clean_all = [vntext.clean_hook_text(raw) for raw in raw_snapshot]
+    long_rows = [row for row in clean_all if len(row) >= 6]
     for raw in raw_snapshot:
         clean = vntext.clean_hook_text(raw)
         if not clean:
@@ -360,6 +364,16 @@ def main() -> int:
         if not vntext.looks_like_dialogue(clean):
             # 打字中途的碎片（「そっ」「ちち」）会被线程门禁按设计丢掉，
             # 完整那句随后会从领跑线程正常出来 —— 不算漏
+            audit["fragment"] += 1
+            continue
+        if clean.count("_") >= 3:
+            # 资源表/场景名列表（Siglus 的 `うみ_0815rb40_うみ_0816rb40…`）
+            audit["fragment"] += 1
+            continue
+        probe = vntext.collapse_doubling(clean)
+        if 2 <= len(probe) <= 24 and len(vntext.CJK_RE.findall(probe)) >= 2 \
+                and any(len(old) > len(probe) and vntext.is_subsequence(probe, old)
+                        for old in long_rows):
             audit["fragment"] += 1
             continue
         norm = vntext.normalize_for_dedupe(clean)

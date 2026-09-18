@@ -13,19 +13,19 @@ Aurora 网络自检
   OK  auto 模式给出源说明  Windows 系统代理
 
 [端点连通性 test_network]
-  OK  Steam 商店   665 ms
-  OK  Steam 图片   1377 ms
-  OK  VNDB       1876 ms
-  OK  Bangumi    1960 ms
-  OK  翻译接口       2817 ms
-  用时 8.7s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
+  OK  Steam 商店   923 ms
+  OK  Steam 图片   1912 ms
+  OK  VNDB       2110 ms
+  OK  Bangumi    852 ms
+  OK  翻译接口       1780 ms
+  用时 7.6s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
   OK  至少 3 个端点通  5/5
 
 [直连 vs 手动（换路）]
   OK  切到直连后 current() 也变了
-  直连请求成功：4145 ms
+  直连请求成功：2973 ms
   OK  坏代理下 fallback=True
-  OK  走代理失败会自动换直连  代理失败后自动直连成功（5668 ms）
+  OK  走代理失败会自动换直连  代理失败后自动直连成功（3464 ms）
   OK  关掉换路后坏代理就失败  按预期失败：URLError
 
 [沙盒还原]
