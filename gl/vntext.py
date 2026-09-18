@@ -106,6 +106,16 @@ ENGINE_PROFILES = {
                      "WillPlus2 挂到了 Intel 显卡驱动的 DLL 上），只剩按字形抓的 GDI 钩子，"
                      "而字形有缓存 → 缺字严重。请改用 OCR 模式（面板 → 重新框选 OCR 区域）。",
     },
+    "BGI/Ethornell": {
+        "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
+        # 实测 秽翼のユースティア：BGI 钩子（hook 名就叫 BGI）给完整正文，
+        # TextOutA/ExtTextOutW 这两条 GDI 钩子只给缺字版/乱码版，同一个进程里
+        # 一起吐。留 0.6s 让两份都到齐，只翻完整那份。
+        "variant_settle": 0.6,
+        "hook_hint": "BGI/Ethornell：用 BGI 那条钩子（引擎自己的文本接口）就能拿到完整"
+                     "正文；TextOutA/ExtTextOutW 是按字形抓的 GDI 钩子，会缺字，"
+                     "自动模式已经把它的缺字版并掉了（实测 秽翼のユースティア）。",
+    },
     "default": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
         "hook_hint": "",
@@ -659,6 +669,89 @@ def is_subsequence(short: str, long: str) -> bool:
     return all(ch in it for ch in short)
 
 
+_CJK_ANY_RE = re.compile(rf"[{_CJK}]")
+
+
+def missing_chars_variant(short: str, long: str) -> bool:
+    """`short` 是不是 `long` 的「缺字版」（同一句只画出来一部分）。
+
+    实测 秽翼のユースティア（BGI/Ethornell）：同一个进程里 `TextOutA` 钩子按字形
+    抓文本，字体里查不到的字就丢，吐出来的是 `視界黒塞`；引擎自带钩子随后吐出
+    完整句 `視界を黒い何かが塞いだ。`。缺字版正好是完整版的**子序列**。
+    """
+    short = (short or "").strip()
+    long = (long or "").strip()
+    if len(short) < 3 or len(long) < 6:
+        return False
+    if len(short) > 0.8 * len(long):
+        return False           # 只差一两个字：交给原来的相似度去重，别在这里动
+    if not is_subsequence(short, long):
+        return False
+    # 整句正好是长句的开头（标点不算）→ 更像「短句被续写成下一句」
+    # （`誰か。` → `誰か説明してほしい`），不是缺字版：缺字的版本是**中间**丢字，
+    # 不会只剩开头那么多
+    if normalize_for_dedupe(long).startswith(normalize_for_dedupe(short)):
+        return False
+    kept = len(_CJK_ANY_RE.findall(short))
+    return kept >= max(3, int(0.6 * len(short)))
+
+
+def looks_like_short_fragment(probe: str, pool) -> bool:
+    """`probe` 是不是 pool 里某一句的残片（缺字/漏字的同一句）。
+
+    两条历史规则（Siglus 实测）：
+    ① 短、有汉字、没有句读，且是 pool 里某句的子序列（`群群飛飛`→`群飛`）；
+    ② 比 pool 里最长的短 30% 以上，且每个字都能在 pool 里找到（变体有时是
+       相邻两句拼起来的，例如 `遅２羽励寄添`）。
+    """
+    probe = (probe or "").strip()
+    texts = [str(text or "").strip() for text in (pool or [])]
+    texts = [text for text in texts if text]
+    if not texts or not (2 <= len(probe) <= 12) or _SENTENCE_END_RE.search(probe):
+        return False
+    if len(CJK_RE.findall(probe)) < max(2, len(probe) // 2):
+        return False           # 只对「汉字为主」的残片动手，别误伤说话人名字
+    if any(len(old) >= 4 and is_subsequence(probe, old) for old in texts):
+        return True
+    recent = texts[-4:]
+    joined = "".join(recent)
+    return len(probe) <= 0.7 * max(len(text) for text in recent) \
+        and all(ch in joined for ch in probe)
+
+
+#: 同一个进程里常常有两条钩子线程吐同一句台词的两份（完整版 + 缺字版）。
+#: 先把候选行压住一小会，等这一批的两个版本都到齐再决定翻哪一份 —— 不这样做
+#: 就会出现「同一句翻两遍、先翻缺字的再翻完整的」（实测 秽翼のユースティア）。
+VARIANT_SETTLE = 0.55
+#: 判「这两条是同一句的两个版本」时允许的最大时间差（秒）
+VARIANT_WINDOW = 1.5
+
+
+def _variant_pair(left: dict, right: dict) -> bool:
+    """两条候选行是不是「同一句的两个版本」。
+
+    要求：来自**不同线程**、时间挨着，且短的那条是长的那条的缺字版/残片。
+    同一个线程的前后两句台词永远不算（由分片缓冲去处理）。
+    """
+    if not left or not right or left.get("key") == right.get("key"):
+        return False
+    try:
+        gap = abs(float(left.get("at") or 0) - float(right.get("at") or 0))
+    except Exception:
+        return False
+    if gap > VARIANT_WINDOW:
+        return False
+    short, long = (left, right) if len(left.get("probe") or "") <= len(right.get("probe") or "") \
+        else (right, left)
+    short_probe = str(short.get("probe") or "")
+    long_probe = str(long.get("probe") or "")
+    if not short_probe or not long_probe or len(short_probe) >= len(long_probe):
+        return False
+    if missing_chars_variant(short_probe, long_probe):
+        return True
+    return looks_like_short_fragment(short_probe, [long_probe])
+
+
 def looks_like_system_spam(text: str, min_repeat: int = 4) -> bool:
     """系统字符串特征：同一个片段被下划线/空白重复很多遍。
 
@@ -832,6 +925,9 @@ class VnTextEngine:
         self._lang = "ja-JP"
         self._interval = 0.9
         self._pending: dict[str, dict] = {}
+        # 已过片段缓冲、还没定稿的候选行（等同一批里其它线程的「同句其它版本」到齐）
+        self._staged: list[dict] = []
+        self._settle = VARIANT_SETTLE
         self._recent: list[tuple[str, float]] = []
         self._recent_text: list[str] = []      # 最近几条「清洗后原文」（短句去重用）
         self._name_pending: dict | None = None
@@ -997,6 +1093,7 @@ class VnTextEngine:
         self._interval = max(0.3, float(settings.get("vntext_ocr_interval") or 0.9))
 
         self._pending.clear()
+        self._staged.clear()
         self._leader = ""
         self._last_record = None
         self._name_pending = None
@@ -1014,6 +1111,9 @@ class VnTextEngine:
                     self._engine = name
                     break
         self._profile = profile_for(self._engine)
+        # 引擎可以要求更长的「等同一个批次的另一个版本」时间（默认 0.55s）
+        self._settle = max(0.0, float((self._profile or {}).get("variant_settle")
+                                      or VARIANT_SETTLE))
         wanted_bits = {int(row.get("bits") or 0) for row in self._targets} - {0}
         started = False
         # 显式指定的 CLI 与「所有」候选进程位数都不符时才报错
@@ -1040,6 +1140,11 @@ class VnTextEngine:
         return self.status()
 
     def stop(self) -> dict:
+        # 还在「等同一个批次的另一个版本」的候选行先定稿，别把最后一句吞掉
+        try:
+            self._resolve_staged(force=True)
+        except Exception as exc:
+            config.log(f"vntext staged flush on stop failed: {exc}")
         self._stop.set()
         procs = list(self._procs) or ([self._proc] if self._proc else [])
         self._proc = None
@@ -1290,6 +1395,8 @@ class VnTextEngine:
                         if now - row["at"] >= self.FRAGMENT_IDLE]
             for key in keys:
                 self._flush_thread(key)
+            # 分片缓冲清完后还要给「同一句的其它版本」留一点时间：这一步才真正发射
+            self._resolve_staged()
 
     def _flush_thread(self, key: str) -> None:
         with self._lock:
@@ -1310,12 +1417,12 @@ class VnTextEngine:
         self._register_line(key, text)
 
     def _register_line(self, key: str, text: str) -> None:
-        """记账（台词计数/领跑线程）→ 线程门禁 → 去重 → 发射。
+        """清洗/噪声过滤 → 记账（台词计数/领跑线程）→ 压进候选池。
 
-        顺序很关键（踩过坑）：**门禁要在去重登记之前**。之前先去重再门禁，
-        被门禁丢掉的那一句已经写进「最近去重表」，真身线程随后送来的同一句
-        会被当成重复吞掉 —— 整句就彻底没了（RIDDLE JOKER 两个同名钩子线程
-        交替抢先时，表现为「一句有译文、一句根本没出现」）。
+        候选池里的行要等 `_settle` 秒才定稿（见 `_resolve_staged`）：同一个引擎
+        钩子常和 GDI 钩子一起吐同一句的两个版本（完整版 + 缺字版），必须等两份
+        都到齐再决定翻哪一份 —— 否则同一句会被翻两遍，先翻错的再翻对的
+        （实测 秽翼のユースティア）。
         """
         # 同一句台词常以多种形态、甚至跨线程先后到达（实测 DRACU RIOT 是
         # 【人名】前缀版 + 逐字双写版 + 干净版三份）。
@@ -1331,8 +1438,8 @@ class VnTextEngine:
         known_spam = False
         with self._lock:
             known_spam = bool(self._seen.get(key, {}).get("spam"))
-        if known_spam or looks_like_system_spam(text) \
-                or looks_like_noise(text, 1200):
+        system_spam = looks_like_system_spam(text)
+        if known_spam or system_spam or looks_like_noise(text, 1200):
             with self._lock:
                 row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
                                                   "sample": "", "dialogue": 0,
@@ -1340,7 +1447,17 @@ class VnTextEngine:
                 row["count"] = row.get("count", 0) + 1
                 row["last_seen"] = time.time()
                 if not known_spam:
-                    row["spam"] = True      # 这个线程整体是系统刷屏，后面全丢
+                    if system_spam:
+                        row["spam"] = True  # 反复重发的场景名/资源表：整个线程都没用
+                    else:
+                        # 普通噪声行（菜单词、分隔线、单字残片）只丢这一行。
+                        # 以前这里直接整线程拉黑 —— 结果 TextOutA/GDI 钩子只是画出
+                        # 一条 `─` 分隔线就被判成刷屏线程，后面真正的文本全被吞掉
+                        # （实测 秽翼のユースティア：缺字版线程被误杀）。现在改成
+                        # 「噪声攒够 3 条、又从来没吐过台词」才认定是系统线程。
+                        row["noise"] = row.get("noise", 0) + 1
+                        if row["noise"] >= 3 and not row.get("dialogue", 0):
+                            row["spam"] = True
             return
         # 菜单/系统行（セーブ・ロード・設定…）在这里就拦掉：
         # 它们既不该发射，更不能被下面的「说话人名字」逻辑当成名字，
@@ -1354,32 +1471,6 @@ class VnTextEngine:
                 row["count"] = row.get("count", 0) + 1
                 row["last_seen"] = time.time()
             return
-        # 缺字变体抑制（要放在「说话人名字」判定之前，否则 `越島` 这种残片会被
-        # 当成名字挂到下一句上）：
-        # ① 这句是刚发过那句的子序列（Siglus 的 GDI 钩子晚一步吐的汉字版）
-        # ② 汉字 ≥2、没句读、比最近任一句都短，且每个字都能在最近几行里找到
-        #   （变体有时是相邻两句拼起来的，例如 `遅２羽励寄添`）
-        probe = collapse_doubling(clean)
-        kanji = len(CJK_RE.findall(probe))
-        # 只对「汉字为主」的残片动手：Siglus 的 GDI 钩子只吐汉字，
-        # 而说话人名字常是纯假名（`アマリリス` ⊂ `アマリリス` 不能算缺字变体）
-        if 2 <= len(probe) <= 12 and not _SENTENCE_END_RE.search(probe) \
-                and kanji >= max(2, len(probe) // 2):
-            with self._lock:
-                recent = list(self._recent_text)
-            if any(len(old) >= 4 and is_subsequence(probe, old) for old in recent):
-                self._merged += 1
-                config.log(f"vntext short fragment merged: {clean[:30]!r}")
-                self._push_status()
-                return
-            if recent:
-                pool = "".join(recent[-4:])
-                if len(probe) <= 0.7 * max(len(row) for row in recent[-4:]) \
-                        and all(ch in pool for ch in probe):
-                    self._merged += 1
-                    config.log(f"vntext fragment merged: {clean[:30]!r}")
-                    self._push_status()
-                    return
         with self._lock:
             row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
                                               "sample": "", "dialogue": 0,
@@ -1390,11 +1481,6 @@ class VnTextEngine:
                 row["short"] = row.get("short", 0) + 1
             else:
                 row["long"] = row.get("long", 0) + 1
-            # 只出短名字、从不出长句的线程 = 「说话人名字」线程（实测 Escu:de）。
-            # repeats 来自分片缓冲（同一条短文本反复重发），两条名字行被缓冲合并
-            # 成一条时也能认出来
-            name_like = row.get("short", 0) + row.get("repeats", 0)
-            name_thread = name_like >= 2 and not row.get("long", 0)
             if looks_like_dialogue(clean):
                 row["dialogue"] = row.get("dialogue", 0) + 1
             if _SENTENCE_END_RE.search(clean):
@@ -1413,13 +1499,104 @@ class VnTextEngine:
                         and self._seen.get(best_key, {}).get("prose", 0) \
                         > self._seen.get(self._leader, {}).get("prose", 0) + 1:
                     self._leader = best_key
+            self._staged.append({"key": key, "clean": clean, "norm": norm,
+                                 "probe": collapse_doubling(clean), "text": text,
+                                 "at": time.time()})
+            del self._staged[:-24]          # 保险：别让卡住的候选越堆越多
+        return
+
+    def _resolve_staged(self, force: bool = False) -> int:
+        """把攒够时间的候选行定稿：同一句的多个版本只留最完整的那份。
+
+        实测场景（秽翼のユースティア / BGI）：一次翻页里 GDI 钩子先吐缺字版
+        `視界黒塞`，紧接着引擎钩子吐完整版 `視界を黒い何かが塞いだ。`。两条在
+        同一个 0.35s 分片缓冲窗口里落地，所以这里把候选压住 `_settle` 秒，
+        等两份都到齐 → 缺字版直接并掉，只翻完整版。
+
+        另外还要防「差一点点就齐了」：如果某个候选已经等够时间、但池子里还有
+        一条刚到的兄弟版本，就先不放它出去（`_variant_pair` 会认出来）。
+        """
+        now = time.time()
+        with self._lock:
+            staged = list(self._staged)
+        if not staged:
+            return 0
+        ready: list[dict] = []
+        young: list[dict] = []
+        for cand in staged:
+            if force or now - float(cand.get("at") or 0) >= self._settle:
+                ready.append(cand)
+            else:
+                young.append(cand)
+        emit_ready = [cand for cand in ready
+                      if not any(_variant_pair(cand, other) for other in young)]
+        if not emit_ready:
+            return 0
+        losers: set[int] = set()
+        for index, cand in enumerate(emit_ready):
+            for other in emit_ready[index + 1:]:
+                if not _variant_pair(cand, other):
+                    continue
+                short = cand if len(cand["probe"]) <= len(other["probe"]) else other
+                losers.add(id(short))
+        with self._lock:
+            self._staged = [cand for cand in self._staged if cand not in emit_ready]
+        emitted = 0
+        for cand in emit_ready:
+            if id(cand) in losers:
+                self._merged += 1
+                config.log(f"vntext variant merged: {str(cand['clean'])[:30]!r}")
+                continue
+            self._promote(cand)
+            emitted += 1
+        if losers:
+            self._push_status()
+        return emitted
+
+    def flush_staged(self) -> int:
+        """立刻给所有候选行定稿（自检脚本用；运行时由 _flush_loop 按时定稿）。"""
+        return self._resolve_staged(force=True)
+
+    def _promote(self, cand: dict) -> None:
+        """候选行定稿：缺字变体抑制 → 说话人名字合并 → 线程门禁 → 去重 → 发射。
+
+        顺序很关键（踩过坑）：**门禁要在去重登记之前**。之前先去重再门禁，
+        被门禁丢掉的那一句已经写进「最近去重表」，真身线程随后送来的同一句
+        会被当成重复吞掉 —— 整句就彻底没了（RIDDLE JOKER 两个同名钩子线程
+        交替抢先时，表现为「一句有译文、一句根本没出现」）。
+        """
+        key = str(cand.get("key") or "")
+        clean = str(cand.get("clean") or "")
+        norm = str(cand.get("norm") or "")
+        text = str(cand.get("text") or "")
+        probe = str(cand.get("probe") or "")
+        # 缺字变体抑制（要放在「说话人名字」判定之前，否则 `越島` 这种残片会被
+        # 当成名字挂到下一句上）：
+        # ① 这句是刚发过那句的子序列（Siglus 的 GDI 钩子晚一步吐的汉字版）
+        # ② 汉字 ≥2、没句读、比最近任一句都短，且每个字都能在最近几行里找到
+        #   （变体有时是相邻两句拼起来的，例如 `遅２羽励寄添`）
+        with self._lock:
+            recent = list(self._recent_text)
+        if looks_like_short_fragment(probe, recent):
+            self._merged += 1
+            config.log(f"vntext short fragment merged: {clean[:30]!r}")
+            self._push_status()
+            return
+        with self._lock:
+            row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
+                                              "sample": "", "dialogue": 0,
+                                              "last_seen": time.time()})
+            # 只出短名字、从不出长句的线程 = 「说话人名字」线程（实测 Escu:de）。
+            # repeats 来自分片缓冲（同一条短文本反复重发），两条名字行被缓冲合并
+            # 成一条时也能认出来
+            name_like = row.get("short", 0) + row.get("repeats", 0)
+            name_thread = name_like >= 2 and not row.get("long", 0)
             active = self._active_key()
             leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
             best_prose = max((info.get("prose", 0) for info in self._seen.values()),
                              default=0)
             best_dialogue = max((info.get("dialogue", 0) for info in self._seen.values()),
                                 default=0)
-            best_key = self._active_by_score()
         if name_thread:
             # 先攒着，等下一句台词拼成【名字】；超过 3 秒没有台词就当普通台词发出去
             # 名字本身也可能被引擎双写（实测 `女女子子`），压一下再用
@@ -1486,7 +1663,10 @@ class VnTextEngine:
                             added = longer[len(shorter):]
                         # 只在「短句 + 名字/半截」这种形态上动手：短句限 2~4 字，
                         # 免得把相邻的两句（`こんにちは` → `こんにちは、元気？`）错并
+                        # 另外要求短句别太短：`誰か。` 之于 `誰か説明してほしい──`
+                        # 这种「短句整句被长句包住」是真台词，不能当名字前缀并掉
                         if 2 <= len(shorter) <= 4 and added and 2 <= len(added) <= 12 \
+                                and len(shorter) >= 0.35 * len(longer) \
                                 and not _SENTENCE_END_RE.search(added) \
                                 and re.search(rf"[{_CJK}]", added):
                             same = True

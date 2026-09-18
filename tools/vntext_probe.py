@@ -110,6 +110,15 @@ class MockLLM(http.server.BaseHTTPRequestHandler):
         return
 
 
+def settle(engine) -> None:
+    """直接喂 `_register_line` 的用例要手动跨过「定稿窗口」。
+
+    正常运行时行会先在候选池里压 0.55s（等同一句的缺字版/完整版都到齐），
+    自检里没有这个等待，用 flush_staged() 一次性定稿。
+    """
+    engine.flush_staged()
+
+
 def main() -> int:
     global failed
     out = io.StringIO()
@@ -285,6 +294,7 @@ def main() -> int:
                  "「お前、出発してからそればっかりだな」",
                  "「また明日ね」と小さく呟いて、"):
         eng3._register_line("thread-A", text)
+    settle(eng3)
     check("三形态只翻一次，下一句正常", len(lines3) == 2,
           f"发出 {len(lines3)} 条：{[row['text'][:16] for row in lines3]}")
     check("合并计数有记录", eng3.status().get("merged", 0) >= 2,
@@ -350,11 +360,13 @@ def main() -> int:
             "「昨日の資料はもう目を通したかい？」",
             "「それなら安心だ、ありがとう」",
         ][index])
+    settle(eng_race)
     check("领跑线程已确定", eng_race.status().get("locked", "") == ""
           and len(raced) == 3, f"发出 {len(raced)} 条")
     raced.clear()
     eng_race._register_line("thread-B", "「交互に先を越すテスト台詞」")   # B 抢先
     eng_race._register_line("thread-A", "「交互に先を越すテスト台詞」")   # A 随后送同一句
+    settle(eng_race)
     check("抢先的副本不会把整句吞掉（只翻一次）", len(raced) == 1,
           f"发出 {len(raced)} 条：{[row['text'][:18] for row in raced]}")
     check("同一句的两份被合并计数", eng_race.status().get("merged", 0) >= 1,
@@ -362,6 +374,7 @@ def main() -> int:
     # 不像台词的杂讯仍要被门禁挡掉（菜单动画之类）
     raced.clear()
     eng_race._register_line("thread-C", "迷宮探索中継続表示切替案内")   # 无假名、非短名，非台词
+    settle(eng_race)
     check("领跑线程之外的非台词仍被挡掉", len(raced) == 0, f"发出 {len(raced)} 条")
     check("门禁计数有记录", eng_race.status().get("gated", 0) >= 1,
           str(eng_race.status().get("gated")))
@@ -396,6 +409,7 @@ def main() -> int:
         ("3:3EBC:7", "灱炄灰灱炄灰इவ孙ؔ䝬\u05cb孙ؔ灐灒灟灹灱炄灰"),
     ):
         eng_wa2._register_line(key, text)
+    settle(eng_wa2)
     check("只发射真台词那三句",
           [row["text"] for row in wa2] == ["「あ…」", "とうとう、降ってきた。",
                                            "街はすっかり白に染まっている。"],
@@ -424,6 +438,7 @@ def main() -> int:
                       ("gdi", "越島"),
                       ("real", "珍しい光景だな、と思った。")):
         eng_sprb._register_line(key, text)
+    settle(eng_sprb)
     check("只发射真台词（刷屏与缺字变体都挡掉）",
           [row["text"] for row in sprb] == ["鳥の群れが飛んでいる。",
                                             "船を追い越して。島に向かって。",
@@ -434,6 +449,93 @@ def main() -> int:
     check("整串成对的名字才折一半",
           vntext.fold_full_doubling("女女子子") == "女子"
           and vntext.fold_full_doubling("アマリリス") == "アマリリス")
+
+    # 秽翼のユースティア（BGI/Ethornell）实测：同一个进程里两条钩子线程一起吐同一句 ——
+    # `TextOutA`（按字形抓，字体查不到的字就丢）给缺字版 `視界黒塞`，引擎自己的
+    # `BGI` 钩子紧接着给完整版 `視界を黒い何かが塞いだ。`。旧版会把两份都翻一遍，
+    # 表现为「同一句先出错误译文、再出正确译文」。
+    write("\n[BGI/Ethornell 实测：缺字版与完整版只翻一次]")
+    check("缺字版判定为同一句的缺字版",
+          vntext.missing_chars_variant("視界黒塞", "視界を黒い何かが塞いだ。")
+          and vntext.missing_chars_variant("方め辛活耐だろ？",
+                                           "こんな死に方をするために、"
+                                           "わたしは辛い生活に耐えてきたのだろうか？"))
+    check("正常的相邻两句不会被判成缺字版",
+          not vntext.missing_chars_variant("「そうか」", "「そうか、それはよかった」")
+          and not vntext.missing_chars_variant("「おはよう」", "「今日もいい天気だね」"))
+    bgi_samples = [
+        ("4:202C:7:TextOutA", "視界黒塞"),
+        ("3:202C:4:BGI", "視界を黒い何かが塞いだ。"),
+        ("4:202C:7:TextOutA", "遅大足気づ"),
+        ("3:202C:4:BGI", "少し遅れて、それが大きな足だと気づいた。"),
+        ("4:202C:7:TextOutA", "おぐ路地染み"),
+        ("3:202C:4:BGI", "おそらく、もうすぐわたしも路地の染みになる。"),
+        ("4:202C:7:TextOutA", "方め辛活耐だろ？"),
+        ("3:202C:4:BGI", "こんな死に方をするために、わたしは辛い生活に耐えてきたのだろうか？"),
+    ]
+    bgi_lines: list[dict] = []
+    eng_bgi = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                  on_line=bgi_lines.append)
+    for key, text in bgi_samples:
+        eng_bgi._register_line(key, text)
+    settle(eng_bgi)
+    check("只发射完整版（缺字版被并掉）",
+          [row["text"] for row in bgi_lines]
+          == ["視界を黒い何かが塞いだ。", "少し遅れて、それが大きな足だと気づいた。",
+              "おそらく、もうすぐわたしも路地の染みになる。",
+              "こんな死に方をするために、わたしは辛い生活に耐えてきたのだろうか？"],
+          str([row["text"][:18] for row in bgi_lines]))
+    check("缺字版没有被当成说话人名字",
+          not any(row["text"].startswith("【") for row in bgi_lines),
+          str([row["text"][:18] for row in bgi_lines]))
+    check("并掉的缺字版有计数", eng_bgi.status().get("merged", 0) >= 4,
+          str(eng_bgi.status().get("merged")))
+    # 反过来（完整版先到、缺字版后到）也要并掉
+    bgi2: list[dict] = []
+    eng_bgi2 = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                   on_line=bgi2.append)
+    eng_bgi2._register_line("3:202C:4:BGI", "流れてきた血に身体を半分浸したまま、"
+                                            "じっと息を殺す。")
+    eng_bgi2._register_line("4:202C:7:TextOutA", "流れき血身体半分浸しじっと息殺す")
+    settle(eng_bgi2)
+    check("完整版先到、缺字版后到也只翻一次",
+          [row["text"] for row in bgi2]
+          == ["流れてきた血に身体を半分浸したまま、じっと息を殺す。"],
+          str([row["text"][:20] for row in bgi2]))
+    # 同一个线程里的两句真台词（含一模一样的短句）不能被当成「缺字版」并掉
+    same_thread: list[dict] = []
+    eng_same = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                   on_line=same_thread.append)
+    for text in ("誰か説明してほしい──", "誰か。", "誰か！！"):
+        eng_same._register_line("3:202C:4:BGI", text)
+    settle(eng_same)
+    check("同线程的连续短句照常发射（只并完全一样的那句）",
+          [row["text"] for row in same_thread] == ["誰か説明してほしい──", "誰か。"],
+          str([row["text"] for row in same_thread]))
+    # 噪声行只丢自己：以前一条 `─` 分隔线就会把整条线程标成「系统刷屏」，
+    # 后面真正的文本全被吞掉（实测 BGI 的 TextOutA 线程就这样被误杀）
+    noisy: list[dict] = []
+    eng_noisy = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                    on_line=noisy.append)
+    for key, text in (("gdi", "─"), ("gdi", "ؐ"), ("engine", "また一つ。"),
+                      ("gdi", "視界黒塞"), ("engine", "視界を黒い何かが塞いだ。")):
+        eng_noisy._register_line(key, text)
+    settle(eng_noisy)
+    check("两条噪声行不会把线程整体拉黑",
+          [row["text"] for row in noisy] == ["また一つ。", "視界を黒い何かが塞いだ。"],
+          str([row["text"][:16] for row in noisy]))
+    # 反过来：真·系统刷屏线程（重复资源名 / 只喷噪声的系统线程）仍要整体丢掉
+    spammy: list[dict] = []
+    eng_spam = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                   on_line=spammy.append)
+    eng_spam._register_line("sys", "10_プロローグ0725" * 6)
+    for _ in range(3):
+        eng_spam._register_line("menu", "セーブ")
+    eng_spam._register_line("menu", "本当はこの行も出したくない訳ではない")
+    settle(eng_spam)
+    check("系统刷屏线程整体丢弃", spammy == []
+          and eng_spam._seen.get("sys", {}).get("spam") is True,
+          str([row["text"][:12] for row in spammy]))
 
     write("\n[引擎标识与规则集]")
     check("TVP/KIRIKIRI 规则可取出",

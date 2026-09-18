@@ -13,20 +13,18 @@ Aurora 网络自检
   OK  auto 模式给出源说明  Windows 系统代理
 
 [端点连通性 test_network]
-  OK  Steam 商店   923 ms
-  OK  Steam 图片   1912 ms
-  OK  VNDB       2110 ms
-  OK  Bangumi    852 ms
-  OK  翻译接口       1780 ms
-  用时 7.6s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
+  OK  Steam 商店   1111 ms
+  OK  Steam 图片   3452 ms
+  OK  VNDB       1621 ms
+  OK  Bangumi    1557 ms
+  OK  翻译接口       1889 ms
+  用时 9.6s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
   OK  至少 3 个端点通  5/5
 
 [直连 vs 手动（换路）]
   OK  切到直连后 current() 也变了
-  直连请求成功：2973 ms
-  OK  坏代理下 fallback=True
-  OK  走代理失败会自动换直连  代理失败后自动直连成功（3464 ms）
-  OK  关掉换路后坏代理就失败  按预期失败：URLError
+  直连请求失败：URLError: <urlopen error timed out>
+  WARN 当前离线，跳过换路断言
 
 [沙盒还原]
   OK  代理设置已还原为 auto
