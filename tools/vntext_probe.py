@@ -208,6 +208,22 @@ def main() -> int:
     check("请求是流式", body.get("stream") is True)
 
     events.clear()
+    # 快速连翻时旧请求不能被掐断：排队后每句都要有 done（RIDDLE JOKER 实测场景）
+    burst = ["「一句目のセリフです」", "「二句目のセリフです」", "「三句目のセリフです」"]
+    for row in burst:
+        translator.submit(row, game_id="probe-game")
+    deadline = time.time() + 30
+    while time.time() < deadline:
+        done_texts = {payload.get("text") for kind, payload in events if kind == "done"}
+        if all(row in done_texts for row in burst):
+            break
+        time.sleep(0.2)
+    done_texts = {payload.get("text") for kind, payload in events if kind == "done"}
+    check("连翻三句每句都有译文（不再掐断旧请求）",
+          all(row in done_texts for row in burst),
+          f"done={sorted(t[:8] for t in done_texts)}")
+
+    events.clear()
     translator.submit("彼女は静かに微笑んだ。", game_id="probe-game")
     deadline = time.time() + 8
     while time.time() < deadline:
@@ -290,6 +306,43 @@ def main() -> int:
         got = vntext.clean_hook_text(src)
         check(name, got == src, got)
     check("纯名字行不产出台词", vntext.clean_hook_text("【佑斗】【佑斗】【佑斗】") == "", "")
+
+    # RIDDLE JOKER 实测：同一个进程里两条同名 KiriKiriZ 钩子线程交替抢先吐同一句。
+    # 旧逻辑「先去重再门禁」会把非领跑线程那句登记进去再由门禁丢掉，等领跑线程
+    # 送来同一句时又被当成重复 → 整句消失（表现为一句有一句没有）。
+    write("\n[两个同名线程交替抢先（RIDDLE JOKER 实测场景）]")
+    raced: list[dict] = []
+    eng_race = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                   on_line=raced.append)
+    for index in range(3):                      # 先把 thread-A 养成领跑线程
+        eng_race._register_line("thread-A", [
+            "「おはよう、今日もいい天気だね」",
+            "「昨日の資料はもう目を通したかい？」",
+            "「それなら安心だ、ありがとう」",
+        ][index])
+    check("领跑线程已确定", eng_race.status().get("locked", "") == ""
+          and len(raced) == 3, f"发出 {len(raced)} 条")
+    raced.clear()
+    eng_race._register_line("thread-B", "「交互に先を越すテスト台詞」")   # B 抢先
+    eng_race._register_line("thread-A", "「交互に先を越すテスト台詞」")   # A 随后送同一句
+    check("抢先的副本不会把整句吞掉（只翻一次）", len(raced) == 1,
+          f"发出 {len(raced)} 条：{[row['text'][:18] for row in raced]}")
+    check("同一句的两份被合并计数", eng_race.status().get("merged", 0) >= 1,
+          str(eng_race.status().get("merged")))
+    # 不像台词的杂讯仍要被门禁挡掉（菜单动画之类）
+    raced.clear()
+    eng_race._register_line("thread-C", "s0001-09s0001-09s0001-09s0001-05")
+    check("领跑线程之外的非台词仍被挡掉", len(raced) == 0, f"发出 {len(raced)} 条")
+    check("门禁计数有记录", eng_race.status().get("gated", 0) >= 1,
+          str(eng_race.status().get("gated")))
+
+    write("\n[噪声：窗口标题 / 菜单栏]")
+    check("菜单栏（(&F)(&S)）当噪声",
+          vntext.looks_like_noise("ファイル(&F)画面(&S)テキスト言語(&L)進行制御(&M)ヘルプ(&H)(ver1.13)+"))
+    check("正常台词不误判", not vntext.looks_like_noise("「俺の服も半袖にしてくれない？」"))
+    check("窗口标题与 exe 名可比对",
+          vntext.norm_name("RIDDLE JOKER") == vntext.norm_name("RiddleJoker.exe")[:11],
+          f"{vntext.norm_name('RIDDLE JOKER')} vs {vntext.norm_name('RiddleJoker.exe')}")
 
     write("\n[引擎标识与规则集]")
     check("TVP/KIRIKIRI 规则可取出",

@@ -28,6 +28,7 @@ user32.WindowFromPoint.argtypes = [wintypes.POINT]
 user32.WindowFromPoint.restype = wintypes.HWND
 user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
 user32.GetAncestor.restype = wintypes.HWND
+user32.GetWindowTextW.argtypes = [wintypes.HWND, ctypes.c_wchar_p, ctypes.c_int]
 
 gdi32.CreateCompatibleDC.argtypes = [wintypes.HDC]
 gdi32.CreateCompatibleDC.restype = wintypes.HDC
@@ -87,6 +88,18 @@ def windows_of(pid: int) -> list[dict]:
 def main_window(pid: int) -> dict | None:
     rows = windows_of(pid)
     return rows[0] if rows else None
+
+
+def window_title(hwnd: int) -> str:
+    """窗口标题（有些引擎会把标题当文本吐进钩子流，用来过滤噪声）。"""
+    if not hwnd:
+        return ""
+    try:
+        buffer = ctypes.create_unicode_buffer(512)
+        user32.GetWindowTextW(wintypes.HWND(int(hwnd)), buffer, 512)
+        return buffer.value.strip()
+    except Exception:
+        return ""
 
 
 def is_exposed(hwnd: int) -> bool:

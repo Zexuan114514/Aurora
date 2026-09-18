@@ -565,6 +565,11 @@ def split_name_prefix(body: str) -> tuple[str, str]:
     return "".join(names), body[match.end():].lstrip()
 
 
+def norm_name(text: str) -> str:
+    """名字比较用：小写 + 去掉空白/下划线/点（「RIDDLE JOKER」==「RiddleJoker」）。"""
+    return re.sub(r"[\s\-_.·]+", "", str(text or "").lower())
+
+
 def clean_hook_text(text: str) -> str:
     """把写缓冲痕迹还原成一句台词；还原本就是重复噪声时返回空串。"""
     body = " ".join(str(text or "").split())
@@ -644,6 +649,8 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
         return True
     if any(word in body for word in NOISE_WORDS):
         return True
+    if len(re.findall(r"\(&\w\)", body)) >= 2:
+        return True                    # 「ファイル(&F)画面(&S)…」菜单栏
     if looks_like_garbage(body):
         return True
     if len(set(body)) <= 2 and len(body) >= 6:              # 分割线之类
@@ -684,6 +691,7 @@ class VnTextEngine:
         self._pending: dict[str, dict] = {}
         self._recent: list[tuple[str, float]] = []
         self._merged = 0
+        self._gated = 0
         self._engine = "unknown"
         self._profile: dict = {}
         self._leader = ""
@@ -718,6 +726,7 @@ class VnTextEngine:
                 "lang": self._lang,
                 "lines": self._lines,
                 "merged": self._merged,
+                "gated": self._gated,
                 "engine_name": self._engine,
                 "hook_hint": (self._profile or {}).get("hook_hint") or "",
                 "probe": {
@@ -782,6 +791,7 @@ class VnTextEngine:
         self._ocr_last = ""
         self._ocr_streak = 0
         self._merged = 0
+        self._gated = 0
 
         settings = self._get_settings() or {}
         saved = str(settings.get("vntext_tractor_path") or "")
@@ -791,8 +801,19 @@ class VnTextEngine:
         for candidate in (exe, str(settings.get("_game_exe") or "")):
             if candidate:
                 stem = Path(str(candidate))
-                self._noise_names.add(stem.name.lower())
-                self._noise_names.add(stem.stem.lower())
+                self._noise_names.add(norm_name(stem.name))
+                self._noise_names.add(norm_name(stem.stem))
+        try:
+            from . import screencap as screencap_mod
+
+            window = screencap_mod.main_window(self._pid)
+            if window:
+                title = screencap_mod.window_title(int(window.get("hwnd") or 0))
+                if title:
+                    self._noise_names.add(norm_name(title))
+        except Exception as exc:
+            config.log(f"vntext title probe failed: {exc}")
+        self._noise_names.discard("")
         if exe:
             from . import locale as locale_mod
 
@@ -1089,16 +1110,49 @@ class VnTextEngine:
         self._register_line(key, text)
 
     def _register_line(self, key: str, text: str) -> None:
-        """记账（台词计数/领跑线程）并按需发射。"""
+        """记账（台词计数/领跑线程）→ 线程门禁 → 去重 → 发射。
+
+        顺序很关键（踩过坑）：**门禁要在去重登记之前**。之前先去重再门禁，
+        被门禁丢掉的那一句已经写进「最近去重表」，真身线程随后送来的同一句
+        会被当成重复吞掉 —— 整句就彻底没了（RIDDLE JOKER 两个同名钩子线程
+        交替抢先时，表现为「一句有译文、一句根本没出现」）。
+        """
         # 同一句台词常以多种形态、甚至跨线程先后到达（实测 DRACU RIOT 是
-        # 【人名】前缀版 + 逐字双写版 + 干净版三份）。这里先去重再走线程门禁，
-        # 否则非领跑线程的那几份会在门禁处被丢弃、或各自翻一遍。
+        # 【人名】前缀版 + 逐字双写版 + 干净版三份）。
         clean = clean_hook_text(text)
         norm = normalize_for_dedupe(text)
         config.log(f"vntext in [{key[:8]}] {text[:50]!r} -> {clean[:50]!r}")
         if not clean:
             return
-        if clean.strip().lower() in getattr(self, "_noise_names", ()):
+        if norm_name(clean) in getattr(self, "_noise_names", ()):
+            return
+        with self._lock:
+            row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
+                                              "sample": "", "dialogue": 0,
+                                              "last_seen": time.time()})
+            row["count"] += 1
+            row["last_seen"] = time.time()
+            if looks_like_dialogue(clean):
+                row["dialogue"] = row.get("dialogue", 0) + 1
+            row["sample"] = clean[:60]
+            leader = self._leader
+            leader_seen = self._seen.get(leader, {}).get("last_seen", 0) if leader else 0
+            if not leader or (leader != key and time.time() - leader_seen > 20):
+                if row.get("dialogue", 0) >= 3:
+                    self._leader = self._active_by_score()
+            active = self._active_key()
+            leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
+        if self._locked and not (key == self._locked or key.startswith(self._locked)):
+            self._gated += 1
+            return
+        # 已经有明确在说台词的线程时，其它线程里**不像台词**的输出不看
+        # （乱码/菜单动画多是它们产的）；像台词的照常走，交给下面的去重合并 ——
+        # 两个同步在吐同一句的线程（RIDDLE JOKER）不该被整条丢掉
+        if not self._locked and active and key != active and leader_dialogue >= 3 \
+                and not looks_like_dialogue(clean):
+            self._gated += 1
+            config.log(f"vntext gated: {clean[:40]!r} ({key[:8]})")
+            self._push_status()
             return
         window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
         if len(norm) >= 6:
@@ -1116,26 +1170,6 @@ class VnTextEngine:
                         return
                 self._recent.append((norm, now0))
                 del self._recent[:-8]
-        with self._lock:
-            row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
-                                              "sample": "", "dialogue": 0,
-                                              "last_seen": time.time()})
-            row["count"] += 1
-            if looks_like_dialogue(clean):
-                row["dialogue"] = row.get("dialogue", 0) + 1
-            row["sample"] = clean[:60]
-            leader = self._leader
-            leader_seen = self._seen.get(leader, {}).get("last_seen", 0) if leader else 0
-            if not leader or (leader != key and time.time() - leader_seen > 20):
-                if row.get("dialogue", 0) >= 3:
-                    self._leader = self._active_by_score()
-            active = self._active_key()
-            leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
-        if self._locked and not (key == self._locked or key.startswith(self._locked)):
-            return
-        # 已经有明确在说台词的线程时，其它线程不看（乱码多是别线程产物）
-        if not self._locked and active and key != active and leader_dialogue >= 3:
-            return
         self._emit(clean, "hook")
 
     # ------------------------------------------------------------------ #

@@ -61,7 +61,7 @@ class LineTranslator:
         self._lock = threading.RLock()
         self._history: list[dict] = []
         self._context: list[str] = []
-        self._pending: dict | None = None
+        self._pending: list[dict] = []         # 待翻队列（旧 → 新）
         self._token = 0
         self._worker: threading.Thread | None = None
         self._paused = False
@@ -76,8 +76,12 @@ class LineTranslator:
             return
         with self._lock:
             self._token += 1
-            self._pending = {"text": text, "game_id": game_id, "source": source,
-                             "token": self._token}
+            # 排队而不是「新的顶掉旧的」：实测快速翻页时旧请求会被掐断，那一句就
+            # 永远没有译文（表现为「一句有一句没有」）。队列只留最近几条，
+            # 保证每句都翻到、同时不会越堆越久。
+            self._pending.append({"text": text, "game_id": game_id, "source": source,
+                                  "token": self._token})
+            del self._pending[:-self.MAX_QUEUE]
             if self._worker is None or not self._worker.is_alive():
                 self._worker = threading.Thread(target=self._loop, daemon=True,
                                                 name="aurora-linetrans")
@@ -91,6 +95,8 @@ class LineTranslator:
             return {"ok": False, "error": "no-history"}
         self.submit(last["text"], game_id=last.get("game_id", ""), source="manual")
         return {"ok": True, "text": last["text"]}
+
+    MAX_QUEUE = 4
 
     def set_paused(self, paused: bool) -> dict:
         with self._lock:
@@ -119,8 +125,7 @@ class LineTranslator:
     def _loop(self) -> None:
         while True:
             with self._lock:
-                job = self._pending
-                self._pending = None
+                job = self._pending.pop(0) if self._pending else None
                 resume = not self._paused
             if job is None:
                 return
@@ -150,9 +155,8 @@ class LineTranslator:
         collected: list[str] = []
 
         def on_delta(chunk: str) -> bool:
-            with self._lock:
-                if job["token"] != self._token:
-                    return False            # 已经有更新的台词，放弃这条
+            # 排队之后不再「有新台词就掐掉这句」：掐掉就永远没有译文了
+            # （实测表现为「一句有一句没有」）。流式内容照常吐，前端按原文对上号。
             collected.append(chunk)
             self._emit("delta", {"text": text, "delta": chunk,
                                  "so_far": "".join(collected)})
@@ -180,17 +184,14 @@ class LineTranslator:
     def _finish(self, job: dict, out: str, provider: str) -> None:
         text = job["text"]
         with self._lock:
-            stale = job["token"] != self._token
             self._context.append(text)
             del self._context[:-12]
-            if not stale:
-                self._history.append({"text": text, "translation": out,
-                                      "provider": provider, "source": job.get("source", ""),
-                                      "game_id": job.get("game_id", ""),
-                                      "at": int(time.time())})
-                del self._history[:-MAX_HISTORY]
-        if stale:
-            return
+            self._history.append({"text": text, "translation": out,
+                                  "provider": provider, "source": job.get("source", ""),
+                                  "game_id": job.get("game_id", ""),
+                                  "at": int(time.time())})
+            del self._history[:-MAX_HISTORY]
+        # 每条都要发出去：排队后「过期」只意味着它比最新台词旧，不代表不用给译文
         self._emit("done", {"text": text, "translation": out, "provider": provider,
                             "source": job.get("source", "")})
 

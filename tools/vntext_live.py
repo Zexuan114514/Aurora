@@ -62,7 +62,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-launch", action="store_true", help="不启动游戏，只挂已在跑的")
     parser.add_argument("--live-data", action="store_true", help="用真实 data/ 目录")
     parser.add_argument("--no-translate", action="store_true", help="只测文本，不调翻译接口")
-    parser.add_argument("--translate-wait", type=float, default=25.0,
+    parser.add_argument("--translate-wait", type=float, default=45.0,
                         help="收完台词后等译文的最长时间")
     parser.add_argument("--keep-game", action="store_true", help="结束后不关闭游戏")
     return parser.parse_args()
@@ -279,6 +279,7 @@ def main() -> int:
     note(f"候选进程：{status.get('probe', {}).get('targets')}")
     if status.get("hook_hint"):
         note(f"引擎建议：{status['hook_hint']}")
+    engine_noise = set(getattr(engine, "_noise_names", ()))
 
     started = time.time()
     advances = 0
@@ -307,7 +308,7 @@ def main() -> int:
         final = engine.stop()
         status = engine.status()               # 收工时的状态（引擎标识可能后到）
         note(f"停止文本源：lines={final.get('lines')} merged={final.get('merged')} "
-             f"引擎={status.get('engine_name')}")
+             f"gated={final.get('gated')} 引擎={status.get('engine_name')}")
         if not ARGS.keep_game:
             for target in pids:
                 try:
@@ -341,7 +342,39 @@ def main() -> int:
     if status.get("error"):
         problems.append(f"文本源报错：{status['error']}")
 
-    _write_report(game, status, raw_lines, rows, notes, problems, pids, modules)
+    # 原始行 → 到底有没有变成台词：把「拿到文本但没识别出来」的行挑出来
+    emitted_norms = [vntext.normalize_for_dedupe(row["text"]) for row in rows]
+    audit = {"ok": 0, "empty": 0, "noise": 0, "fragment": 0, "missing": []}
+    with lock:
+        raw_snapshot = [row["text"] for row in raw_lines]
+    for raw in raw_snapshot:
+        clean = vntext.clean_hook_text(raw)
+        if not clean:
+            audit["empty"] += 1
+            continue
+        if vntext.looks_like_noise(clean) or vntext.norm_name(clean) in engine_noise:
+            audit["noise"] += 1
+            continue
+        if not vntext.looks_like_dialogue(clean):
+            # 打字中途的碎片（「そっ」「ちち」）会被线程门禁按设计丢掉，
+            # 完整那句随后会从领跑线程正常出来 —— 不算漏
+            audit["fragment"] += 1
+            continue
+        norm = vntext.normalize_for_dedupe(clean)
+        hit = bool(norm) and any(norm == other or norm in other or other in norm
+                                 for other in emitted_norms if other)
+        if hit:
+            audit["ok"] += 1
+        else:
+            audit["missing"].append(clean)
+            problems.append(f"原始行没被翻出来：{clean[:40]}")
+    note(f"原始行审计：认出 {audit['ok']} 条 · 只有人名 {audit['empty']} 条 · "
+         f"噪声 {audit['noise']} 条 · 半截碎片 {audit['fragment']} 条 · "
+         f"**漏掉 {len(audit['missing'])} 条**")
+    for item in audit["missing"][:6]:
+        note(f"  ✗ 漏掉：{item}")
+
+    _write_report(game, status, raw_lines, rows, notes, problems, pids, modules, audit)
     print("\n=== 结论 ===")
     if problems:
         for item in problems:
@@ -355,7 +388,7 @@ def main() -> int:
 
 def _write_report(game: dict, status: dict, raw_lines: list[dict], rows: list[dict],
                   notes: list[str], problems: list[str], pids: list[int],
-                  modules: list[str] | None = None) -> None:
+                  modules: list[str] | None = None, audit: dict | None = None) -> None:
     lines: list[str] = []
     lines.append("Aurora 游戏内翻译 · 真机自测报告")
     lines.append(f"生成时间：{time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -369,6 +402,12 @@ def _write_report(game: dict, status: dict, raw_lines: list[dict], rows: list[di
     lines.append(f"结论：{'全部通过' if not problems else '有问题'}")
     for item in problems:
         lines.append(f"  ✗ {item}")
+    if audit:
+        lines.append(f"原始行审计：认出 {audit['ok']} / 只有人名 {audit['empty']} / "
+                     f"噪声 {audit['noise']} / 半截碎片 {audit['fragment']} / "
+                     f"漏掉 {len(audit['missing'])}")
+        for item in audit["missing"]:
+            lines.append(f"  ✗ 漏掉：{item}")
     lines.append("")
     lines.append(f"--- 原始钩子行（{len(raw_lines)} 条）---")
     for row in raw_lines:
