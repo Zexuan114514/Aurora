@@ -104,11 +104,11 @@ ENGINE_PROFILES = {
         "hook_hint": "WillPlus/AdvHD：Textractor 自带的 WillPlus 系钩子对不上这类 exe"
                      "（实测少女之剑：WillPlus 找不到函数、WillPlusW/A 找不到特征码、"
                      "WillPlus2 把地址算到 Intel 显卡驱动的 igc32.dll 上 → 乱码），只剩"
-                     "按字形抓的 GDI 钩子，而字形有缓存 → 缺字。出路是**专用用户钩子码**："
-                     "在游戏页「翻译」面板里填 `HQ-4@<模块内偏移>:<exe文件名>`（Q = UTF-16，"
-                     "S = 字节串，V = UTF-8）。偏移可以从 LunaTranslator 的日志里拿"
-                     "（`注入钩子: WillPlus3 0040A22E` → 减去 0x400000 得 A22E）；"
-                     "本机实测过的作品 Aurora 会自动填好。",
+                     "按字形抓的 GDI 钩子，而字形有缓存 → 缺字。Aurora 会用**内存补全**"
+                     "把缺字版配成完整台词（只读扫内存，不需要地址）；如果还想更稳，"
+                     "可以在「翻译」面板里填一条专用钩子码 "
+                     "`HQ-4@<模块内偏移>:<exe文件名>`（Q = UTF-16，S = 字节串，V = UTF-8）。"
+                     "本机实测过的作品 Aurora 会自动带出这条码。",
     },
     "BGI/Ethornell": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
@@ -203,7 +203,7 @@ def build_hook_code(row: dict, module: str = "") -> str:
 
 def willplus_hook_code(exe: str | Path) -> str:
     """这台机器上实测过的 WillPlus 专用 hook 码；没匹配到就返回空串。"""
-    if not exe:
+    if not exe or os.environ.get("AURORA_DISABLE_AUTO_HOOK"):
         return ""
     fp = file_fingerprint(exe)
     if not fp:
@@ -815,6 +815,9 @@ def is_subsequence(short: str, long: str) -> bool:
 
 _CJK_ANY_RE = re.compile(rf"[{_CJK}]")
 
+#: 按字形抓的 GDI 钩子（会漏字的那一类）
+_GLYPH_HOOK_RE = re.compile(r"GetGlyphOutline|GetGlyphIndices|TextOut|ExtTextOut", re.I)
+
 
 def _strip_ws(text: str) -> str:
     """判「缺字版」时把空白压掉：GDI 钩子吐出来的残片里常夹着空格
@@ -1084,6 +1087,7 @@ class VnTextEngine:
         self._name_pending: dict | None = None
         self._merged = 0
         self._gated = 0
+        self._completed = 0
         self._hook_code = ""
         self._hook_auto = ""
         #: CLI 打印「管道已连接」才算 attach 真的生效（专用钩子码要等这一步之后再发）
@@ -1127,6 +1131,7 @@ class VnTextEngine:
                 "lines": self._lines,
                 "merged": self._merged,
                 "gated": self._gated,
+                "completed": self._completed,
                 "engine_name": self._engine,
                 "hook_code": self._hook_code,
                 "hook_auto": self._hook_auto,
@@ -1318,6 +1323,12 @@ class VnTextEngine:
         except Exception as exc:
             config.log(f"vntext staged flush on stop failed: {exc}")
         self._stop.set()
+        try:
+            from . import memmatch
+
+            memmatch.reset(self._pid)
+        except Exception:
+            pass
         procs = list(self._procs) or ([self._proc] if self._proc else [])
         self._proc = None
         self._procs = []
@@ -1763,6 +1774,22 @@ class VnTextEngine:
         """立刻给所有候选行定稿（自检脚本用；运行时由 _flush_loop 按时定稿）。"""
         return self._resolve_staged(force=True)
 
+    def _complete_from_memory(self, fragment: str) -> str:
+        """把 GDI 钩子吐的缺字版补成完整台词（见 gl/memmatch.py）。"""
+        try:
+            from . import memmatch
+
+            fixed = memmatch.complete(self._pid, fragment)
+        except Exception as exc:
+            config.log(f"memmatch failed: {exc}")
+            return ""
+        if fixed and fixed != fragment:
+            self._completed += 1
+            config.log(f"vntext memory completed: {fragment[:24]!r} -> {fixed[:40]!r}")
+            self._push_status()
+            return fixed
+        return ""
+
     def _promote(self, cand: dict) -> None:
         """候选行定稿：缺字变体抑制 → 说话人名字合并 → 线程门禁 → 去重 → 发射。
 
@@ -1776,6 +1803,15 @@ class VnTextEngine:
         norm = str(cand.get("norm") or "")
         text = str(cand.get("text") or "")
         probe = str(cand.get("probe") or "")
+        # 只有按字形抓的 GDI 钩子会漏字（实测 WillPlus/AdvHD）：拿缺字版去**进程内存**
+        # 里配出完整那句 —— 只读扫描，不需要引擎地址、不注入、也不会崩游戏
+        with self._lock:
+            hook_name = str((self._seen.get(key) or {}).get("name") or "")
+        if self._pid and _GLYPH_HOOK_RE.search(hook_name):
+            fixed = self._complete_from_memory(clean)
+            if fixed:
+                clean = fixed
+                probe = _strip_ws(collapse_doubling(clean))
         # 缺字变体抑制（要放在「说话人名字」判定之前，否则 `越島` 这种残片会被
         # 当成名字挂到下一句上）：
         # ① 这句是刚发过那句的子序列（Siglus 的 GDI 钩子晚一步吐的汉字版）

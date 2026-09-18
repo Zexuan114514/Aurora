@@ -87,7 +87,8 @@ ARGS = parse_args()
 DATA = prepare_data(ARGS.live_data)
 os.environ["AURORA_DATA"] = str(DATA)
 
-from gl import config, linetrans, locale, proctree, screencap, vntext, winapi  # noqa: E402
+from gl import (config, linetrans, locale, memmatch, proctree, screencap,  # noqa: E402
+                vntext, winapi)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vntext_advance import advance  # noqa: E402  左键推进（空格在这类引擎里是隐藏文本框）
@@ -383,6 +384,13 @@ def main() -> int:
         norm = vntext.normalize_for_dedupe(clean)
         hit = bool(norm) and any(norm == other or norm in other or other in norm
                                  for other in emitted_norms if other)
+        if not hit:
+            # 「缺字版→内存补全完整句」是现在的主力路径：残片不是完整句的子串，
+            # 但它的字都在完整句里按顺序出现（注音残片用汉字档再比一次）
+            hit = any(len(other) > len(clean)
+                      and (vntext.is_subsequence(norm, other)
+                           or bool(memmatch.kanji_span(norm, other)))
+                      for other in emitted_norms if other)
         if hit:
             audit["ok"] += 1
         else:

@@ -1368,8 +1368,9 @@
       ? `本游戏专用 hook 码：${savedHook}（清空输入框再点「存为专用」= 改用自动）`
       : (autoHook
          ? `已按实测记录自动带出：${autoHook}`
-         : "Textractor 自带钩子搞不定的引擎（如 WillPlus/AdvHD）在这里填专用 hook 码："
-           + "HQ-4@<模块内偏移>:<exe文件名>（Q=UTF-16，S=字节串，V=UTF-8）；填好后点「存为专用」，下次开翻译会自动带上。");
+         : "Textractor 自带钩子搞不定的引擎（如 WillPlus/AdvHD）：Aurora 会用"
+           + "「内存补全」把缺字版配成完整台词，一般不用手动填。想更稳可以在上面填专用 hook 码："
+           + "HQ-4@<模块内偏移>:<exe文件名>（Q=UTF-16，S=字节串，V=UTF-8），点「存为专用」下次自动带上。");
 
     const history = state.history || [];
     el.vnHistory.innerHTML = history.slice(-6).reverse().map((row) => `

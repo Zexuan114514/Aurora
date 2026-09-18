@@ -27,7 +27,7 @@ FAKE_CLI = SANDBOX / "fake_textractor.py"
 
 os.environ["AURORA_DATA"] = str(DATA)
 
-from gl import linetrans, ocr, overlay, screencap, vntext  # noqa: E402
+from gl import linetrans, memmatch, ocr, overlay, screencap, vntext  # noqa: E402
 
 failed = 0
 
@@ -622,16 +622,55 @@ def main() -> int:
     check("残片不会被当名字挂进译文",
           [row["text"] for row in name_lines]
           == ["家が近所で、年が離れていることもあって、"
-              "物心つく前から色々と面倒を見てもらっていた。"],
+             "物心つく前から色々と面倒を見てもらっていた。"],
           str([row["text"][:24] for row in name_lines]))
+
+    # 内存补全（WillPlus/AdvHD 缺字版的兜底）：把真句塞进本进程内存，再用缺字版去配。
+    # 三种形态都要能还原：普通缺字、句子中间截断、注音（ルビ）混入。
+    write("\n[缺字版内存补全（memmatch）]")
+    import ctypes as _ctypes
+
+    k32 = _ctypes.WinDLL("kernel32")
+    k32.VirtualAlloc.restype = _ctypes.c_void_p
+    k32.VirtualAlloc.argtypes = [_ctypes.c_void_p, _ctypes.c_size_t,
+                                 _ctypes.c_ulong, _ctypes.c_ulong]
+
+    def plant(text: str, address: int) -> int:
+        raw = text.encode("utf-16-le")
+        size = len(raw) + 64
+        spot = k32.VirtualAlloc(_ctypes.c_void_p(address), size, 0x1000 | 0x2000, 0x04)
+        _ctypes.memmove(spot, raw, len(raw))
+        return int(spot)
+
+    memmatch_ok = True
+    for index, (frag, want) in enumerate((
+        ("家近離心倒", "家が近所で、年が離れていることもあって、"
+                      "物心つく前から色々と面倒を見てもらっていた。"),
+        ("つの物思耽で 内で我返",
+         "いつのまにか物思いに耽っていたようで、機内アナウンスで我に返る。"),
+        ("空木うつぎ日向ひなた１年間留学え本へ飛行中",
+         "オレ、空木日向は、１年間の留学を終えて、日本へと向かう飛行機の中にいた。"),
+    )):
+        plant(want, 0x1A000000 + index * 0x10000)
+        got = memmatch.complete(os.getpid(), frag)
+        ok = got == want
+        memmatch_ok = memmatch_ok and ok
+        check(f"内存补全：{frag[:12]}", ok, got[:40])
+    check("窗口会补到句尾标点",
+          memmatch.trim_sentence("『男らしく、格好よくなるんだ』って。",
+                                 memmatch.window_span("『男しく格好よくなるん』って",
+                                                      "『男らしく、格好よくなるんだ』って。"))
+          == "『男らしく、格好よくなるんだ』って。")
+    check("乱码/u 前缀不参与匹配（窗口为空）",
+          memmatch.window_span("不存在的句子", "另一句完全无关的话") is None)
 
     write("\n[引擎标识与规则集]")
     check("TVP/KIRIKIRI 规则可取出",
           vntext.profile_for("TVP/KIRIKIRI").get("collapse_doubling") is True
           and "GetTextExtentPoint32W" in vntext.profile_for("TVP/KIRIKIRI")["hook_hint"])
-    check("WillPlus 规则里给出专用 hook 码的写法",
+    check("WillPlus 规则里说明内存补全与专用 hook 码",
           "HQ-4@" in vntext.profile_for("WillPlus")["hook_hint"]
-          and "WillPlus3" in vntext.profile_for("WillPlus")["hook_hint"],
+          and "内存补全" in vntext.profile_for("WillPlus")["hook_hint"],
           vntext.profile_for("WillPlus")["hook_hint"][:60])
     check("BGI 规则里给出引擎钩子的说明",
           "BGI" in vntext.profile_for("BGI/Ethornell")["hook_hint"])
