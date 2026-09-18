@@ -72,6 +72,7 @@ DEFAULT_SETTINGS = {
     "accent": "#0A84FF",         # 强调色
     "theme_mode": "dark",        # dark | light | auto（auto 跟随 Windows 应用主题）
     "palette": "aurora",         # aurora | lime | sakura | amber | custom
+    "hall_layout": "ring",       # ring（环形队列）| flat（平铺横滑，NS 大厅）
     "auto_search": True,         # 导入后自动联网搜索
     # 简介翻译：LLM 接口为主 + 免费接口兜底
     "translate_enabled": True,                  # 导入后自动翻译简介

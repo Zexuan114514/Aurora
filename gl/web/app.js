@@ -27,7 +27,7 @@
     detailPanel: $("detailPanel"), detailBody: $("detailBody"),
     dTitle: $("dTitle"), dSub: $("dSub"),
     matchPanel: $("matchPanel"), matchList: $("matchList"), matchQuery: $("matchQuery"),
-    matchLinks: $("matchLinks"),
+    matchLinks: $("matchLinks"), matchHint: $("matchHint"), matchQuick: $("matchQuick"),
     sourcePanel: $("sourcePanel"), sourceList: $("sourceList"), sourceForm: $("sourceForm"),
     coverPanel: $("coverPanel"), coverGrid: $("coverGrid"),
     steamPanel: $("steamPanel"), steamList: $("steamList"),
@@ -95,6 +95,7 @@
   let bgSide = "a";
   let bgTimer = null;            // 焦点切换后的背景防抖
   let swipe = null;              // 横向滑动
+  let swipeEnd = null;           // 结束滑动（松手 / 失焦都要吸附回最近一张）
 
   /* ---------------------------------------------------------- 工具 */
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
@@ -384,14 +385,152 @@
   const currentGame = () =>
     state.games.find((x) => x.id === state.focus) || null;
 
-  /* 大厅里的一项：游戏封面，或末尾的「导入游戏」色块 */
-  function tileHtml(game) {
+  const hallKeys = () => {
+    const ids = visibleGames().map((g) => g.id);
+    ids.push(ADD_KEY);
+    return ids;
+  };
+
+  /* ---------- 大厅：绕竖轴的一圈封面（循环队列） ----------
+     所有封面排在一根竖轴的圆周上，只有一张正对用户；越远的越小、越暗、
+     越往轴里倾斜，看上去像整圈封面在眼前转动。列表首尾相接：
+     从最后一张继续往前，会绕回第一张（末尾的「＋ 导入游戏」同样在环上）。
+     位置每帧由 JS 计算（ringFrame），所以拖动可以跟手、松手再吸附。 */
+  const RING = {
+    step: 16,        // 相邻两张封面绕竖轴的角度（度）
+    rx: 580,         // 水平半径（基准窗口下的像素）
+    rz: 260,         // 纵深半径
+    depth: 1100,     // 透视距离
+    span: 4.6,       // 可见的半边张数，再远就藏起来（绕到背面）
+    shrink: 0.24,    // 每远一格额外缩小的比例（透视之外再补一点）
+    y: 36,           // 整圈封面的重心（相对舞台中心下移，避开顶部工具条）
+    tau: 0.13,       // 回弹时间常数（秒），越小越干脆
+    dragPx: 112,     // 横向拖动多少像素换一张
+    items: [],       // [{key, node, sig, index}]，index 就是环上的位置
+    nodes: new Map(),// key -> item，重建列表时复用节点，动画不中断
+    keysSig: "",
+    float: 0,        // 当前转动到的位置（浮点，可以停在两张之间）
+    target: 0,       // 目标位置（整数）
+    raf: 0,
+    last: 0,
+    ready: false,
+    flatReady: false,   // 平铺布局是否已经就位（首次直接就位、之后才做动画）
+    dragActive: false,
+  };
+  let ringSize = {unit: 1, w: 180, h: 270, rx: 580, rz: 260, depth: 1100};
+
+  const ringMod = (i, n) => ((i % n) + n) % n;
+  /* 折到 [-n/2, n/2)：第 i 项相对当前位置在第几圈、哪个方向 */
+  const ringSigned = (d, n) => {
+    const m = ringMod(d, n);
+    return m > n / 2 ? m - n : m;
+  };
+  const ringClamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+  /* 窗口越窄，半径与封面一起收，保证一圈封面仍然是同样的构图 */
+  function ringGeometry() {
+    const vp = el.hallViewport;
+    const vw = (vp && vp.clientWidth) || window.innerWidth || 1380;
+    const vh = (vp && vp.clientHeight) || Math.max(420, (window.innerHeight || 880) - 170);
+    const unit = ringClamp(Math.min(vw / 1380, vh / 690), 0.6, 1.3);
+    return {
+      unit,
+      w: Math.round(180 * unit),
+      h: Math.round(270 * unit),
+      rx: RING.rx * unit,
+      rz: RING.rz * unit,
+      depth: RING.depth * unit,
+    };
+  }
+
+  function ringMeasure() {
+    ringSize = ringGeometry();
+    el.hallRow.style.setProperty("--gi-w", ringSize.w + "px");
+    el.hallRow.style.setProperty("--gi-h", ringSize.h + "px");
+    el.hallViewport.style.setProperty("--ring-d", Math.round(ringSize.depth) + "px");
+  }
+
+  /* 把一张封面放到环上的第 r 格（r 为相对当前位置的浮点格数） */
+  function ringPlace(node, r) {
+    const a = Math.abs(r);
+    if (a > RING.span) {
+      if (node.dataset.ringHidden !== "1") {
+        node.dataset.ringHidden = "1";
+        node.style.visibility = "hidden";
+        node.style.opacity = "0";
+        node.style.pointerEvents = "none";
+        node.style.willChange = "";
+      }
+      return;
+    }
+    if (node.dataset.ringHidden === "1") {
+      node.dataset.ringHidden = "0";
+      node.style.visibility = "";
+      node.style.pointerEvents = "";
+      node.style.willChange = "transform, opacity";
+    }
+    const deg = r * RING.step;
+    const rad = deg * Math.PI / 180;
+    const z = Math.cos(rad) * ringSize.rz;
+    // 近大远小由父级的 perspective 负责（translateZ 已经带出透视），
+    // 这里只补一点额外收缩，让离焦点越远的封面明显更小
+    const scale = 1 / (1 + RING.shrink * a);
+    const x = Math.sin(rad) * ringSize.rx;
+    const y = RING.y - 12 * Math.max(0, 1 - a) + 14 * (1 - Math.cos(rad));
+    const opacity = a <= 2 ? 1 : Math.max(0.14, 1 - (a - 2) * 0.34);
+    const veil = a < 0.5 ? a * 0.5 : Math.min(0.62, 0.25 + (a - 0.5) * 0.08);
+    const blur = Math.max(0, a - 3) * 0.45;
+    node.style.transform =
+      `translate(-50%,-50%) translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px) ` +
+      `rotateY(${deg.toFixed(2)}deg) scale(${scale.toFixed(4)})`;
+    node.style.opacity = opacity.toFixed(3);
+    node.style.zIndex = String(200 - Math.round(a * 20));
+    node.style.filter = blur > 0.02 ? `blur(${blur.toFixed(2)}px)` : "";
+    node.style.setProperty("--veil", veil.toFixed(3));
+  }
+
+  function ringFrame(ts) {
+    const n = RING.items.length;
+    if (!n) {
+      RING.raf = 0;
+      return;
+    }
+    if (hallLayout() === "flat") {      // 平铺布局下环不再转
+      RING.raf = 0;
+      return;
+    }
+    if (!RING.last) RING.last = ts;
+    const dt = ringClamp((ts - RING.last) / 1000, 0.001, 0.05);
+    RING.last = ts;
+    if (!RING.dragActive) {
+      RING.float += (RING.target - RING.float) * (1 - Math.exp(-dt / RING.tau));
+      if (Math.abs(RING.target - RING.float) < 0.002) RING.float = RING.target;
+    }
+    for (const item of RING.items) ringPlace(item.node, ringSigned(item.index - RING.float, n));
+    if (RING.dragActive || Math.abs(RING.target - RING.float) > 0.0005) {
+      RING.raf = requestAnimationFrame(ringFrame);
+    } else {
+      RING.raf = 0;
+      RING.last = 0;
+    }
+  }
+
+  function ringRun() {
+    if (!RING.raf) {
+      RING.last = 0;
+      RING.raf = requestAnimationFrame(ringFrame);
+    }
+  }
+
+  /* 大厅里的一项：游戏封面，或末尾的「导入游戏」色块（只管内容，位置由 ringPlace 摆） */
+  function tileInner(game) {
+    if (!game) return `<span class="gi-card"></span>`;
     if (game === ADD_KEY) {
-      return `<button class="gi gi-add${state.focus === ADD_KEY ? " focus" : ""}" data-add="1">
+      return `<span class="gi-card">
         <svg viewBox="0 0 24 24" class="ic"><path d="M12 5v14M5 12h14"/></svg>
         <span>导入游戏</span>
         <span class="gi-ring"></span>
-      </button>`;
+      </span>`;
     }
     const letter = esc((game.name || "?").trim().charAt(0).toUpperCase());
     const busy = game.metadata_state === "searching" || state.busy[game.id];
@@ -405,40 +544,129 @@
     }
     if (game.missing) badges.push('<span class="gi-badge warn">!</span>');
     else if (game.metadata_state === "notfound") badges.push('<span class="gi-badge warn">?</span>');
-    return `<button class="gi${game.id === state.focus ? " focus" : ""}${
-      busy ? " searching" : ""}" data-id="${esc(game.id)}" title="${esc(game.name)}">
+    return `<span class="gi-card">
       <span class="gi-cover">${imgHtml("", coverSources(game))}<b>${letter}</b></span>
       <span class="veil"></span>
       ${badges.length ? `<span class="gi-badges">${badges.join("")}</span>` : ""}
       <span class="gi-ring"></span>
-    </button>`;
+    </span>`;
   }
 
-  /* 把焦点那张封面滚到窗口正中 */
-  let firstPaint = true;
+  /* 把节点和当前列表对齐：复用已有节点，内容变了才重写，顺序变了才搬动 */
+  function ringSync(keys) {
+    const wanted = new Set(keys);
+    for (const [key, item] of [...RING.nodes]) {
+      if (!wanted.has(key)) {
+        item.node.remove();
+        RING.nodes.delete(key);
+      }
+    }
+    RING.items = keys.map((key, index) => {
+      const game = key === ADD_KEY ? ADD_KEY : state.games.find((g) => g.id === key);
+      const html = tileInner(game);
+      const busy = !!game && game !== ADD_KEY
+        && (game.metadata_state === "searching" || state.busy[game.id]);
+      let item = RING.nodes.get(key);
+      if (!item) {
+        const node = document.createElement("button");
+        node.type = "button";
+        node.className = "gi" + (key === ADD_KEY ? " gi-add" : "") + (busy ? " searching" : "");
+        node.dataset.key = key;
+        if (key === ADD_KEY) node.dataset.add = "1";
+        else node.dataset.id = key;
+        node.innerHTML = html;
+        el.hallRow.appendChild(node);
+        item = {key, node, sig: html, index};
+        RING.nodes.set(key, item);
+      } else {
+        if (item.sig !== html) {
+          item.node.innerHTML = html;
+          item.sig = html;
+        }
+        item.node.classList.toggle("searching", !!busy);
+      }
+      item.node.title = key === ADD_KEY ? "导入游戏" : ((game && game.name) || "");
+      item.index = index;
+      return item;
+    });
+    let cursor = el.hallRow.firstChild;
+    for (const item of RING.items) {
+      if (item.node === cursor) {
+        cursor = cursor.nextSibling;
+        continue;
+      }
+      el.hallRow.insertBefore(item.node, cursor);
+    }
+  }
+
+  const ringIndexOf = (key) => RING.items.findIndex((item) => item.key === key);
+
+  /* 让环转到当前焦点；instant 用于首帧、换筛选、窗口缩放这类不该有动画的场合 */
   function updateRow(instant = false) {
+    if (hallLayout() === "flat") { updateRowFlat(instant); return; }
+    ringMeasure();
+    const index = ringIndexOf(state.focus);
+    const n = RING.items.length;
+    if (index < 0 || !n) return;
+    if (instant || !RING.ready) {
+      RING.float = index;
+      RING.target = index;
+      RING.ready = true;
+    } else {
+      // 走最近的那一边：在第一张按 ← 时向后退一格露出最后一张，
+      // 而不是一路正转一整圈
+      RING.target = RING.float + ringSigned(index - RING.float, n);
+    }
+    ringRun();
+  }
+
+  /* ---------- 平铺横滑（NS 大厅）：一排放不下就把焦点那张滑到正中 ---------- */
+  const hallLayout = () => (state.settings.hall_layout === "flat" ? "flat" : "ring");
+
+  function clearRingStyles(node) {
+    for (const prop of ["transform", "opacity", "filter", "zIndex", "visibility",
+                        "willChange", "transition", "pointerEvents"]) {
+      node.style.removeProperty(prop.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()));
+    }
+    node.style.removeProperty("--veil");
+    delete node.dataset.ringHidden;
+  }
+
+  function updateRowFlat(instant = false) {
     const row = el.hallRow;
-    const index = hallKeys().indexOf(state.focus);
+    const keys = hallKeys();
+    const index = keys.indexOf(state.focus);
     if (index < 0) return;
     const tile = row.children[index];
     if (!tile) return;
-    const noAnim = instant || firstPaint;   // 首帧与窗口缩放直接就位
+    for (const node of row.children) {
+      if (node.dataset.ringHidden === "1" || node.style.transform) clearRingStyles(node);
+    }
+    const noAnim = instant || !RING.flatReady;
     if (noAnim) {
-      firstPaint = false;
+      RING.flatReady = true;
       row.style.transition = "none";
     }
     const vp = el.hallViewport.getBoundingClientRect();
     const center = tile.offsetLeft + tile.offsetWidth / 2;
-    const x = Math.round(vp.width / 2 - center);
-    row.style.transform = `translate3d(${x}px, 0, 0)`;
+    row.style.transform = `translate3d(${Math.round(vp.width / 2 - center)}px, 0, 0)`;
     if (noAnim) requestAnimationFrame(() => { row.style.transition = ""; });
+    RING.float = RING.target = index;   // 切回环形时从这里接着转
   }
 
-  const hallKeys = () => {
-    const ids = visibleGames().map((g) => g.id);
-    ids.push(ADD_KEY);
-    return ids;
-  };
+  /* 布局切换：清掉另一套布局留下的内联样式再重新摆位 */
+  function applyHallLayout() {
+    const flat = hallLayout() === "flat";
+    document.body.classList.toggle("hall-flat", flat);
+    if (flat) {
+      for (const node of el.hallRow.children) clearRingStyles(node);
+      RING.flatReady = false;
+    } else {
+      RING.ready = false;
+      RING.float = RING.target = Math.max(0, hallKeys().indexOf(state.focus));
+    }
+    updateRow(true);
+  }
 
   function renderHall() {
     const list = visibleGames();
@@ -446,16 +674,24 @@
     el.empty.hidden = hasGames;
     el.hall.hidden = !hasGames;
     if (state.page === "game") el.hall.hidden = true;
-    if (!hasGames) return;
+    if (!hasGames) {
+      RING.items = [];
+      for (const item of RING.nodes.values()) item.node.remove();
+      RING.nodes.clear();
+      RING.keysSig = "";
+      return;
+    }
     const keys = hallKeys();
-    el.hallRow.innerHTML = keys.map((key) =>
-      tileHtml(key === ADD_KEY ? ADD_KEY : state.games.find((g) => g.id === key))).join("");
+    const sig = keys.join("|");
+    const listChanged = sig !== RING.keysSig;
+    RING.keysSig = sig;
     if (!keys.includes(state.focus)) {
       state.focus = keys[0];
     }
+    ringSync(keys);
     syncFocusUi();
-    // 等新 DOM 完成布局再算位移，避免首帧跳动
-    requestAnimationFrame(updateRow);
+    // 等新 DOM 完成布局再摆位；列表换了就直接就位，免得从旧位置转一大圈
+    requestAnimationFrame(() => updateRow(listChanged || !RING.ready));
   }
 
   /* 焦点变化后：更新高亮、底部信息、背景与窗口图标 */
@@ -489,11 +725,11 @@
     clearTimeout(bgTimer);
     bgTimer = setTimeout(() => {
       applyBackground(game.background || fallbackBackground(game), bgViewOf(game));
-      // 预取相邻封面/背景，滑动时更跟手
+      // 预取左右邻居（环上就是前后各一张，首尾相接）
       const keys = hallKeys();
-      const index = keys.indexOf(state.focus);
-      [index - 1, index + 1].forEach((i) => {
-        const near = state.games.find((g) => g.id === keys[i]);
+      const index = Math.max(0, keys.indexOf(state.focus));
+      [-1, 1].forEach((d) => {
+        const near = state.games.find((g) => g.id === keys[ringMod(index + d, keys.length)]);
         if (near && near.background) { const img = new Image(); img.src = near.background; }
       });
     }, 140);
@@ -501,7 +737,7 @@
 
   function setFocus(id, opts = {}) {
     if (!id || id === state.focus) {
-      if (opts.scroll !== false) updateRow();
+      if (opts.scroll !== false && !RING.dragActive) updateRow();
       return;
     }
     state.focus = id;
@@ -514,19 +750,26 @@
     }
     renderGameContent();
     syncFocusUi();
-    if (opts.scroll !== false) updateRow();
+    // 拖动过程中焦点由手指决定，别再让 updateRow 把环拉回 state.focus
+    if (opts.scroll !== false && !RING.dragActive) updateRow();
     scheduleBackground();
     if (opts.persist !== false) {
       try { localStorage.setItem("aurora.focus", state.focus); } catch (_) {}
     }
   }
 
+  /* 方向键 / 滚轮：走到头就从另一侧绕回来（循环队列） */
   function moveFocus(delta) {
     const keys = hallKeys();
-    if (!keys.length) return;
+    if (!keys.length || !delta) return;
     const index = keys.indexOf(state.focus);
-    const next = Math.min(keys.length - 1, Math.max(0, (index < 0 ? 0 : index) + delta));
+    const base = index < 0 ? 0 : index;
+    // 平铺布局不循环：到第一张/最后一张就停住
+    const next = hallLayout() === "flat"
+      ? Math.min(keys.length - 1, Math.max(0, base + delta))
+      : ringMod(base + delta, keys.length);
     if (next !== index) setFocus(keys[next]);
+    else if (!RING.dragActive) updateRow();
   }
 
   function jumpFocus(edge) {
@@ -1080,6 +1323,7 @@
       parts.push(`引擎：${state.engine_name}`);
     }
     if (state.merged) parts.push(`已合并 ${state.merged} 份重复文本`);
+    if (state.gated) parts.push(`已按线程过滤 ${state.gated} 条杂讯`);
     if (state.hook_hint) parts.push(state.hook_hint);
     if (running && state.engine === "hook" && state.game_locale === false) {
       parts.push("这个游戏没开转区：日文原版很容易出乱码，建议用「⋯ → 转区启动…」开启后再翻译");
@@ -1730,20 +1974,36 @@
     return id ? id : "";
   }
 
+  /* 候选列表：后端已按匹配度从高到低排好，点一条就应用（不自动采纳） */
   function renderMatches(candidates, query) {
     el.matchQuery.value = query || "";
     renderMatchLinks(query);
-    if (!candidates || !candidates.length) {
+    const rows = candidates || [];
+    const g = currentGame();
+    // 当前已应用的那一条：新记录有 data_source/source_id，老记录用 appid / 详情页地址兜底
+    const curUrl = String((g && (g.store_url || g.source_url)) || "");
+    const curSource = (g && g.data_source)
+      || (/steampowered|steamstatic/.test(curUrl) ? "steam"
+        : /vndb\.org/.test(curUrl) ? "vndb"
+          : /bgm\.tv/.test(curUrl) ? "bangumi" : "");
+    const curId = String((g && (g.source_id || g.appid))
+      || curUrl.replace(/\/+$/, "").split("/").pop() || "");
+    const isCurrent = (c) => Boolean(curId && c.source === curSource
+      && String(c.source_id) === curId);
+    if (!rows.length) {
       el.matchList.innerHTML =
         `<div class="list-empty">没有找到候选，换个关键词试试，或检查设置里的资料源。</div>`;
       return;
     }
-    el.matchList.innerHTML = candidates.map((c) => `
-      <button class="match-item" data-source="${esc(c.source)}"
+    el.matchList.innerHTML = rows.map((c, index) => `
+      <button class="match-item${index === 0 && rows.length > 1 ? " best" : ""}"
+              data-source="${esc(c.source)}"
               data-source-id="${esc(c.source_id)}" data-name="${esc(c.name)}">
         ${c.thumb ? `<img src="${esc(c.thumb)}" alt="" loading="lazy">` : `<img alt="">`}
         <div>
-          <div class="mi-name">${esc(c.name)}</div>
+          <div class="mi-name">${esc(c.name)}${
+            isCurrent(c) ? '<span class="mi-cur">当前</span>' : ""}${
+            index === 0 && rows.length > 1 ? '<span class="mi-best">匹配度最高</span>' : ""}</div>
           <div class="mi-sub">
             <span class="src-badge">${esc(sourceName(c.source))}</span>
             <span>${esc(c.source_id)}</span>
@@ -1949,31 +2209,113 @@
     toast("已应用本地背景图");
   }
 
+  /* ---------------------------------------------------------- 手动匹配 */
+  const matchHintText = (text) => { el.matchHint.textContent = text || ""; };
+
+  /* 快捷词：文件名推断出来的关键词 + 资料源给的各个名字，点一下就换个写法再搜 */
+  function renderQuickQueries(g) {
+    const seen = new Set();
+    const out = [];
+    const push = (value) => {
+      const text = String(value || "").trim();
+      if (!text || seen.has(text.toLowerCase())) return;
+      seen.add(text.toLowerCase());
+      out.push(text);
+    };
+    (g && g.queries || []).forEach(push);
+    push(g && g.name_original);
+    push(g && g.name_cn);
+    push(g && g.name);
+    const list = out.slice(0, 5);
+    el.matchQuick.hidden = !list.length;
+    el.matchQuick.innerHTML = list.map((q) =>
+      `<button class="quick-chip" data-q="${esc(q)}">${esc(q)}</button>`).join("");
+  }
+
+  /* 打开候选面板：候选按匹配度从高到低摆出来，等用户自己点（不自动采纳） */
+  function openCandidates(rows, query, note) {
+    renderQuickQueries(currentGame());
+    renderMatches(rows, query);
+    openPanel(el.matchPanel);
+    if (rows && rows.length) {
+      const best = Math.round((rows[0].score || 0) * 100);
+      matchHintText(`共 ${rows.length} 条候选，按匹配度从高到低排列` +
+        `（最高 ${best}%）——点一条就应用。`);
+      $("matchRetry").hidden = true;
+    } else {
+      matchHintText(note || "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。");
+      $("matchRetry").hidden = !/网络/.test(note || "");
+    }
+    return Boolean(rows && rows.length);
+  }
+
+  /* 「⋯ → 手动匹配…」：预填名字（匹配过的用当前名字，没匹配的用文件名推断词）开面板并搜一次 */
+  async function openMatchPanel() {
+    const g = currentGame();
+    if (!g) return;
+    closeAll();
+    // 已经匹配上的用当前名字搜（最准）；没匹配上的用文件名推断出的关键词
+    const query = (g.metadata_state === "ok" && g.name)
+      ? g.name : ((g.queries || [])[0] || g.name || "");
+    renderQuickQueries(g);
+    renderMatches([], query);
+    el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
+    matchHintText(query ? `正在按「${query}」搜索…` : "");
+    $("matchRetry").hidden = true;
+    openPanel(el.matchPanel);
+    if (query) await doSearch(query);
+    else {
+      matchHintText("输入游戏名（中文 / 日文原名 / 英文名都行）再点搜索。");
+      el.matchQuery.focus();
+    }
+  }
+
+  /* 手动搜索：只把候选列出来，库里的匹配结果要等用户点某一条才会变 */
   async function doSearch(query) {
     const g = currentGame();
     if (!g) return;
-    state.busy[g.id] = true;
-    renderHall();
-    renderGameContent();
+    const q = (query || "").trim();
+    const btn = $("matchGo");
+    btn.disabled = true;
+    el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
+    matchHintText(q ? `正在搜索「${q}」…` : "正在按文件名推断的关键词搜索…");
     try {
-      const res = await call("search", g.id, query || null);
-      if (res.game) Object.assign(g, res.game);
-      state.busy[g.id] = false;
-      if (res.ok) {
+      const res = await call("search", g.id, q || null);
+      const asked = q || (res.queries || [])[0] || "";
+      if (!openCandidates(res.candidates, asked, res.reason === "network"
+          ? "网络不通，没能拿到候选；可以点「重试」再来一次。"
+          : "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。")) {
+        toast("没有找到匹配结果");
+      }
+    } catch (e) {
+      el.matchList.innerHTML =
+        `<div class="list-empty">搜索出错，可以换个关键词重试。</div>`;
+      matchHintText("搜索出错：" + e.message);
+      $("matchRetry").hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* 「⋯ → 重新搜索游戏信息」：自动流程，匹配度够高就直接采纳（保持原样） */
+  async function researchGame() {
+    const g = currentGame();
+    if (!g) return;
+    toast("正在重新搜索…");
+    try {
+      const res = await call("search", g.id, null, true, false);
+      if (res.applied) {
+        if (res.game) Object.assign(g, res.game);
         closeAll();
         render();
         toast("已匹配：" + g.name);
-      } else {
-        renderMatches(res.candidates, query);
-        $("matchRetry").hidden = Boolean(query);
-        openPanel(el.matchPanel);
-        render();
-        toast(query ? "没有找到匹配结果" : "匹配置信度不足，请手动选择");
+        return;
       }
+      closeAll();
+      openCandidates(res.candidates, (res.queries || [])[0] || "",
+                     "匹配置信度不足，请手动选择");
+      toast("匹配置信度不足，请手动选择");
     } catch (e) {
-      state.busy[g.id] = false;
-      renderHall();
-      renderGameContent();
       toast("搜索失败：" + e.message);
     }
   }
@@ -2074,6 +2416,12 @@
       applyTheme();
       toast(e.target.value === "light" ? "已切换到浅色主题"
         : (e.target.value === "auto" ? "主题跟随系统" : "已切换到深色主题"));
+    };
+    $("setHallLayout").onchange = async (e) => {
+      await saveSetting("hall_layout", e.target.value);
+      applyHallLayout();
+      toast(e.target.value === "flat" ? "主页布局：平铺横滑（NS 大厅）"
+                                       : "主页布局：环形队列");
     };
     $("setPalettes").onclick = async (e) => {
       const chip = e.target.closest("[data-palette]");
@@ -2197,6 +2545,8 @@
     $("setTransModel").value = s.translate_model || "";
     $("setShowOriginal").checked = !!s.show_original;
     $("setTheme").value = s.theme_mode || "dark";
+    $("setHallLayout").value = s.hall_layout === "flat" ? "flat" : "ring";
+    applyHallLayout();
     renderPaletteRow();
     $("setVnEngine").value = s.vntext_engine || "auto";
     $("setBlurVal").textContent = (s.blur ?? 30) + "px";
@@ -2279,7 +2629,7 @@
     function dropPointerState() {
       if (drag) { drag = null; call("drag_end"); }
       if (resize) { resize = null; }
-      if (swipe) swipe = null;
+      if (swipeEnd) swipeEnd();
     }
     document.addEventListener("mouseup", dropPointerState);
     window.addEventListener("blur", dropPointerState);
@@ -2376,6 +2726,7 @@
     let hoverTimer = null;
     let moved = false;
     el.hallRow.addEventListener("mousemove", (e) => {
+      if (RING.dragActive) return;
       const tile = e.target.closest(".gi");
       if (!tile) return;
       clearTimeout(hoverTimer);
@@ -2402,7 +2753,7 @@
       togglePlay();
     });
 
-    // 横向拖动 = 换一张封面
+    // 横向拖动 = 手指带着封面环转，松手吸附到最近的一张
     const swipeStart = (e) => {
       if (e.button !== 0) return;
       // 关键：每次左键按下都先复位「这次是拖拽还是单击」。
@@ -2410,17 +2761,71 @@
       moved = false;
       if (state.settingsOpen || state.view === "categories") return;
       // 工具条 / 底部信息带是拖窗口的区域，别在这里抢滑动
-      if (e.target.closest("button, a, input, .pill, [data-drag], .rz")) return;
-      swipe = { x: e.clientX, y: e.clientY, base: e.clientX };
+      if (e.target.closest("a, input, select, textarea, .pill, [data-drag], .rz")) return;
+      // 封面本身可以抓（最自然的手势），其它按钮（获取游戏 / 排序 / 窗口按钮…）不抢
+      if (e.target.closest("button") && !e.target.closest(".gi")) return;
+      swipe = {x: e.clientX, y: e.clientY, base: e.clientX, start: RING.float, active: false,
+               flat: hallLayout() === "flat", baseX: 0, dx: 0};
     };
     const swipeMove = (e) => {
-      if (!swipe || state.settingsOpen || state.view === "categories") return;
+      if (!swipe) return;
+      if (state.settingsOpen || state.view === "categories") { swipe = null; return; }
       const dx = e.clientX - swipe.base;
       const dy = e.clientY - swipe.y;
-      if (Math.abs(dx) < 64 || Math.abs(dy) > Math.abs(dx)) return;
-      moved = true;
-      swipe.base = e.clientX;
-      moveFocus(dx < 0 ? 1 : -1);
+      if (!swipe.active) {
+        // 先分清「点一下」和「拖一把」：7px 以内、竖向占优都不算拖
+        if (Math.abs(dx) < 7 || Math.abs(dx) <= Math.abs(dy)) return;
+        swipe.active = true;
+        moved = true;
+        RING.dragActive = true;
+        el.hallRow.classList.add("ring-drag");
+        clearTimeout(hoverTimer);
+      }
+      const pos = swipe.start - dx / (RING.dragPx * ringSize.unit);
+      if (swipe.flat) {
+        // 平铺布局：行直接跟手平移，松手再吸附到最近一张
+        if (!swipe.baseX) {
+          const match = /translate3d\((-?[\d.]+)px/.exec(el.hallRow.style.transform || "");
+          swipe.baseX = match ? Number(match[1]) : 0;
+        }
+        swipe.dx = dx;
+        el.hallRow.style.transition = "none";
+        el.hallRow.style.transform = `translate3d(${Math.round(swipe.baseX + dx)}px, 0, 0)`;
+        return;
+      }
+      RING.float = RING.target = pos;
+      ringRun();
+      // 底部信息带 / 背景跟着最近的一张走
+      const items = RING.items;
+      if (items.length) {
+        const near = items[ringMod(Math.round(pos), items.length)];
+        if (near && near.key !== state.focus) setFocus(near.key, {scroll: false});
+      }
+    };
+    swipeEnd = () => {
+      if (!swipe) return;
+      const {active, flat, dx: dragDx} = swipe;
+      swipe = null;
+      if (!active) return;
+      RING.dragActive = false;
+      el.hallRow.classList.remove("ring-drag");
+      if (flat) {
+        // 跟手位移换算成「翻了几张」，再回到聚焦动画
+        const tile = el.hallRow.querySelector(".gi") || el.hallRow.firstChild;
+        const step = (tile ? tile.getBoundingClientRect().width : 172) + 24;
+        const steps = Math.round(-(dragDx || 0) / Math.max(40, step));
+        el.hallRow.style.transition = "";
+        if (steps) moveFocus(steps);
+        updateRow(true);
+        return;
+      }
+      RING.target = Math.round(RING.float);
+      ringRun();
+      const n = RING.items.length;
+      if (n) {
+        const near = RING.items[ringMod(RING.target, n)];
+        if (near) setFocus(near.key, {scroll: false});
+      }
     };
     // 捕获阶段：保证在任何其它 mousedown 处理（窗口拖拽等）之前先把状态复位
     $("app").addEventListener("mousedown", swipeStart, true);
@@ -2432,6 +2837,13 @@
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => updateRow(true), 80);
     });
+    // 从设置 / 分类页回到大厅时舞台尺寸才确定，这里补一次量
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => updateRow(true), 80);
+      }).observe(el.hallViewport);
+    }
 
     $("btnBackgrounds").onclick = () => {
       const opening = !el.bgPanel.classList.contains("open");
@@ -2481,6 +2893,10 @@
     el.matchList.addEventListener("click", (e) => {
       const item = e.target.closest(".match-item");
       if (item) applyCandidate(item);
+    });
+    el.matchQuick.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-q]");
+      if (chip) doSearch(chip.dataset.q);
     });
     el.matchLinks.addEventListener("click", (e) => {
       const chip = e.target.closest("[data-link-source]");
@@ -2552,7 +2968,8 @@
       } else if (act === "store") {
         if (g.source_url) call("open_url", g.source_url);
         else toast("还没有匹配到条目");
-      } else if (act === "research") { doSearch(null); }
+      } else if (act === "research") { researchGame(); }
+      else if (act === "match") { openMatchPanel(); }
       else if (act === "locale") { openLocalePanel(); }
       else if (act === "translate") {
         const res = await call("translate_game", g.id);
@@ -2906,7 +3323,8 @@
       else state.picked.delete(box.dataset.exe);
       updateSteamHint();
     });
-    $("matchRetry").onclick = () => doSearch(null);
+    // 重试按输入框里的词再搜一次（手动面板里用户可能刚改过关键词）
+    $("matchRetry").onclick = () => doSearch(el.matchQuery.value.trim() || null);
 
     // 获取游戏（下载大厅）
     $("btnGetGames").onclick = openGetPanel;
@@ -3156,6 +3574,39 @@
   }
 
   window.__aurora = {
+    /* 自检用：大厅环形队列的当前状态（位置、目标、顺序、是否在拖动） */
+    ring() {
+      return {
+        float: Number(RING.float.toFixed(3)),
+        target: RING.target,
+        drag: RING.dragActive,
+        focus: state.focus,
+        keys: RING.items.map((item) => item.key),
+      };
+    },
+    /* 自检用：当前主页布局 + 平铺布局下每张封面的实际位置 */
+    layout() {
+      const row = el.hallRow;
+      const vp = el.hallViewport.getBoundingClientRect();
+      return {
+        name: hallLayout(),
+        flatClass: document.body.classList.contains("hall-flat"),
+        rowTransform: row.style.transform || "",
+        viewportWidth: Math.round(vp.width),
+        tiles: [...row.children].map((node) => {
+          const rect = node.getBoundingClientRect();
+          const style = getComputedStyle(node);
+          return {
+            key: node.dataset.add ? "__add__" : (node.dataset.id || ""),
+            center: Math.round(rect.left + rect.width / 2 - vp.left),
+            width: Math.round(rect.width),
+            transform: style.transform,
+            visible: style.visibility !== "hidden" && Number(style.opacity) > 0.05,
+            focus: node.classList.contains("focus"),
+          };
+        }),
+      };
+    },
     emit(event, payload) {
       try {
         if (event === "game:updated" || event === "game:stopped" || event === "game:running") {
@@ -3207,9 +3658,7 @@
           // 大厅里、以及设置页里都只提示一句，别把面板盖到别的界面上
           if (state.focus === payload.id && state.page === "game" && !payload.quiet
               && !state.settingsOpen) {
-            renderMatches(payload.candidates, "");
-            $("matchRetry").hidden = !/网络/.test(payload.note || "");
-            openPanel(el.matchPanel);
+            openCandidates(payload.candidates, "", payload.note || "没有找到匹配结果");
             toast(payload.note || "没有找到匹配结果");
           } else if (g && !payload.quiet) {
             toast(`${g.name}：${payload.note || "没有找到匹配结果"}`, 3600);

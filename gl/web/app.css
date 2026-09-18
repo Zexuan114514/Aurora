@@ -337,51 +337,98 @@ button, input, select { font: inherit; color: inherit; }
 .hall-viewport {
   position: relative;
   flex: 1;
+  overflow: hidden;
+  /* 站在窗口前看一圈封面：透视距离与封面尺寸由 JS 按窗口大小写进变量 */
+  perspective: var(--ring-d, 1200px);
+  perspective-origin: 50% 48%;
+}
+.hall-ring {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.hall-ring.ring-drag {
+  cursor: grabbing;
+}
+
+/* ---------- 平铺横滑（NS 大厅）布局 ----------
+   同一套 DOM：切到 flat 时把封面行还原成一条横排，外层靠 translate3d 滑动，
+   只有焦点那张放大上浮；不再绕轴旋转、也不隐藏远端封面。 */
+body.hall-flat .hall-viewport {
   display: flex;
   align-items: center;
-  overflow: hidden;
+  perspective: none;
 }
-.hall-row {
+body.hall-flat .hall-ring {
+  position: relative;
+  inset: auto;
   display: flex;
   align-items: center;
   gap: 24px;
   padding: 0 60px;
+  transform-style: flat;
   transform: translate3d(0, 0, 0);
   transition: transform 0.5s var(--ease);
   will-change: transform;
 }
-
-/* 一张封面 */
-.gi {
+body.hall-flat .gi {
   position: relative;
-  width: 172px; height: 258px;
+  left: auto;
+  top: auto;
+  width: 172px;
+  height: 258px;
   flex: none;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transform: none;
+  z-index: auto;
+  filter: none !important;
+  transition: transform 0.45s var(--ease), box-shadow 0.45s var(--ease);
+}
+body.hall-flat .gi.focus { transform: translateY(-10px) scale(1.16); z-index: 3; }
+body.hall-flat .gi .veil { opacity: 0.45; }
+body.hall-flat .gi.focus .veil { opacity: 0; }
+
+/* 一张封面：外层是 3D 摆位（每帧由 JS 写 transform），内层负责外观 */
+.gi {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--gi-w, 180px);
+  height: var(--gi-h, 270px);
   padding: 0;
   border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.gi-card {
+  position: absolute;
+  inset: 0;
+  display: block;
   border-radius: 18px;
   background: var(--srf060);
   box-shadow: 0 18px 42px -22px rgba(0, 0, 0, 0.95);
-  cursor: pointer;
   overflow: hidden;
-  transition: transform 0.45s var(--ease), box-shadow 0.45s var(--ease);
+  transition: transform 0.3s var(--ease), box-shadow 0.4s var(--ease);
 }
 .gi .veil {
   position: absolute; inset: 0; z-index: 2;
   background: var(--veil-ink);      /* 非焦点封面的压暗色：浅色主题改用深灰，别把画洗白 */
-  opacity: 0.45;
+  opacity: var(--veil, 0.45);       /* 离焦点越远压得越暗（JS 每帧写 --veil） */
   pointer-events: none;
-  transition: opacity 0.45s var(--ease);
 }
-.gi.focus {
-  transform: translateY(-10px) scale(1.16);
-  z-index: 3;
+.gi.focus .gi-card {
   box-shadow:
     0 30px 60px -24px rgba(0, 0, 0, 1),
     0 0 0 2px color-mix(in srgb, var(--accent) 72%, transparent),
     0 0 36px -8px color-mix(in srgb, var(--accent) 62%, transparent);
 }
-.gi.focus .veil { opacity: 0; }
-.gi.focus:active { transform: translateY(-10px) scale(1.12); }
+.gi:active .gi-card { transform: scale(0.985); }
+.gi.focus:active .gi-card { transform: scale(0.99); }
 
 .gi-cover {
   position: absolute; inset: 0;
@@ -433,7 +480,7 @@ button, input, select { font: inherit; color: inherit; }
 @keyframes ringPulse { 0%, 100% { opacity: 0.2; } 50% { opacity: 0.85; } }
 
 /* 末尾的「导入游戏」色块 */
-.gi-add {
+.gi-add .gi-card {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 10px;
   border: 1.5px dashed var(--ln300);
@@ -442,7 +489,6 @@ button, input, select { font: inherit; color: inherit; }
   font-size: 13px; font-weight: 560;
 }
 .gi-add .ic { width: 30px; height: 30px; }
-.gi-add .veil { display: none; }
 
 /* 底部信息带 */
 .hall-foot {
@@ -1042,6 +1088,28 @@ body.settings-open #btnSort { display: none; }
   transition: background 0.2s, border-color 0.2s;
 }
 .match-search input:focus { background: var(--fil130); border-color: var(--accent); }
+.match-hint {
+  flex: none;
+  padding: 0 4px 9px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+.match-hint:empty { display: none; }
+.match-quick { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 10px; }
+.match-quick[hidden] { display: none; }
+.quick-chip {
+  height: 26px; padding: 0 11px;
+  border-radius: 999px;
+  border: 1px dashed var(--ln300);
+  background: transparent;
+  color: var(--text-2);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.quick-chip:hover { background: var(--fil130); color: var(--ink-strong);
+                    border-color: var(--ln450); }
 .match-links { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 2px 10px; }
 .match-links:empty { display: none; }
 .link-chip {
@@ -1074,6 +1142,29 @@ body.settings-open #btnSort { display: none; }
 .match-item .mi-name { font-size: 13.5px; font-weight: 560; }
 .match-item .mi-sub { font-size: 11px; color: var(--text-3); display: flex; gap: 7px;
                       align-items: center; margin-top: 3px; }
+/* 匹配度最高的那条：只是标一下，点哪条仍然由用户决定 */
+.match-item.best {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.mi-best {
+  margin-left: 8px; padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.3px;
+  color: #fff;
+  background: color-mix(in srgb, var(--accent) 62%, transparent);
+  white-space: nowrap;
+}
+/* 当前已经应用的那一条，避免用户重复挑到同一个 */
+.mi-cur {
+  margin-left: 8px; padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px; font-weight: 600;
+  color: var(--text-2);
+  background: var(--srf200);
+  border: 1px solid var(--stroke-soft);
+  white-space: nowrap;
+}
 .src-badge {
   display: inline-flex; align-items: center;
   height: 17px; padding: 0 7px;
@@ -1502,19 +1593,19 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
    ------------------------------------------------------------ */
 @media (max-width: 1180px) {
   #detailPanel, #matchPanel, #steamPanel, #getPanel { left: 20px; }
-  .hall-row { gap: 20px; padding: 0 44px; }
-  .gi { width: 156px; height: 234px; }
   .hall-name { font-size: 20px; }
   #gTitle { font-size: 28px; }
   .info-card { padding: 20px 22px 18px; }
+  body.hall-flat .hall-ring { gap: 20px; padding: 0 44px; }
+  body.hall-flat .gi { width: 156px; height: 234px; }
 }
 @media (max-width: 1040px) {
   .brand-text { display: none; }
   .search { max-width: none; }
-  .hall-row { gap: 18px; padding: 0 32px; }
-  .gi { width: 146px; height: 219px; }
   .hall-foot { padding: 0 24px 20px; }
   .hall-hint { font-size: 11px; }
+  body.hall-flat .hall-ring { gap: 18px; padding: 0 32px; }
+  body.hall-flat .gi { width: 146px; height: 219px; }
 }
 
 /* ------------------------------------------------------------

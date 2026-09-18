@@ -1387,8 +1387,14 @@ class Api:
             with self._lock:
                 self._busy.discard(game_id)
 
-    def search(self, game_id: str, query: str | None = None) -> dict:
-        """手动/自动搜索（同步返回候选列表）。"""
+    def search(self, game_id: str, query: str | None = None,
+               auto_apply: bool = False, all_sources: bool = True) -> dict:
+        """按名字搜索。
+
+        默认只返回候选（按匹配度从高到低，最多 20 条）交给候选面板，由用户自己挑，
+        不再直接采纳匹配度最高的那条；auto_apply=True 时保留旧行为（自动重搜用）。
+        all_sources=True 会把所有启用源都搜一遍，方便在候选里跨源比较。
+        """
         game = self._library.get(game_id)
         if not game:
             return {"ok": False, "error": "no-game"}
@@ -1398,24 +1404,25 @@ class Api:
             info = detect.describe_path(Path(game["exe"]))
             queries = (game.get("strong_queries") or info["strong_queries"]
                        or game.get("queries") or info["queries"])
-        result = self._sources.resolve(queries, threshold=0.75)
-        if result.get("ok"):
+        result = self._sources.resolve(queries, threshold=0.75, collect_all=all_sources)
+        candidates = result.get("candidates") or []
+        if result.get("ok") and auto_apply:
             self._apply_source(game_id, result["source"], result["source_id"],
                                name=result.get("name", ""), source="auto",
                                score=result.get("score"),
                                query=(result.get("query") or [""])[0])
-            return {"ok": True, "game": _public(self._library.get(game_id), self._pm)}
-        self._library.update(
-            game_id,
-            metadata_state="notfound",
-            metadata_note=_resolve_note(result.get("reason")),
-            candidates=result.get("candidates") or [],
-            queries=queries,
-        )
+            return {"ok": True, "applied": True,
+                    "game": _public(self._library.get(game_id), self._pm)}
+        # 只列候选，不动库里的记录：否则会把已经匹配好的游戏标成「没找到」，
+        # 封面上多一个 ? 徽标；真正的状态变更留给 apply_candidate。
         return {
-            "ok": False,
-            "reason": result.get("reason"),
-            "candidates": result.get("candidates") or [],
+            "ok": bool(candidates),
+            "applied": False,
+            "reason": result.get("reason") or ("ok" if candidates else "no-results"),
+            "candidates": candidates,
+            "count": len(candidates),
+            "best": candidates[0] if candidates else None,
+            "queries": queries[:2],
             "game": _public(self._library.get(game_id), self._pm),
         }
 

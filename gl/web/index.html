@@ -106,7 +106,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
         </div>
       </div>
       <div class="hall-viewport" id="hallViewport">
-        <div class="hall-row" id="hallRow"></div>
+        <div class="hall-ring" id="hallRow"></div>
       </div>
       <div class="hall-foot" id="hallFoot" data-drag>
         <div class="hall-info">
@@ -226,8 +226,8 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
   <div id="matchPanel" class="sheet glass wide" data-nodrag>
     <div class="sheet-head">
       <div>
-        <h3>选择正确的条目</h3>
-        <span class="sub">候选来自已启用的资料源，换个关键词可以重新搜索</span>
+        <h3>手动匹配</h3>
+        <span class="sub">候选来自已启用的资料源，按匹配度从高到低排列，点一条就应用</span>
       </div>
       <button class="icon-btn" id="matchClose">
         <svg viewBox="0 0 24 24" class="ic"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -238,6 +238,8 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
       <button class="btn glass-btn" id="matchRetry" hidden>重试</button>
       <button class="btn glass-btn" id="matchGo">搜索</button>
     </div>
+    <div class="match-hint" id="matchHint"></div>
+    <div class="match-quick" id="matchQuick" hidden></div>
     <div class="match-links" id="matchLinks"></div>
     <div class="match-list" id="matchList"></div>
   </div>
@@ -334,6 +336,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     <button data-act="args">设置启动参数</button>
     <button data-act="locale" id="menuLocale">转区启动…</button>
     <button data-act="research">重新搜索游戏信息</button>
+    <button data-act="match">手动匹配…</button>
     <button data-act="translate">翻译简介</button>
     <button data-act="store">打开资料来源页面</button>
     <div class="menu-sep"></div>
@@ -598,6 +601,13 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
               <option value="dark">深色</option>
               <option value="light">浅色</option>
               <option value="auto">跟随系统</option>
+            </select>
+          </div>
+          <div class="set-row">
+            <label>主页布局</label>
+            <select id="setHallLayout">
+              <option value="ring">环形队列（绕竖轴转动）</option>
+              <option value="flat">平铺横滑（NS 大厅）</option>
             </select>
           </div>
           <div class="set-row">

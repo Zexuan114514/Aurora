@@ -33,6 +33,9 @@ SECONDARY_WORDS = (
     "digital deluxe", "premium bundle", "supporter pack", "starter pack", "fan disc",
 )
 
+# 手动挑候选时，低于这个分数的条目不列（基本是搜索接口的模糊噪声，显示出来只会干扰）
+MANUAL_MIN_SCORE = 0.2
+
 
 def _secondary_penalty(name: str, queries: list[str]) -> float:
     lowered = (name or "").lower()
@@ -225,7 +228,12 @@ class SourceManager:
     # ------------------------------------------------------------------ #
     def resolve(self, queries: list[str], threshold: float = 0.75,
                 timeout: float = 9.0, budget: float = 45.0,
-                max_queries: int = 2) -> dict:
+                max_queries: int = 2, collect_all: bool = False) -> dict:
+        """搜索并打分。
+
+        collect_all=False：逐个源尝试，第一份「足够可信」的结果出现就停（自动匹配用）。
+        collect_all=True：把所有启用源都搜一遍，候选按匹配度排序后整份返回（手动挑选用）。
+        """
         queries = [q for q in (queries or []) if q and str(q).strip()][:max_queries]
         if not queries:
             return {"ok": False, "reason": "no-query", "candidates": []}
@@ -262,7 +270,8 @@ class SourceManager:
             if found and queries[0] not in used:
                 used.append(queries[0])
             pool.sort(key=lambda row: (-row[1], -row[2]))
-            if pool and _acceptable(pool[0][1], pool[0][2], threshold, pool[0][3], pool[0][4]):
+            if (not collect_all and pool
+                    and _acceptable(pool[0][1], pool[0][2], threshold, pool[0][3], pool[0][4])):
                 break
 
         if not pool:
@@ -271,10 +280,17 @@ class SourceManager:
                     "reason": "network" if errors else "no-results",
                     "candidates": [], "query": queries[:1]}
 
+        if collect_all:
+            pool = [row for row in pool if row[1] >= MANUAL_MIN_SCORE]
+            if not pool:
+                return {"ok": False, "reason": "low-score",
+                        "candidates": [], "query": used[:1] or queries[:1]}
+
         best, score, prim, relaxed, exact = pool[0]
+        limit = 20 if collect_all else 12
         if not _acceptable(score, prim, threshold, relaxed, exact):
             return {"ok": False, "reason": "low-confidence",
-                    "candidates": [c.to_public() for c, *_ in pool[:12]],
+                    "candidates": [c.to_public() for c, *_ in pool[:limit]],
                     "query": used[:1] or queries[:1]}
 
         return {
@@ -283,7 +299,7 @@ class SourceManager:
             "source_id": best.source_id,
             "name": best.name,
             "score": score,
-            "candidates": [c.to_public() for c, *_ in pool[:12]],
+            "candidates": [c.to_public() for c, *_ in pool[:limit]],
             "query": used[:1] or queries[:1],
         }
 

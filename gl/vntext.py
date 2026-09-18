@@ -48,11 +48,45 @@ ENGINE_SIGNATURES = (
 #: 没有任何 kirikiri 字样的模块），Textractor 自己的状态行会写明
 #: 「vnreng: INSERT KiriKiriZ」——这条信息比模块名可靠。
 HOOK_ENGINE_HINTS = (
-    ("TVP/KIRIKIRI", ("kirikiriz", "kirikiri", "tvp(kirikiri)", "vnreng")),
+    # 注意：这里**不能**放 "vnreng" —— Leaf / Escu:de 也会打 `vnreng:` 前缀，
+    # 那样所有引擎都会被认成 KiriKiri（实测踩过）
+    ("TVP/KIRIKIRI", ("kirikiriz", "kirikiri", "tvp(kirikiri)")),
     ("WillPlus", ("willplus", "advhd", "embedwillplus")),
     ("BGI/Ethornell", ("ethornell", "buriko", "bgimt")),
     ("Artemis/Siglus", ("siglus", "artemis")),
+    ("Leaf", ("leafloader", "leafengine")),      # 只用长词，免得英文里的 "leaf" 误判
+    ("Escu:de", ("escude",)),
+    ("CatSystem2/Ares", ("catsystem", "cs2", "ares")),
+    ("Majiro", ("majiro",)),
+    ("Malie", ("malie",)),
+    ("YU-RIS", ("yuris",)),
+    ("RUGP", ("rugp",)),
+    ("NeXAS", ("nexas",)),
+    ("Nitroplus", ("nitroplus",)),
+    ("AliceSoft", ("alicesoft", "system4")),
+    ("Eushully", ("eushully",)),
+    ("Renpy", ("renpy", "ren'py")),
+    ("NScripter", ("nscripter", "onscripter", "ponscripter")),
+    ("Siglus", ("siglusengine",)),
 )
+
+#: `vnreng: INSERT xxx` 里的引擎名 → 我们自己的名字。Textractor 注入成功时会打印
+#: 这一行，比关键词猜测准得多（实测「INSERT Leaf」曾被错认成 TVP/KIRIKIRI）。
+INSERT_ENGINE_NAMES = {
+    "kirikiriz": "TVP/KIRIKIRI", "kirikiri": "TVP/KIRIKIRI", "kirikiriz2": "TVP/KIRIKIRI",
+    "tvp": "TVP/KIRIKIRI", "krkrz": "TVP/KIRIKIRI",
+    "leaf": "Leaf", "leafloader": "Leaf",
+    "escude": "Escu:de",
+    "willplus": "WillPlus", "willplusw": "WillPlus", "willplusa": "WillPlus",
+    "willplus2": "WillPlus", "willplus3": "WillPlus", "embedwillplus": "WillPlus",
+    "ethornell": "BGI/Ethornell", "bgi": "BGI/Ethornell", "buriko": "BGI/Ethornell",
+    "siglus": "Siglus", "siglusengine": "Siglus", "artemis": "Artemis/Siglus",
+    "catsystem2": "CatSystem2/Ares", "catsystem": "CatSystem2/Ares",
+    "majiro": "Majiro", "malie": "Malie", "yuris": "YU-RIS", "rugp": "RUGP",
+    "nexas": "NeXAS", "nitroplus": "Nitroplus", "alice": "AliceSoft",
+    "system4": "AliceSoft", "eushully": "Eushully", "renpy": "Renpy",
+    "nscripter": "NScripter", "ponscripter": "NScripter",
+}
 
 #: 每引擎的文本清洗规则。字段都可以按实测继续加：
 #:   name_prefix      —— 剥离开头的【人名】前缀
@@ -819,6 +853,21 @@ class VnTextEngine:
         hay = " ".join(str(part or "").lower() for part in parts)
         if not hay:
             return
+        # `vnreng: INSERT Xxx` 是注入成功时的原文回显，最准：
+        # 注意别只看到 "vnreng" 就当成 KiriKiri —— Leaf/Escu:de 也会打这一行
+        insert = re.search(r"insert\s+([a-z0-9_+\-()]{2,24})", hay)
+        # 没有 INSERT 时，`vnreng:WillPlusW: pattern not found` 这种也带引擎名
+        if not insert:
+            insert = re.search(r"vnreng:\s*([a-z0-9_+\-()]{2,24})", hay)
+        if insert:
+            token = insert.group(1).strip()
+            for key, name in INSERT_ENGINE_NAMES.items():
+                if token == key or token.startswith(key):
+                    self._engine = name
+                    self._profile = profile_for(name)
+                    config.log(f"vntext engine from hook output: {name} (INSERT {token})")
+                    self._push_status()
+                    return
         for name, keys in HOOK_ENGINE_HINTS:
             if any(key in hay for key in keys):
                 self._engine = name

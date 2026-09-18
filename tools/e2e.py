@@ -248,16 +248,26 @@ def main() -> int:
                 """)
                 step("背景缩放复位", not (reset.get("transform") or ""), reset)
 
-            # 3.5 大厅导航（封面横滑）
+            # 3.5 大厅导航（封面环形队列）
             hall = probe(window, """
+              const tiles = [...document.querySelectorAll('#hallRow .gi')]
+                .filter((n) => n.style.transform)
+                .map((n) => {
+                  const r = n.getBoundingClientRect();
+                  return {key: n.dataset.id || 'add',
+                          deg: Number((n.style.transform.match(/rotateY\\((-?[\\d.]+)deg/) || [0, 0])[1]),
+                          h: Math.round(r.height),
+                          cx: Math.round(r.x + r.width / 2)};
+                });
+              const front = tiles.find((t) => t.deg === 0) || {};
               return JSON.stringify({
                 tiles: document.querySelectorAll('#hallRow .gi').length,
                 add: !!document.querySelector('#hallRow .gi-add'),
                 focus: document.getElementById('hallName').textContent,
-                cx: (() => { const t = document.querySelector('#hallRow .gi.focus');
-                             const r = t.getBoundingClientRect();
-                             return Math.round(r.x + r.width / 2); })(),
+                cx: front.cx || 0,
                 vw: innerWidth,
+                visible: tiles,
+                ring: window.__aurora.ring(),
                 getHit: (() => { const b = document.getElementById('btnGetGames');
                                  const r = b.getBoundingClientRect();
                                  const el = document.elementFromPoint(
@@ -268,11 +278,45 @@ def main() -> int:
             """)
             step("大厅出现封面块", hall.get("tiles") == 2 and hall.get("add"), hall)
             step("大厅「获取游戏」入口可点（没被工具条压住）", bool(hall.get("getHit")), hall.get("getHit"))
-            step("焦点封面居中", abs((hall.get("cx") or 0) - (hall.get("vw") or 0) / 2) <= 2,
+            step("焦点封面居中", abs((hall.get("cx") or 0) - (hall.get("vw") or 0) / 2) <= 3,
                  f"cx={hall.get('cx')} vw={hall.get('vw')}")
 
             key = ("const k='%s'; document.dispatchEvent("
                    "new KeyboardEvent('keydown',{key:k,bubbles:true})); return 1;")
+
+            # 环形队列的空间感：焦点最大，越远越小、越斜
+            visible = sorted(hall.get("visible") or [], key=lambda t: abs(t["deg"]))
+            heights = [t["h"] for t in visible]
+            tilted = [t["deg"] for t in visible if t["deg"]]
+            step("焦点封面最大，越远越小",
+                 len(heights) >= 2 and all(a >= b for a, b in zip(heights, heights[1:])),
+                 str(heights))
+            step("非焦点封面向竖轴倾斜",
+                 bool(tilted) and all(abs(d) >= 8 for d in tilted),
+                 str([t["deg"] for t in visible]))
+
+            # 循环队列：在第一张按 ← 绕到最后一张（＋ 导入游戏），再按 → 回到开头
+            ring_keys = (hall.get("ring") or {}).get("keys") or []
+            window.evaluate_js("(() => { %s })()" % (key % "Home"))
+            time.sleep(0.9)
+            first_item = probe(window, "return JSON.stringify(window.__aurora.ring());")
+            window.evaluate_js("(() => { %s })()" % (key % "ArrowLeft"))
+            time.sleep(0.9)
+            looped = probe(window, "return JSON.stringify(window.__aurora.ring());")
+            step("首尾相接：← 从第一张绕到最后一张",
+                 bool(ring_keys) and first_item.get("focus") == ring_keys[0]
+                 and looped.get("focus") == ring_keys[-1]
+                 # 只走一步（走最近的那一边），而不是绕一整圈
+                 and abs(looped.get("float", 0) - first_item.get("float", 0)) <= 1.5,
+                 f"{first_item.get('focus')} -> {looped.get('focus')} "
+                 f"float {first_item.get('float')} -> {looped.get('float')}")
+            window.evaluate_js("(() => { %s })()" % (key % "ArrowRight"))
+            time.sleep(0.9)
+            step("首尾相接：→ 从最后一张绕回第一张",
+                 (probe(window, "return JSON.stringify(window.__aurora.ring());")
+                  .get("focus") == (ring_keys[0] if ring_keys else None)),
+                 f"keys={len(ring_keys)}")
+
             window.evaluate_js("(() => { %s })()" % (key % "ArrowRight"))
             time.sleep(1.0)
             moved = probe(window, "return JSON.stringify({focus: document.getElementById('hallName').textContent});")
@@ -283,6 +327,45 @@ def main() -> int:
                  moved.get("focus") != back_hall.get("focus")
                  and back_hall.get("focus") == game.get("name"),
                  f"{moved.get('focus')} -> {back_hall.get('focus')}")
+
+            # 3.6 主页布局可切换：环形队列 ↔ 平铺横滑（NS 大厅）
+            def set_layout(value):
+                window.evaluate_js("""(() => {
+                  const sel = document.getElementById('setHallLayout');
+                  sel.value = %s;
+                  sel.dispatchEvent(new Event('change'));
+                })()""" % json.dumps(value))
+                time.sleep(1.3)
+                return probe(window, "return JSON.stringify(window.__aurora.layout());")
+
+            flat = set_layout("flat")
+            focused_tile = next((t for t in flat.get("tiles") or [] if t.get("focus")), None)
+            step("切到平铺横滑：一行排开、焦点居中",
+                 flat.get("name") == "flat" and flat.get("flatClass")
+                 and focused_tile is not None
+                 and abs(focused_tile["center"] - flat["viewportWidth"] / 2) <= 40
+                 and all(t["visible"] for t in flat["tiles"])
+                 and all("matrix3d" not in (t["transform"] or "") for t in flat["tiles"]),
+                 f"{flat.get('name')} center={focused_tile and focused_tile['center']} "
+                 f"vw={flat.get('viewportWidth')} 可见={sum(1 for t in flat['tiles'] if t['visible'])}"
+                 f"/{len(flat['tiles'])}")
+            window.evaluate_js("(() => { %s })()" % (key % "Home"))
+            time.sleep(0.9)
+            head = probe(window, "return JSON.stringify(window.__aurora.ring());")
+            window.evaluate_js("(() => { %s })()" % (key % "ArrowLeft"))
+            time.sleep(0.9)
+            step("平铺布局不循环：第一张再按 ← 仍是第一张",
+                 bool(head.get("focus"))
+                 and (probe(window, "return JSON.stringify(window.__aurora.ring());")
+                      .get("focus") == head.get("focus")),
+                 f"{head.get('focus')}")
+
+            ring_back = set_layout("ring")
+            step("切回环形队列：class 去掉、封面重新绕轴排开",
+                 ring_back.get("name") == "ring" and not ring_back.get("flatClass")
+                 and any("matrix3d" in (t["transform"] or "")
+                         for t in ring_back.get("tiles") or []),
+                 f"{ring_back.get('name')}")
 
             window.evaluate_js(
                 "document.getElementById('app').dispatchEvent("
@@ -312,9 +395,10 @@ def main() -> int:
               const before = document.getElementById('hallName').textContent;
               const fire = (node, type, x, y) => node.dispatchEvent(new MouseEvent(type,
                 {bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0}));
+              // 拖过一张多一点：环形队列是循环的，拖太远会绕回原处
               fire(document.elementFromPoint(pt[0], pt[1]), 'mousedown', pt[0], pt[1]);
-              fire(document, 'mousemove', pt[0] - 220, pt[1]);
-              fire(document, 'mouseup', pt[0] - 220, pt[1]);
+              fire(document, 'mousemove', pt[0] - 120, pt[1]);
+              fire(document, 'mouseup', pt[0] - 120, pt[1]);
               return JSON.stringify({error: '', before: before, pt: pt});
             """)
             time.sleep(0.8)
@@ -896,6 +980,99 @@ def main() -> int:
                  f"locale_enabled={off_row.get('locale_enabled')}")
             window.evaluate_js(
                 "document.getElementById('localePanel').classList.remove('open')")
+
+            # 3.11.5 手动匹配：菜单入口 → 候选按匹配度列出，点了才应用
+            before_match = api._library.get(game_id)
+            window.evaluate_js("document.getElementById('btnMore').click()")
+            time.sleep(0.8)
+            menu_items = probe(window, """
+              return JSON.stringify([...document.querySelectorAll('#moreMenu button')]
+                .map((b) => b.textContent.trim()));
+            """)
+            window.evaluate_js("document.querySelector('#moreMenu [data-act=match]').click()")
+            time.sleep(1.2)
+            opened = probe(window, """
+              const p = document.getElementById('matchPanel');
+              return JSON.stringify({open: p.classList.contains('open'),
+                                     query: document.getElementById('matchQuery').value});
+            """)
+            step("更多菜单里有「手动匹配…」并能打开候选面板",
+                 any("手动匹配" in x for x in (menu_items or []))
+                 and opened.get("open") and bool(opened.get("query")),
+                 f"{menu_items} {opened}")
+
+            # 换个关键词再搜：以前这一步会直接采纳最高分，现在应该只把候选列出来
+            window.evaluate_js("""
+              document.getElementById('matchQuery').value = 'Elden';
+              document.getElementById('matchGo').click();
+            """)
+            deadline = time.time() + 90
+            cand = {}
+            while time.time() < deadline:
+                time.sleep(1.5)
+                cand = probe(window, """
+                  return JSON.stringify({
+                    rows: [...document.querySelectorAll('#matchList .match-item')].map((n) => ({
+                      name: n.querySelector('.mi-name').textContent.trim(),
+                      score: Number((n.querySelector('.match-score') || {}).textContent
+                                     ? n.querySelector('.match-score').textContent.replace('%', '')
+                                     : 0),
+                      source: n.dataset.source})),
+                    panel: document.getElementById('matchPanel').classList.contains('open'),
+                    hint: document.getElementById('matchHint').textContent});
+                """)
+                if cand.get("rows"):
+                    break
+            rows = cand.get("rows") or []
+            scores = [r["score"] for r in rows]
+            after_match = api._library.get(game_id)
+            step("手动搜索只列候选（按匹配度排序），不自动采纳",
+                 len(rows) >= 1 and all(a >= b for a, b in zip(scores, scores[1:]))
+                 and cand.get("panel")
+                 and after_match.get("query_used") == before_match.get("query_used")
+                 and after_match.get("match_source") == before_match.get("match_source"),
+                 f"{len(rows)} 条 {scores[:4]} {[r['source'] for r in rows[:3]]} "
+                 f"query_used={after_match.get('query_used')!r}")
+
+            window.evaluate_js("document.querySelector('#matchList .match-item').click()")
+            deadline = time.time() + 60
+            applied = {}
+            while time.time() < deadline:
+                time.sleep(1.5)
+                applied = probe(window, """
+                  return JSON.stringify({panel: document.getElementById('matchPanel')
+                                                   .classList.contains('open'),
+                                         title: document.getElementById('gTitle').textContent,
+                                         name: document.getElementById('hallName').textContent});
+                """)
+                if not applied.get("panel"):
+                    break
+            row_now = api._library.get(game_id)
+            step("点候选才真正应用（面板关闭、来源标为手动）",
+                 (not applied.get("panel")) and row_now.get("metadata_state") == "ok"
+                 and row_now.get("match_source") == "manual",
+                 f"{applied} match_source={row_now.get('match_source')} "
+                 f"score={row_now.get('match_score')}")
+
+            # 「重新搜索游戏信息」仍是自动流程：够准就直接采纳，不弹面板
+            window.evaluate_js("document.getElementById('btnMore').click()")
+            time.sleep(0.8)
+            window.evaluate_js("document.querySelector('#moreMenu [data-act=research]').click()")
+            deadline = time.time() + 60
+            auto = {}
+            while time.time() < deadline:
+                time.sleep(1.5)
+                auto = probe(window, """
+                  return JSON.stringify({panel: document.getElementById('matchPanel')
+                                                   .classList.contains('open'),
+                                         toast: document.getElementById('toast').textContent});
+                """)
+                if auto.get("toast", "").startswith("已匹配"):
+                    break
+            auto_row = api._library.get(game_id)
+            step("「重新搜索游戏信息」仍会自动采纳（不弹候选面板）",
+                 (not auto.get("panel")) and auto_row.get("match_source") == "auto"
+                 and auto_row.get("metadata_state") == "ok", auto)
 
             # 3.12 转区兜底：本机没装 LE 也要照常启动，只提示一句
             api.set_game_locale(game_id, True, "")

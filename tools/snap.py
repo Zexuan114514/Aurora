@@ -60,6 +60,11 @@ def main() -> int:
                 res = window.evaluate_js(f"(() => {{ {js} }})()")
                 info["inject"] = res
                 time.sleep(float(os.environ.get("SNAP_SETTLE", "1.6")))
+            move = os.environ.get("SNAP_MOVE")      # "x,y"：截图前把窗口挪过去（避开其它浮窗）
+            if move:
+                x, y = (int(v) for v in move.split(","))
+                window.move(x, y)
+                time.sleep(0.8)
             hwnd = app_main.winapi.handle_of(window)
             size = capture(hwnd, SHOT)
             info["capture"] = list(size)

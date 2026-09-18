@@ -411,6 +411,17 @@ def main() -> int:
           "OCR" in vntext.profile_for("WillPlus")["hook_hint"])
     check("未知引擎回落到 default", vntext.profile_for("不存在").get("name_prefix") is True)
     check("detect_engine 对无效 pid 不炸", vntext.detect_engine(0) == "unknown")
+    # `vnreng: INSERT xxx` / `vnreng:Xxx: pattern not found` 里的引擎名要认准：
+    # 以前只要看到 vnreng 就归到 TVP/KIRIKIRI，Leaf/Escu:de 都被标错
+    for hint, want in (("vnreng: INSERT Leaf", "Leaf"),
+                       ("vnreng: INSERT Escude", "Escu:de"),
+                       ("vnreng: INSERT KiriKiriZ", "TVP/KIRIKIRI"),
+                       ("vnreng: INSERT Siglus", "Siglus"),
+                       ("vnreng: INSERT CatSystem2", "CatSystem2/Ares"),
+                       ("vnreng:WillPlusW: pattern not found", "WillPlus")):
+        eng_hint = vntext.VnTextEngine(settings_getter=lambda: {}, on_line=lambda row: None)
+        eng_hint._note_engine_hint(hint)
+        check(f"引擎名识别：{hint[:26]}", eng_hint._engine == want, eng_hint._engine)
 
     write("\n[64 位主进程 + 32 位子进程：两套 CLI 同时挂]")
     frag = SANDBOX / "multi_cli.py"

@@ -142,9 +142,17 @@
     if (payload.lines) {
       const row = payload.lines;
       if (row.source) {
-        state.lines.push({ source: row.source, translation: row.translation || "" });
-        if (state.lines.length > 60) state.lines.shift();
-        state.index = state.lines.length - 1;
+        // 翻译是排队做的，某句的结果可能比后一句晚到 —— 按原文对号入座：
+        // 已经是同一句就只更新译文，别重复插一行（否则悬浮窗会倒着跳）
+        const index = state.lines.findIndex((item) => item.source === row.source);
+        if (index >= 0) {
+          if (row.translation) state.lines[index].translation = row.translation;
+          state.index = index;
+        } else {
+          state.lines.push({ source: row.source, translation: row.translation || "" });
+          if (state.lines.length > 60) state.lines.shift();
+          state.index = state.lines.length - 1;
+        }
       } else if (row.translation !== undefined && state.index >= 0) {
         state.lines[state.index].translation = row.translation;
       }

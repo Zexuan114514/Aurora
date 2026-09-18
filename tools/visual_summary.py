@@ -19,6 +19,21 @@ for t in thumbs:
 print("封面像素 sd:", [round(c["sd"], 1) for c in d.get("covers", [])])
 print("缩略图像素 sd:", [round(t["sd"], 1) for t in d.get("thumbs", [])])
 
+ring = d.get("ring") or {}
+check = d.get("ring_check") or {}
+if check:
+    print("\n大厅环形队列（封面 / 倾斜角 / 高度）:")
+    for key, deg, h in check.get("visible", []):
+        print(f"   {key:<8} rotateY={deg:>6}° 高={h:>6}")
+    ok = (check.get("sizes_shrink_outwards") and check.get("all_tilted")
+          and check.get("front_is_biggest") and abs(check.get("focus_center_delta", 99)) <= 3)
+    print(f"   越远越小={check.get('sizes_shrink_outwards')} "
+          f"都有倾斜={check.get('all_tilted')} "
+          f"焦点最大={check.get('front_is_biggest')} "
+          f"焦点居中偏差={check.get('focus_center_delta')}px -> {'通过' if ok else '不通过'}")
+    keys = (ring.get("ring") or {}).get("keys") or []
+    print(f"   环上顺序（前 6 个）: {[k[:6] for k in keys[:6]]}")
+
 zoom = d.get("zoom") or {}
 if zoom:
     print("\n背景缩放/平移:")

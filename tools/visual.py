@@ -163,22 +163,42 @@ def main() -> int:
             img = Image.open(OUT / "visual-list.png").convert("RGB")
             sx, sy = w / 1356, h / 817
 
-            # 大厅封面：位置直接问页面要，避免写死像素坐标
+            # 大厅封面：环形队列的位置 / 倾斜角 / 大小层次直接问页面要，别写死像素
             hall = json.loads(window.evaluate_js("""
               (() => {
                 const out = {vw: innerWidth, tiles: []};
-                document.querySelectorAll('#hallRow .gi-cover').forEach((c) => {
-                  const r = c.getBoundingClientRect();
-                  out.tiles.push({x: r.x, y: r.y, w: r.width, h: r.height});
+                document.querySelectorAll('#hallRow .gi').forEach((n) => {
+                  if (!n.style.transform) return;         // 绕到背面、藏起来的那些不算
+                  const r = n.getBoundingClientRect();
+                  out.tiles.push({
+                    key: n.dataset.id || 'add',
+                    deg: Number((n.style.transform.match(/rotateY\\((-?[\\d.]+)deg/) || [0, 0])[1]),
+                    x: r.x, y: r.y, w: r.width, h: r.height,
+                    opacity: Number(n.style.opacity),
+                  });
                 });
+                out.ring = window.__aurora.ring();
                 return JSON.stringify(out);
               })()
-            """) or "[]")
-            for r in hall.get("tiles", []):
-                if r["x"] < 0 or r["x"] + r["w"] > hall.get("vw", 0):
+            """) or "{}")
+            report["ring"] = hall
+            ordered = sorted(hall.get("tiles", []), key=lambda t: abs(t["deg"]))
+            front = next((t for t in ordered if t["deg"] == 0), None)
+            report["ring_check"] = {
+                "visible": [[t["key"][:6], round(t["deg"], 1), round(t["h"], 1)]
+                            for t in ordered],
+                "focus_center_delta": round(
+                    (front["x"] + front["w"] / 2 if front else 0) - hall.get("vw", 0) / 2, 1),
+                "sizes_shrink_outwards": all(
+                    a["h"] >= b["h"] - 0.5 for a, b in zip(ordered, ordered[1:])),
+                "all_tilted": all(abs(t["deg"]) >= 8 for t in ordered if t["deg"]) and len(ordered) > 1,
+                "front_is_biggest": bool(front) and all(front["h"] >= t["h"] for t in ordered),
+            }
+            for t in ordered:
+                if t["x"] < 0 or t["x"] + t["w"] > hall.get("vw", 0):
                     continue          # 只统计完整落在窗口里的封面
-                box = (int(r["x"] * sx), int(r["y"] * sy),
-                       int((r["x"] + r["w"]) * sx), int((r["y"] + r["h"]) * sy))
+                box = (int(t["x"] * sx), int(t["y"] * sy),
+                       int((t["x"] + t["w"]) * sx), int((t["y"] + t["h"]) * sy))
                 report["covers"].append(cell_stats(img, box))
 
             # 打开背景面板再截一张
