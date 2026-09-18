@@ -371,8 +371,12 @@ def main() -> int:
             audit["fragment"] += 1
             continue
         probe = vntext.collapse_doubling(clean)
-        if 2 <= len(probe) <= 24 and len(vntext.CJK_RE.findall(probe)) >= 2 \
-                and any(len(old) > len(probe) and vntext.is_subsequence(probe, old)
+        # 残片里可能夹着空格（实测 WillPlus 的 `真面絵描 約束違真似`），
+        # 判定前先把空白压掉，否则会误报成「漏掉」
+        bare = vntext._strip_ws(probe)
+        if 2 <= len(bare) <= 24 and len(vntext.CJK_RE.findall(bare)) >= 2 \
+                and any(len(vntext._strip_ws(old)) > len(bare)
+                        and vntext.is_subsequence(bare, vntext._strip_ws(old))
                         for old in long_rows):
             audit["fragment"] += 1
             continue

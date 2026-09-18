@@ -101,10 +101,14 @@ ENGINE_PROFILES = {
     },
     "WillPlus": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
-        "hook_hint": "WillPlus/AdvHD：Textractor 的 WillPlus 系钩子对不上这个引擎版本"
+        "hook_hint": "WillPlus/AdvHD：Textractor 自带的 WillPlus 系钩子对不上这类 exe"
                      "（实测少女之剑：WillPlus 找不到函数、WillPlusW/A 找不到特征码、"
-                     "WillPlus2 挂到了 Intel 显卡驱动的 DLL 上），只剩按字形抓的 GDI 钩子，"
-                     "而字形有缓存 → 缺字严重。请改用 OCR 模式（面板 → 重新框选 OCR 区域）。",
+                     "WillPlus2 把地址算到 Intel 显卡驱动的 igc32.dll 上 → 乱码），只剩"
+                     "按字形抓的 GDI 钩子，而字形有缓存 → 缺字。出路是**专用用户钩子码**："
+                     "在游戏页「翻译」面板里填 `HQ-4@<模块内偏移>:<exe文件名>`（Q = UTF-16，"
+                     "S = 字节串，V = UTF-8）。偏移可以从 LunaTranslator 的日志里拿"
+                     "（`注入钩子: WillPlus3 0040A22E` → 减去 0x400000 得 A22E）；"
+                     "本机实测过的作品 Aurora 会自动填好。",
     },
     "BGI/Ethornell": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
@@ -125,6 +129,131 @@ ENGINE_PROFILES = {
 
 def profile_for(engine: str) -> dict:
     return dict(ENGINE_PROFILES.get(engine) or ENGINE_PROFILES["default"])
+
+
+#: WillPlus/AdvHD 系列的老问题：Textractor 自带的 WillPlus 钩子在这些游戏上会失配 ——
+#: 实测 少女之剑与秘密的协奏曲：`vnreng:WillPlus: function call not found`、
+#: WillPlusW/A 找不到特征码、WillPlus2 把地址算到了 Intel 显卡驱动 `igc32.dll` 上
+#: （回显 `HQ-8*0@E8EB90:igc32.dll`，吐出来全是乱码），最后只剩按字形抓的
+#: `GetGlyphOutlineW`，而引擎的字形有缓存 → 一行只抓到零星几个字。
+#:
+#: 实测出路（2026-09-19 在本机用 TextractorCLI 验证）：**用户钩子 + 直接给地址**。
+#: Textractor 的 H-code 语法（读它的源码 `host/hookcode.cpp` 确认）是
+#:     H<模式><data_offset>@<RVA>:<模块文件名>
+#: 其中模式字母 `S`=字节串、`Q`=UTF-16 字符串、`V`=UTF-8 —— 少女之剑的文本是
+#: UTF-16，所以必须用 `Q`（用 `S` 会把宽字符当单字节读成 `...0j0K0c0...`）。
+#:
+#: 下面每条记录都是我们自己在这台机器上实测出来的；exe 文件名 + 字节数 + CRC32
+#: 三者同时匹配才启用，免得把某个版本的地址套到别的版本上。
+WILLPLUS_AUTO_HOOKS = [
+    {
+        "name": "advhd_crack.exe",
+        "size": 1992192,
+        "crc32": 0x52EA5D63,
+        "rva": 0xA22E,      # 图像基址 0x400000；这个 exe 没开 DYNAMICBASE，地址稳定
+        "offset": -4,       # H-code 的 data_offset（Textractor 对负数会再按 ITH 减 4）
+        "mode": "Q",        # Q = USING_STRING|USING_UNICODE（UTF-16）
+        "game": "少女之剑与秘密的协奏曲",
+        "note": "地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；"
+                "实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能"
+                "吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。",
+    },
+]
+
+#: H-code 的模式字母（来自 Textractor 源码 host/hookcode.cpp）：
+#:   S = 字节串   Q = UTF-16 字符串   V = UTF-8
+#:   A/B/W/H/M = 变体（大端 / 只读长度 / 十六进制转储等）
+HOOK_CODE_MODES = ("S", "Q", "V", "A", "B", "W", "H", "M")
+
+
+def file_fingerprint(path: str | Path) -> dict:
+    """exe 的（文件名, 字节数, CRC32），用来对准「我们实测过的 hook 码」。"""
+    import zlib
+
+    try:
+        data = Path(str(path)).read_bytes()
+    except Exception:
+        return {}
+    return {"name": Path(str(path)).name.lower(), "size": len(data),
+            "crc32": zlib.crc32(data) & 0xFFFFFFFF}
+
+
+def match_willplus_hook(name: str, size: int, crc32: int) -> dict | None:
+    """按指纹查我们自己的 WillPlus 实测记录；查不到返回 None。"""
+    low = str(name or "").lower()
+    try:
+        size = int(size)
+        crc32 = int(crc32)
+    except Exception:
+        return None
+    for row in WILLPLUS_AUTO_HOOKS:
+        if row["name"].lower() == low and int(row["size"]) == size \
+                and int(row["crc32"]) == crc32:
+            return dict(row)
+    return None
+
+
+def build_hook_code(row: dict, module: str = "") -> str:
+    """按实测记录拼 H-code：`H<模式><data_offset>@<RVA>:<模块文件名>`。"""
+    offset = int(row.get("offset") or 0)
+    sign = "-" if offset < 0 else ""
+    mode = str(row.get("mode") or "Q")[:1].upper() or "Q"
+    return f"H{mode}{sign}{abs(offset):X}@{int(row['rva']):X}:{module}"
+
+
+def willplus_hook_code(exe: str | Path) -> str:
+    """这台机器上实测过的 WillPlus 专用 hook 码；没匹配到就返回空串。"""
+    if not exe:
+        return ""
+    fp = file_fingerprint(exe)
+    if not fp:
+        return ""
+    row = match_willplus_hook(fp["name"], fp["size"], fp["crc32"])
+    if not row:
+        return ""
+    return build_hook_code(row, Path(str(exe)).name)
+
+
+def hook_code_matches(configured: str, actual: str) -> bool:
+    """某条线程的钩子码是不是我们指定的那一条。
+
+    Textractor 会把用户钩子码规范化后再回显（实测 `HV-4@A22E` 回显成
+    `HS65001#-4@A22E`），所以退一步只比「地址 +（两边都有时的）模块」。
+    """
+    left = re.sub(r"\s+", "", str(configured or "")).lower()
+    right = re.sub(r"\s+", "", str(actual or "")).lower()
+    if not left or not right:
+        return False
+    if left == right:
+        return True
+    addr_left = re.search(r"@([0-9a-f]+)(?::([^:]+))?", left)
+    addr_right = re.search(r"@([0-9a-f]+)(?::([^:]+))?", right)
+    if not addr_left or not addr_right or addr_left.group(1) != addr_right.group(1):
+        return False
+    if addr_left.group(2) and addr_right.group(2) \
+            and addr_left.group(2) != addr_right.group(2):
+        return False
+    return True
+
+
+def looks_like_hook_code(text: str) -> bool:
+    """看起来像不像 Textractor 的 H-code（界面上填错时早点拦下来）。
+
+    形如 `H<模式><偏移>@<地址>[:<模块>]`：`HQ-4@A22E:AdvHD_crack.exe`。
+    """
+    body = re.sub(r"\s+", "", str(text or ""))
+    if len(body) < 6 or body[:1].upper() != "H":
+        return False
+    if body[1:2].upper() not in HOOK_CODE_MODES:
+        return False
+    at = body.find("@", 2)
+    if at < 0:
+        return False
+    tail = body[at + 1:]
+    address, _, module = tail.partition(":")
+    if not re.fullmatch(r"[0-9A-Fa-f]+", address or ""):
+        return False
+    return not tail.endswith(":")          # 有冒号就必须写模块名
 
 
 def detect_engine(pid: int) -> str:
@@ -182,9 +311,11 @@ def module_names(pid: int, limit: int = 0) -> list[str]:
     return out[:limit] if limit else out
 
 
-LINE_RE = re.compile(
-    r"^\[([0-9A-Fa-f]+):([0-9A-Fa-f]+):([0-9A-Fa-f]+):([0-9A-Fa-f]+):([0-9A-Fa-f]+):"
-    r"([^\]]*):([^\]]*)\]\s?(.*)$")
+#: `[handle:pid:addr:ctx:ctx2:名字:钩子码] 正文` —— 钩子码里**可能带冒号**（用户钩子
+#: 形如 `HQ-4@A22E:AdvHD_crack.exe`），所以不能简单地按冒号切两段再各取一半：
+#: 以前那条贪婪正则会把 `UserHook1:HQ-4@A22E:AdvHD_crack.exe` 切成
+#: 名字=`UserHook1:HQ-4@A22E`、码=`AdvHD_crack.exe`（少了一段，认不出是我们的钩子）。
+LINE_RE = re.compile(r"^\[([^\]]*)\]\s?(.*)$", re.DOTALL)
 
 
 def candidate_dirs() -> list[Path]:
@@ -274,12 +405,25 @@ def parse_hook_line(raw: str) -> dict | None:
     if not match:
         text = raw.strip()
         return {"text": text, "thread": "", "name": "", "code": ""} if text else None
-    handle, pid, addr, ctx, ctx2, name, code, text = match.groups()
+    head, text = match.groups()
     text = text.strip()
     if not text:
         return None
-    return {"text": text, "thread": f"{handle}:{pid}:{addr}:{ctx}:{ctx2}",
-            "name": name, "code": code}
+    # 头部按冒号切 6 刀：前 5 段是线程标识，第 6 段是钩子名，剩下的全算钩子码
+    parts = head.split(":", 6)
+    if len(parts) < 7:
+        # 短行（例如 Textractor 自己的控制台行 `[0:0:FFFF...:控制台:HB0@0]` 是 7 段，
+        # 而 `[默认]` 只有 1 段）：能凑出线程标识就凑，凑不出当纯文本
+        thread = ":".join(parts[:5]) if len(parts) >= 5 else ""
+        name = parts[5] if len(parts) > 5 else ""
+        code = ""
+    else:
+        thread = ":".join(parts[:5])
+        name = parts[5]
+        code = parts[6]
+    if not thread and not name:
+        return {"text": text, "thread": "", "name": "", "code": ""}
+    return {"text": text, "thread": thread, "name": name, "code": code}
 
 
 NAME_PREFIX_RE = re.compile(r"^(?:\u3010[^\u3011]{1,12}\u3011|\[[^\]]{1,12}\]|\uff3b[^\uff3d]{1,12}\uff3d)+")
@@ -672,6 +816,13 @@ def is_subsequence(short: str, long: str) -> bool:
 _CJK_ANY_RE = re.compile(rf"[{_CJK}]")
 
 
+def _strip_ws(text: str) -> str:
+    """判「缺字版」时把空白压掉：GDI 钩子吐出来的残片里常夹着空格
+    （实测 WillPlus：真句 `姉さんは真面目を絵に…`，残片 `真面絵描 約束違真似`），
+    带着空格去做子序列判断会直接失败、把残片当成新台词。"""
+    return re.sub(r"\s+", "", str(text or ""))
+
+
 def missing_chars_variant(short: str, long: str) -> bool:
     """`short` 是不是 `long` 的「缺字版」（同一句只画出来一部分）。
 
@@ -679,8 +830,8 @@ def missing_chars_variant(short: str, long: str) -> bool:
     抓文本，字体里查不到的字就丢，吐出来的是 `視界黒塞`；引擎自带钩子随后吐出
     完整句 `視界を黒い何かが塞いだ。`。缺字版正好是完整版的**子序列**。
     """
-    short = (short or "").strip()
-    long = (long or "").strip()
+    short = _strip_ws(short)
+    long = _strip_ws(long)
     if len(short) < 3 or len(long) < 6:
         return False
     if len(short) > 0.8 * len(long):
@@ -704,8 +855,8 @@ def looks_like_short_fragment(probe: str, pool) -> bool:
     ② 比 pool 里最长的短 30% 以上，且每个字都能在 pool 里找到（变体有时是
        相邻两句拼起来的，例如 `遅２羽励寄添`）。
     """
-    probe = (probe or "").strip()
-    texts = [str(text or "").strip() for text in (pool or [])]
+    probe = _strip_ws(probe)
+    texts = [_strip_ws(text) for text in (pool or [])]
     texts = [text for text in texts if text]
     if not texts or not (2 <= len(probe) <= 12) or _SENTENCE_END_RE.search(probe):
         return False
@@ -933,12 +1084,19 @@ class VnTextEngine:
         self._name_pending: dict | None = None
         self._merged = 0
         self._gated = 0
+        self._hook_code = ""
+        self._hook_auto = ""
+        #: CLI 打印「管道已连接」才算 attach 真的生效（专用钩子码要等这一步之后再发）
+        self._pipe_seen = threading.Event()
         self._engine = "unknown"
         self._profile: dict = {}
         self._leader = ""
         self._last_record: dict | None = None
         self._cli_bits = 0
         self._target_bits = 0
+        #: 用户钩子码（每游戏可填；也可由我们实测过的 WillPlus 记录自动带出）
+        self._hook_code = ""
+        self._hook_auto = ""
 
     # ------------------------------------------------------------------ #
     def status(self) -> dict:
@@ -970,6 +1128,8 @@ class VnTextEngine:
                 "merged": self._merged,
                 "gated": self._gated,
                 "engine_name": self._engine,
+                "hook_code": self._hook_code,
+                "hook_auto": self._hook_auto,
                 "hook_hint": (self._profile or {}).get("hook_hint") or "",
                 "probe": {
                     "targets": [str(row.get("path") or "")[-40:] for row in (self._targets or [])][:3],
@@ -995,8 +1155,10 @@ class VnTextEngine:
             return ""
         # 优先「像正经句子」的线程（带句读/引号），其次才是台词计数与总行数 ——
         # 系统刷屏线程往往有大量含假名的资源名，光看行数会把它们排到前面
+        # 最优先：用户/实测记录指定的专用钩子线程（WillPlus 的 `HQ-4@…`）
         return max(self._seen.items(),
-                   key=lambda item: (item[1].get("prose", 0), item[1].get("dialogue", 0),
+                   key=lambda item: (item[1].get("preferred", False),
+                                     item[1].get("prose", 0), item[1].get("dialogue", 0),
                                      item[1]["count"]))[0]
 
     def _active_key(self) -> str:
@@ -1037,7 +1199,8 @@ class VnTextEngine:
                 return
 
     # ------------------------------------------------------------------ #
-    def start(self, game_id: str, pid: int, mode: str = "auto", exe: str = "") -> dict:
+    def start(self, game_id: str, pid: int, mode: str = "auto", exe: str = "",
+              hook_code: str = "") -> dict:
         self.stop()
         mode = mode if mode in ("hook", "ocr") else "auto"
         self._stop.clear()
@@ -1052,6 +1215,9 @@ class VnTextEngine:
         self._ocr_streak = 0
         self._merged = 0
         self._gated = 0
+        self._hook_code = ""
+        self._hook_auto = ""
+        self._pipe_seen.clear()
 
         settings = self._get_settings() or {}
         saved = str(settings.get("vntext_tractor_path") or "")
@@ -1103,6 +1269,12 @@ class VnTextEngine:
                          name="aurora-vntext-flush").start()
         self._engine = detect_engine(self._pid)
         self._targets = self._collect_targets(self._pid, exe) if self._pid else []
+        # 用户钩子码：优先用这个游戏自己存的；没有就看是不是我们实测过的版本
+        self._hook_auto = willplus_hook_code(exe)
+        self._hook_code = str(hook_code or "").strip() or self._hook_auto
+        if self._hook_code:
+            config.log(f"vntext user hook code: {self._hook_code}"
+                       f"{' (实测记录自动带出)' if not hook_code else ''}")
         if self._engine in ("", "unknown"):
             # 候选进程（含子进程）的镜像路径里常直接带引擎 DLL 名
             haystack = " ".join(str(row.get("path") or "").lower() for row in self._targets)
@@ -1259,8 +1431,35 @@ class VnTextEngine:
                                   name="aurora-vntext-hook")
         self._threads.append(thread)
         thread.start()
+        # 专用用户钩子（如 WillPlus 的 `HQ-4@A22E:AdvHD_crack.exe`）：Textractor 自带的
+        # WillPlus 钩子在这类 exe 上会挂错模块，必须自己给地址。**要等 attach 生效再发** ——
+        # 跟着 attach 同一批写进去会把 CLI 顶掉（实测：进程直接退出，一行文本都收不到）。
+        if self._hook_code:
+            sender = threading.Thread(target=self._send_hook_code_later,
+                                      args=(proc, list(pids)), daemon=True,
+                                      name="aurora-vntext-hookcode")
+            self._threads.append(sender)
+            sender.start()
         config.log(f"vntext hook attached pid={self._pid} cli={self._cli}")
         return True
+
+    def _send_hook_code_later(self, proc: subprocess.Popen, pids: list[int]) -> None:
+        """等 CLI 把 attach 处理完（打印「管道已连接」）再发专用钩子码。"""
+        seen = self._pipe_seen.wait(timeout=6.0)
+        if not seen and not self._stop.is_set():
+            time.sleep(0.8)          # 老版本 CLI 不一定打这行，别死等
+        if self._stop.is_set() or proc.poll() is not None:
+            return
+        code = self._hook_code
+        if not code:
+            return
+        try:
+            for target in pids:
+                proc.stdin.write(f"{code} -P{int(target)}\n".encode("utf-16-le"))
+            proc.stdin.flush()
+            config.log(f"vntext user hook sent: {code}")
+        except Exception as exc:
+            config.log(f"vntext user hook send failed: {exc}")
 
     def _hook_loop(self, proc: subprocess.Popen) -> None:
         stream = proc.stdout
@@ -1287,6 +1486,9 @@ class VnTextEngine:
                 parsed = parse_hook_line(text)
                 if not parsed:
                     continue
+                # attach 是否真的生效：CLI 会先打一行「管道已连接」（专用钩子码要等它）
+                if "管道已连接" in parsed["text"] or "hijacking process" in parsed["text"]:
+                    self._pipe_seen.set()
                 # 引擎把一句话折成多行发给 Textractor 时，CLI 会把整个文本原样打印，
                 # 只有**第一行**带 `[handle:pid:addr:ctx:ctx2:名字:钩子码]` 头，后面
                 # 几行是裸文本（实测 Escu:de 的悠刻のファムファタル：一句被折成 3 行）。
@@ -1348,6 +1550,10 @@ class VnTextEngine:
             row["last_seen"] = now
             if code:
                 row["code"] = code
+                # 专用用户钩子那条线程要优先当领跑线程（它的正文最完整）
+                if self._hook_code and hook_code_matches(self._hook_code,
+                                                         f"{name}:{code}"):
+                    row["preferred"] = True
             pending = self._pending.get(key)
             if pending:
                 old = pending["text"]
@@ -1500,7 +1706,7 @@ class VnTextEngine:
                         > self._seen.get(self._leader, {}).get("prose", 0) + 1:
                     self._leader = best_key
             self._staged.append({"key": key, "clean": clean, "norm": norm,
-                                 "probe": collapse_doubling(clean), "text": text,
+                                 "probe": _strip_ws(collapse_doubling(clean)), "text": text,
                                  "at": time.time()})
             del self._staged[:-24]          # 保险：别让卡住的候选越堆越多
         return
@@ -1607,10 +1813,19 @@ class VnTextEngine:
             with self._lock:
                 pending, self._name_pending = self._name_pending, None
             if pending and pending["key"] != key and time.time() - pending["at"] <= 3.0:
-                # 这句话自己已经带了同一个名字（另一条线程的变体）就别再叠一层，
-                # 否则会出现「【羽依里】羽依里「あの」」
-                if not clean.startswith(pending["text"]):
-                    clean = f"【{pending['text']}】{clean}"
+                pending_text = str(pending.get("text") or "")
+                # 「名字」其实是同一句的 GDI 缺字版时直接丢掉（实测 WillPlus：
+                # GetGlyphOutlineW 线程吐 `家近離心倒`，真句是 `家が近所で、年が離れて…`，
+                # 每个字都能在真句里按顺序找到）—— 否则会翻成「【家近離心倒】家が近所で…」
+                if missing_chars_variant(pending_text, clean) \
+                        or looks_like_short_fragment(pending_text, [clean]):
+                    self._merged += 1
+                    config.log(f"vntext name-like fragment dropped: {pending_text[:24]!r}")
+                    self._push_status()
+                elif not clean.startswith(pending_text):
+                    # 这句话自己已经带了同一个名字（另一条线程的变体）就别再叠一层，
+                    # 否则会出现「【羽依里】羽依里「あの」」
+                    clean = f"【{pending_text}】{clean}"
         if self._locked and not (key == self._locked or key.startswith(self._locked)):
             self._gated += 1
             return
@@ -1794,6 +2009,18 @@ class VnTextEngine:
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
         return {"ok": True}
+
+    def set_hook_code(self, code: str) -> dict:
+        """改「专用用户钩子码」：记住它（用于优先选线程）并立刻发给正在跑的 CLI。"""
+        code = " ".join(str(code or "").split())
+        with self._lock:
+            self._hook_code = code
+        if not code:
+            return {"ok": True, "hook_code": ""}
+        result = self.send_hook(code)
+        result["hook_code"] = code
+        self._push_status()
+        return result
 
     def set_region(self, region: dict) -> dict:
         with self._lock:

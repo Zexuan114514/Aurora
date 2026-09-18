@@ -1355,6 +1355,22 @@
       Math.round((region.y || 0) * 100)}% · ${Math.round((region.w || 1) * 100)}%×${
       Math.round((region.h || 0.34) * 100)}%`;
 
+    // 专用 hook 码（WillPlus 这类 Textractor 自带钩子搞不定的引擎）：
+    // 输入框里显示实际生效的那条；下面是「已存 / 自动带出」的说明
+    const savedHook = state.game_hook || "";
+    const autoHook = state.hook_auto || "";
+    const liveHook = state.hook_code || "";
+    const hookBox = $("vnHook");
+    if (document.activeElement !== hookBox) {
+      hookBox.value = liveHook || savedHook || autoHook || "";
+    }
+    $("vnHookNote").textContent = savedHook
+      ? `本游戏专用 hook 码：${savedHook}（清空输入框再点「存为专用」= 改用自动）`
+      : (autoHook
+         ? `已按实测记录自动带出：${autoHook}`
+         : "Textractor 自带钩子搞不定的引擎（如 WillPlus/AdvHD）在这里填专用 hook 码："
+           + "HQ-4@<模块内偏移>:<exe文件名>（Q=UTF-16，S=字节串，V=UTF-8）；填好后点「存为专用」，下次开翻译会自动带上。");
+
     const history = state.history || [];
     el.vnHistory.innerHTML = history.slice(-6).reverse().map((row) => `
       <div class="vn-row"><i>${esc(row.text)}</i>${esc(row.translation)}</div>`).join("")
@@ -1545,6 +1561,17 @@
       if (!code) { toast("先粘贴 hook 码"); return; }
       const res = await call("send_hook_code", code);
       toast(res && res.ok ? "已发送 hook 码" : "发送失败（当前不是钩子模式）");
+      refreshVntext();
+    };
+    $("vnHookSave").onclick = async () => {
+      const code = $("vnHook").value.trim();
+      const res = await call("set_vntext_hook", state.focus, code);
+      if (!res || res.ok === false) {
+        toast((res && res.hint) || "hook 码格式不对，应该像 HQ-4@A22E:AdvHD_crack.exe", 5200);
+      } else {
+        toast(code ? "已存为这个游戏的专用 hook 码（下次开翻译自动带上）"
+                   : "已清除专用 hook 码，改回自动");
+      }
       refreshVntext();
     };
     el.vnThreads.addEventListener("click", async (e) => {

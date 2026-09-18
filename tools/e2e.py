@@ -1187,6 +1187,22 @@ def main() -> int:
                  and vn_panel.get("threads", 0) >= 1
                  and "正在翻译" in (vn_panel.get("state") or ""), vn_panel)
 
+            # 专用 hook 码（WillPlus 这类 Textractor 自带钩子搞不定的引擎）
+            hook_saved = api.set_vntext_hook(game_id, "HQ-4@A22E:fake.exe")
+            step("能存下这个游戏的专用 hook 码",
+                 bool(hook_saved.get("ok"))
+                 and hook_saved.get("vntext_hook") == "HQ-4@A22E:fake.exe"
+                 and api._library.get(game_id).get("vntext_hook") == "HQ-4@A22E:fake.exe",
+                 str(hook_saved.get("vntext_hook")))
+            hook_bad = api.set_vntext_hook(game_id, "这不是 hook 码")
+            step("乱填的 hook 码会被拒绝",
+                 hook_bad.get("ok") is False and hook_bad.get("error") == "bad-code",
+                 str(hook_bad.get("error")))
+            hook_auto = api.set_vntext_hook(game_id, "")
+            step("清空后改回自动",
+                 bool(hook_auto.get("ok")) and not (hook_auto.get("vntext_hook") or ""),
+                 str(hook_auto.get("vntext_hook")))
+
             overlay_text = ""
             if len(webview.windows) >= 2:
                 try:

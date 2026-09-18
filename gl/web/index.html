@@ -481,9 +481,11 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     <div class="vn-threads" id="vnThreads"></div>
     <div class="set-row">
       <label>hook 码</label>
-      <input type="text" id="vnHook" placeholder="粘贴 hook 码，例如 HS2@0" spellcheck="false">
+      <input type="text" id="vnHook" placeholder="例如 HQ-4@A22E:AdvHD_crack.exe" spellcheck="false">
       <button class="mini-btn" id="vnHookSend">发送</button>
+      <button class="mini-btn" id="vnHookSave">存为专用</button>
     </div>
+    <p class="set-note" id="vnHookNote">—</p>
     <div class="set-row">
       <label>OCR 区域</label>
       <button class="mini-btn" id="vnFraming">框选区域…</button>
@@ -814,7 +816,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
             <button class="mini-btn" id="glossaryAdd">添加</button>
           </div>
           <div class="glossary-list" id="glossaryList"></div>
-          <p class="set-note">钩子拿到的是游戏里的真实文本，最准确；OCR 模式识别的是屏幕上框选的区域（默认取窗口下部 34%，可在「翻译」面板里框选微调），需要系统安装「日语 OCR」组件。<b>Textractor 的钩子覆盖率有限</b>：TVP/KIRIKIRI（如 DRACU RIOT）用 GetTextExtentPoint32W 那条钩子通常没问题；WillPlus 这类引擎钩子常缺字，建议直接用 OCR 模式，或用 LunaTranslator。翻译沿用上方「简介翻译」里的 LLM 配置。<b>日文原版强烈建议先用「⋯ → 转区启动…」开启转区再翻译</b>：不转区时游戏产出的文本本身就是乱码，钩子拿到的也只能是乱码。</p>
+<p class="set-note">钩子拿到的是游戏里的真实文本，最准确；OCR 模式识别的是屏幕上框选的区域（默认取窗口下部 34%，可在「翻译」面板里框选微调），需要系统安装「日语 OCR」组件。<b>Textractor 的钩子覆盖率有限</b>：TVP/KIRIKIRI（如 DRACU RIOT）用 GetTextExtentPoint32W 那条钩子通常没问题；<b>WillPlus/AdvHD</b> 这类游戏 Textractor 自带的引擎钩子会挂错模块，需要在游戏页「翻译」面板里填一条<b>专用 hook 码</b>（形态 <code>HQ-4@A22E:AdvHD_crack.exe</code>：Q=UTF-16 字符串、S=字节串、V=UTF-8；偏移可以从 LunaTranslator 日志的 <code>注入钩子: WillPlus3 0040A22E</code> 换算），本机实测过的作品 Aurora 会自动填好；实在拿不到地址再退回 OCR 模式。翻译沿用上方「简介翻译」里的 LLM 配置。<b>日文原版强烈建议先用「⋯ → 转区启动…」开启转区再翻译</b>：不转区时游戏产出的文本本身就是乱码，钩子拿到的也只能是乱码。</p>
         </div>
 
         <!-- 关于 -->

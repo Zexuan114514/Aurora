@@ -102,6 +102,7 @@ def _public(game: dict, pm: process.ProcessManager) -> dict:
         "bookshelf_ids": list(game.get("bookshelf_ids") or []),
         "status": game.get("status") or "",
         "vntext_ocr_region": dict(game.get("vntext_ocr_region") or {}),
+        "vntext_hook": str(game.get("vntext_hook") or ""),
     }
 
 
@@ -501,6 +502,11 @@ class Api:
             "llm_ready": bool(str(settings.get("translate_api_key") or "").strip()),
             "context_lines": int(settings.get("vntext_context_lines") or 4),
             "history": self._translator.history(10),
+            # 每游戏专用钩子码（WillPlus 这类 Textractor 自带钩子搞不定的引擎）
+            "hook_code": str(state.get("hook_code") or ""),
+            "hook_auto": str(state.get("hook_auto") or ""),
+            "game_hook": str((self._library.get(str(state.get("game_id") or "")) or {})
+                             .get("vntext_hook") or ""),
             "game_locale": bool((self._library.get(str(state.get("game_id") or "")) or {})
                                 .get("locale_enabled")),
         })
@@ -508,6 +514,25 @@ class Api:
 
     def get_vntext_status(self) -> dict:
         return self._vntext_state()
+
+    def set_vntext_hook(self, game_id: str, code: str) -> dict:
+        """给单个游戏存一条专用 hook 码（空串 = 清除，回到自动）。"""
+        game = self._library.get(game_id)
+        if not game:
+            return {"ok": False, "error": "no-game"}
+        text = " ".join(str(code or "").split())
+        if text:
+            if not vntext.looks_like_hook_code(text):
+                return {"ok": False, "error": "bad-code",
+                        "hint": "形如 HQ-4@A22E:AdvHD_crack.exe（H + 模式字母 + 偏移 @ 地址 : exe 名）"}
+            if ":" not in text:
+                # 只给了地址没给模块 → 用游戏自己的 exe 名补上
+                text = f"{text}:{Path(str(game.get('exe') or '')).name}"
+        self._library.update(game_id, vntext_hook=text)
+        if self._vn_engine.status().get("running"):
+            self._vn_engine.set_hook_code(text)
+        return {"ok": True, "game_id": game_id, "vntext_hook": text,
+                **self._vntext_state()}
 
     def set_vntext_option(self, key: str, value) -> dict:
         allowed = {"vntext_enabled": bool, "vntext_auto_start": bool,
@@ -574,7 +599,8 @@ class Api:
         self._library.set_setting("vntext_enabled", True)
         state = self._vn_engine.start(game_id, pid,
                                       str(settings.get("vntext_engine") or "auto"),
-                                      exe=str(game.get("exe") or ""))
+                                      exe=str(game.get("exe") or ""),
+                                      hook_code=str(game.get("vntext_hook") or ""))
         self._hotkeys.start()
         if state.get("running"):
             self._overlay.show()

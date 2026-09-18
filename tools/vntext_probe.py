@@ -40,11 +40,22 @@ def emit(handle, name, code, text):
     sys.stdout.buffer.flush()
 
 attached = False
+
+def read_command():
+    """UTF-16LE 的换行是 `0A 00`，用 readline() 会漏掉那个 0x00 让下一行错位。"""
+    buf = bytearray()
+    while True:
+        ch = sys.stdin.buffer.read(1)
+        if not ch:
+            return None
+        buf += ch
+        if len(buf) >= 2 and buf[-2:] == b"\\n\\x00":
+            return bytes(buf).decode("utf-16-le", "ignore").strip()
+
 while True:
-    raw = sys.stdin.buffer.readline()
-    if not raw:
+    cmd = read_command()
+    if not cmd:
         break
-    cmd = raw.decode("utf-16-le", "ignore").strip()
     if cmd.startswith("attach"):
         attached = True
         # 菜单线程先说一句（噪声，应该被过滤掉）
@@ -537,12 +548,93 @@ def main() -> int:
           and eng_spam._seen.get("sys", {}).get("spam") is True,
           str([row["text"][:12] for row in spammy]))
 
+    # WillPlus/AdvHD（少女之剑）：Textractor 自带的 WillPlus 钩子会挂错模块
+    # （WillPlus2 → igc32.dll）、只剩按字形抓的 GDI 钩子 → 缺字。实测出路是
+    # 用户钩子 `HQ-4@A22E:AdvHD_crack.exe`（Q = UTF-16 字符串）。
+    write("\n[WillPlus 专用 hook 码（少女之剑实测记录）]")
+    sig = vntext.match_willplus_hook("AdvHD_crack.exe", 1992192, 0x52EA5D63)
+    check("按下发文件指纹命中实测记录", bool(sig), str(sig and sig.get("game")))
+    check("指纹不符就不命中",
+          vntext.match_willplus_hook("AdvHD_crack.exe", 1, 0x52EA5D63) is None
+          and vntext.match_willplus_hook("other.exe", 1992192, 0x52EA5D63) is None)
+    check("H-code 拼装正确",
+          bool(sig) and vntext.build_hook_code(sig, "AdvHD_crack.exe")
+          == "HQ-4@A22E:AdvHD_crack.exe",
+          str(sig and vntext.build_hook_code(sig, "AdvHD_crack.exe")))
+    check("hook 码格式校验",
+          vntext.looks_like_hook_code("HQ-4@A22E:AdvHD_crack.exe")
+          and vntext.looks_like_hook_code("HS10@0:gdi32.dll")
+          and not vntext.looks_like_hook_code("随便写点什么")
+          and not vntext.looks_like_hook_code("HQ-4@A22E:"),
+          "")
+    check("线程码匹配（含 Textractor 的规范化回显）",
+          vntext.hook_code_matches("HQ-4@A22E:AdvHD_crack.exe", "hq-4@a22e:advhd_crack.exe")
+          and vntext.hook_code_matches("HV-4@A22E:AdvHD_crack.exe",
+                                       "HS65001#-4@A22E:AdvHD_crack.exe")
+          and not vntext.hook_code_matches("HQ-4@A22E:AdvHD_crack.exe",
+                                           "HW8@0:gdi32.dll"),
+          "")
+    check("没有指纹时不会乱套用地址", vntext.willplus_hook_code("") == "")
+    # 开翻译时要自动把专用 hook 码发给 CLI（假 CLI 会把它回显成一条台词）
+    hook_lines: list[dict] = []
+    eng_hook = vntext.VnTextEngine(
+        settings_getter=lambda: {"vntext_tractor_path": str(FAKE_CLI),
+                                 "vntext_max_chars": 1200},
+        on_line=hook_lines.append)
+    hook_state = eng_hook.start("probe-hook", 1234, "hook", exe="",
+                                hook_code="HQ-4@A22E:fake.exe")
+    deadline = time.time() + 10
+    while time.time() < deadline and not any("手動フック" in row["text"]
+                                             for row in hook_lines):
+        time.sleep(0.2)
+    check("开启翻译时自动带上专用 hook 码",
+          any("手動フック" in row["text"] for row in hook_lines)
+          and hook_state.get("hook_code") == "HQ-4@A22E:fake.exe",
+          f"{hook_state.get('hook_code')} / {[row['text'][:16] for row in hook_lines]}")
+    check("专用钩子那条线程被标成优先",
+          any(vntext.hook_code_matches("HQ-4@A22E:fake.exe", str(row.get("code") or ""))
+              for row in eng_hook.status()["threads"]),
+          str([row.get("code") for row in eng_hook.status()["threads"]]))
+    eng_hook.stop()
+    # 真机两次漏网：① 残片里带空格 → 子序列判断失败；② 残片被当成「说话人名字」
+    # 挂到下一句上（`【家近離心倒】家が近所で、…`）
+    wp_lines: list[dict] = []
+    eng_wp = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                 on_line=wp_lines.append)
+    for key, text in (
+        ("user", "姉さんは真面目を絵に描いたような人で、約束を違えるような真似はしない。"),
+        ("gdi1", "真面絵描 約束違真似"),
+        ("gdi2", "真面絵描約束違似"),
+    ):
+        eng_wp._register_line(key, text)
+    settle(eng_wp)
+    check("带空格的缺字版也并掉",
+          [row["text"] for row in wp_lines]
+          == ["姉さんは真面目を絵に描いたような人で、約束を違えるような真似はしない。"],
+          str([row["text"][:22] for row in wp_lines]))
+    name_lines: list[dict] = []
+    eng_name = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                   on_line=name_lines.append)
+    eng_name._name_pending = {"text": "家近離心倒", "key": "gdi", "at": time.time()}
+    eng_name._register_line("user", "家が近所で、年が離れていることもあって、"
+                                    "物心つく前から色々と面倒を見てもらっていた。")
+    settle(eng_name)
+    check("残片不会被当名字挂进译文",
+          [row["text"] for row in name_lines]
+          == ["家が近所で、年が離れていることもあって、"
+              "物心つく前から色々と面倒を見てもらっていた。"],
+          str([row["text"][:24] for row in name_lines]))
+
     write("\n[引擎标识与规则集]")
     check("TVP/KIRIKIRI 规则可取出",
           vntext.profile_for("TVP/KIRIKIRI").get("collapse_doubling") is True
           and "GetTextExtentPoint32W" in vntext.profile_for("TVP/KIRIKIRI")["hook_hint"])
-    check("WillPlus 规则里给出 OCR 建议",
-          "OCR" in vntext.profile_for("WillPlus")["hook_hint"])
+    check("WillPlus 规则里给出专用 hook 码的写法",
+          "HQ-4@" in vntext.profile_for("WillPlus")["hook_hint"]
+          and "WillPlus3" in vntext.profile_for("WillPlus")["hook_hint"],
+          vntext.profile_for("WillPlus")["hook_hint"][:60])
+    check("BGI 规则里给出引擎钩子的说明",
+          "BGI" in vntext.profile_for("BGI/Ethornell")["hook_hint"])
     check("未知引擎回落到 default", vntext.profile_for("不存在").get("name_prefix") is True)
     check("detect_engine 对无效 pid 不炸", vntext.detect_engine(0) == "unknown")
     # `vnreng: INSERT xxx` / `vnreng:Xxx: pattern not found` 里的引擎名要认准：

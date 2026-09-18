@@ -1,9 +1,9 @@
 Aurora 游戏内翻译 · 真机自测报告
-生成时间：2026-09-18 22:36:50
-游戏：秽翼的尤斯蒂娅  exe=E:\Games\Galgames\穢翼のユースティア\BGI.exe  pid=[9424]
-文本源：mode= 引擎=BGI/Ethornell cli=E:\Textractor\x86\TextractorCLI.exe error=
+生成时间：2026-09-19 00:21:05
+游戏：少女之剑与秘密的协奏曲  exe=E:\Games\Galgames\少女之剑与秘密的协奏曲\1\AdvHD_crack.exe  pid=[12944]
+文本源：mode= 引擎=WillPlus cli=E:\Textractor\x86\TextractorCLI.exe error=
 进程模块：
-  E:\Games\Galgames\穢翼のユースティア\BGI.exe
+  E:\Games\Galgames\少女之剑与秘密的协奏曲\1\AdvHD_crack.exe
   C:\WINDOWS\SYSTEM32\ntdll.dll
   C:\WINDOWS\System32\wow64.dll
   C:\WINDOWS\System32\wow64base.dll
@@ -12,123 +12,93 @@ Aurora 游戏内翻译 · 真机自测报告
   C:\WINDOWS\System32\wow64cpu.dll
 
 结论：全部通过
-原始行审计：认出 6 / 只有人名 0 / 噪声 27 / 半截碎片 4 / 漏掉 0
+原始行审计：认出 3 / 只有人名 0 / 噪声 10 / 半截碎片 12 / 漏掉 0
 
---- 原始钩子行（37 条）---
-[默认] name= code=
-    Usage: {'attach'|'detach'|hookcode} -Pprocessid
+--- 原始钩子行（25 条）---
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
     Textractor: 管道已连接
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: hijacking process located from 0x00400000 to 0x00C9B000
+    Textractor: hijacking process located from 0x00400000 to 0x005E9000
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    Textractor: 注入钩子: ID3DXFont::DrawTextW
+[默认] name= code=
+    Usage: {'attach'|'detach'|hookcode} -Pprocessid
+[1:0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=剪贴板 code=HB0@0
+    https://blog.gitcode.com/6cd41717c98a2ab7566d67d0925d44da.html
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
     Textractor: 注入钩子: GetCharABCWidthsFloatW
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng:BGI2: pattern found but the function offset is invalid
+    vnreng:WillPlus: function call not found
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: WideCharToMultiByte
+    vnreng:WillPlusW: pattern not found
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 移除钩子: GetStringTypeA
+    vnreng:WillPlusA: pattern not found
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: SysAllocStringLen
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng: INSERT BGI#2
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: BGI
-[4:24D0:76D5C690:42125B:0] name=TextOutA:HS10@0:gdi32.dll code=TextOutA
-    ─
-[6:24D0:76D5AF50:76EF9525:0] name=ExtTextOutW:HQ18@0:gdi32.dll code=ExtTextOutW
-    ؐ
-[3:24D0:425900:42884B:1AD420] name=BGI:HAC:-14@25900 code=BGI.exe
-    また一つ──
-[2:24D0:425900:42884B:1AD210] name=BGI:HAC:-14@25900 code=BGI.exe
-    ▼
-[2:24D0:425900:42884B:1AD210] name=BGI:HAC:-14@25900 code=BGI.exe
-    ▼
-[7:24D0:425900:427589:1AD370] name=BGI:HAC:-14@25900 code=BGI.exe
-    。
-[3:24D0:425900:42884B:1AD420] name=BGI:HAC:-14@25900 code=BGI.exe
-    また一つ。
-[4:24D0:76D5C690:42125B:0] name=TextOutA:HS10@0:gdi32.dll code=TextOutA
-    何かちを肉塊に変ている
-[7:24D0:425900:427589:1AD370] name=BGI:HAC:-14@25900 code=BGI.exe
-    、。
-[3:24D0:425900:42884B:1AD420] name=BGI:HAC:-14@25900 code=BGI.exe
-    何かが、女の子たちを肉の塊に変えている。
-[6:24D0:76D5AF50:76EF9525:0] name=ExtTextOutW:HQ18@0:gdi32.dll code=ExtTextOutW
-    ఱ࠿ࡕࢆ⫗ሢ࡟ኚ࡚࠸ࡿ
-[2:24D0:425900:42884B:1AD210] name=BGI:HAC:-14@25900 code=BGI.exe
-    ▼
-[6:24D0:76D5AF50:76EF9525:0] name=ExtTextOutW:HQ18@0:gdi32.dll code=ExtTextOutW
-    ὶࢀࡁ⾑㌟య༙ศᾐࡋࡌࡗ࡜ᜥẅࡍ
-[4:24D0:76D5C690:42125B:0] name=TextOutA:HS10@0:gdi32.dll code=TextOutA
-    流れき血身体半分浸しじっと息殺す
-[3:24D0:425900:42884B:1AD420] name=BGI:HAC:-14@25900 code=BGI.exe
-    流れてきた血に身体を半分浸したまま、じっと息を殺す。
-[2:24D0:425900:42884B:1AD210] name=BGI:HAC:-14@25900 code=BGI.exe
-    ▼
-[7:24D0:425900:427589:1AD370] name=BGI:HAC:-14@25900 code=BGI.exe
-    、。
-[4:24D0:76D5C690:42125B:0] name=TextOutA:HS10@0:gdi32.dll code=TextOutA
-    狩人自見逃く幸運祈りなら
-[6:24D0:76D5AF50:76EF9525:0] name=ExtTextOutW:HQ18@0:gdi32.dll code=ExtTextOutW
-    ⊁ே⮬ぢ㏨ࡃᖾ㐠♳ࡾ࡞ࡽ
-[7:24D0:425900:427589:1AD370] name=BGI:HAC:-14@25900 code=BGI.exe
-    。
-[2:24D0:425900:42884B:1AD210] name=BGI:HAC:-14@25900 code=BGI.exe
-    ▼
-[3:24D0:425900:42884B:1AD420] name=BGI:HAC:-14@25900 code=BGI.exe
-    狩人が自分を見逃してくれる幸運を祈りながら。
-[4:24D0:76D5C690:42125B:0] name=TextOutA:HS10@0:gdi32.dll code=TextOutA
-    さで娼館行馬車乗せわ
-[6:24D0:76D5AF50:76EF9525:0] name=ExtTextOutW:HQ18@0:gdi32.dll code=ExtTextOutW
-    ࡉ࡛፛㤋⾜㤿㌴஌ࡏࢃ
-[7:24D0:425900:427589:1AD370] name=BGI:HAC:-14@25900 code=BGI.exe
-    、。
-[2:24D0:425900:42884B:1AD210] name=BGI:HAC:-14@25900 code=BGI.exe
-    ▼
-[3:24D0:425900:42884B:1AD420] name=BGI:HAC:-14@25900 code=BGI.exe
-    さっきまで、娼館行きの馬車に乗せられていたわたしたち。
+    Textractor: 注入钩子: UserHook1
+[2:3290:40A22E:697B89F0:0] name=UserHook1 code=HQ-4@A22E:AdvHD_crack.exe
+    姉さんの家は剣術道場をやっていて、姉さん自身も武芸全般に精通している。
+[3:3290:76D5B370:438113:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    剣術道 武芸全般通
+[4:3290:76D5B370:438588:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    剣術道武芸全般通
+[5:3290:76D5B370:4385B1:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    剣術道武芸全般通
+[2:3290:40A22E:697B89F0:0] name=UserHook1 code=HQ-4@A22E:AdvHD_crack.exe
+    男らしくなると誓ったオレを鍛えてくれた、ある意味、師匠も同然の存在だ。
+[3:3290:76D5B370:438113:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    誓鍛 味師匠同然存在
+[4:3290:76D5B370:438588:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    誓鍛味師匠同然存在
+[5:3290:76D5B370:4385B1:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    誓鍛味師匠同然存在
+[7:3290:40A22E:697B8AA8:0] name=UserHook1 code=HQ-4@A22E:AdvHD_crack.exe
+    日向
+[6:3290:40CA10:45B03F:0] name=WillPlus2 code=HQ-8*0@CA10:AdvHD_crack.exe
+    껰ࡘ껰ࡘ
+[2:3290:40A22E:697B89F0:0] name=UserHook1 code=HQ-4@A22E:AdvHD_crack.exe
+    「空港ついたけど、いまどこ――っと……」
+[2:3290:40A22E:697B89F0:0] name=UserHook1 code=HQ-4@A22E:AdvHD_crack.exe
+    スマホのメッセージアプリを使い、姉さんに連絡を入れたけど、既読はつかない。
+[3:3290:76D5B370:438113:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    ホメッセジプ使 連絡既読
+[4:3290:76D5B370:438588:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    ホメッセジプ使連絡既読
+[5:3290:76D5B370:4385B1:0] name=GetGlyphOutlineW code=HW8@0:gdi32.dll:GetGlyphOutlineW
+    ホメッセジプ使連絡既読
 
---- 清洗后的台词 + 译文（6 条）---
-原文：また一つ──
-译文：又一个──  [cache] artifacts=[]
+--- 清洗后的台词 + 译文（5 条）---
+原文：https://blog.gitcode.com/6cd41717c98a2ab7566d67d0925d44da.html
+译文：你发来的是网页链接，不是日文台词。请把需要翻译的日文原文直接贴出来，我才能翻译。  [cache] artifacts=[]
 
-原文：また一つ。
-译文：又一个。  [cache] artifacts=[]
+原文：姉さんの家は剣術道場をやっていて、姉さん自身も武芸全般に精通している。
+译文：姐姐家开着一家剑术道场，姐姐本人也精通各种武艺。  [llm] artifacts=[]
 
-原文：何かが、女の子たちを肉の塊に変えている。
-译文：有什么东西，正在把少女们变成肉块。  [cache] artifacts=[]
+原文：男らしくなると誓ったオレを鍛えてくれた、ある意味、師匠も同然の存在だ。
+译文：她锻炼了曾发誓要变得更有男人味的我，某种意义上，她简直是等同于师父的存在。  [llm] artifacts=[]
 
-原文：流れてきた血に身体を半分浸したまま、じっと息を殺す。
-译文：身体半浸在流淌过来的血泊中，屏住呼吸一动不动。  [cache] artifacts=[]
+原文：「空港ついたけど、いまどこ――っと……」
+译文：我到机场了，不过你现在在哪——呃……  [llm] artifacts=[]
 
-原文：狩人が自分を見逃してくれる幸運を祈りながら。
-译文：一边祈祷着猎人会放过自己。  [cache] artifacts=[]
-
-原文：さっきまで、娼館行きの馬車に乗せられていたわたしたち。
-译文：直到刚才，我们还被送上前往娼馆的马车。  [cache] artifacts=[]
+原文：スマホのメッセージアプリを使い、姉さんに連絡を入れたけど、既読はつかない。
+译文：我用手机上的聊天软件给姐姐发了消息，却迟迟没有显示已读。  [llm] artifacts=[]
 
 --- 过程日志 ---
-[22:36:07] 目标游戏：秽翼的尤斯蒂娅 (E:\Games\Galgames\穢翼のユースティア\BGI.exe)
-[22:36:07] 清理残留 TextractorCLI：0 个
-[22:36:07] 游戏进程 pid=9424 bits=32
-[22:36:07] 进程模块 7 个：BGI.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
-[22:36:07] 游戏窗口：{'hwnd': 2427852, 'rect': (490, 371, 2251, 1311)}
-[22:36:08] 文本源：mode=hook 引擎=BGI/Ethornell cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
-[22:36:08] 候选进程：['E:\\Games\\Galgames\\穢翼のユースティア\\BGI.exe']
-[22:36:08] 引擎建议：BGI/Ethornell：用 BGI 那条钩子（引擎自己的文本接口）就能拿到完整正文；TextOutA/ExtTextOutW 是按字形抓的 GDI 钩子，会缺字，自动模式已经把它的缺字版并掉了（实测 秽翼のユースティア）。
-[22:36:14] 自动翻页 1/7（左键点击 (1615,1398)）
-[22:36:16] 台词：また一つ──
-[22:36:21] 自动翻页 2/7（左键点击 (1615,1398)）
-[22:36:22] 台词：また一つ。
-[22:36:27] 自动翻页 3/7（左键点击 (1615,1398)）
-[22:36:29] 台词：何かが、女の子たちを肉の塊に変えている。
-[22:36:34] 自动翻页 4/7（左键点击 (1615,1398)）
-[22:36:35] 台词：流れてきた血に身体を半分浸したまま、じっと息を殺す。
-[22:36:40] 自动翻页 5/7（左键点击 (1615,1398)）
-[22:36:42] 台词：狩人が自分を見逃してくれる幸運を祈りながら。
-[22:36:46] 自动翻页 6/7（左键点击 (1615,1398)）
-[22:36:49] 台词：さっきまで、娼館行きの馬車に乗せられていたわたしたち。
-[22:36:50] 停止文本源：lines=6 merged=4 gated=0 引擎=BGI/Ethornell
-[22:36:50] 原始行审计：认出 6 条 · 只有人名 0 条 · 噪声 27 条 · 半截碎片 4 条 · **漏掉 0 条**
+[00:20:34] 目标游戏：少女之剑与秘密的协奏曲 (E:\Games\Galgames\少女之剑与秘密的协奏曲\1\AdvHD_crack.exe)
+[00:20:34] 清理残留 TextractorCLI：0 个
+[00:20:34] 游戏进程 pid=12944 bits=32
+[00:20:34] 进程模块 7 个：AdvHD_crack.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
+[00:20:34] 游戏窗口：{'hwnd': 1639492, 'rect': (1655, 399, 1304, 784)}
+[00:20:35] 文本源：mode=hook 引擎=WillPlus cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
+[00:20:35] 候选进程：['s\\Galgames\\少女之剑与秘密的协奏曲\\1\\AdvHD_crack.exe']
+[00:20:35] 引擎建议：WillPlus/AdvHD：Textractor 自带的 WillPlus 系钩子对不上这类 exe（实测少女之剑：WillPlus 找不到函数、WillPlusW/A 找不到特征码、WillPlus2 把地址算到 Intel 显卡驱动的 igc32.dll 上 → 乱码），只剩按字形抓的 GDI 钩子，而字形有缓存 → 缺字。出路是**专用用户钩子码**：在游戏页「翻译」面板里填 `HQ-4@<模块内偏移>:<exe文件名>`（Q = UTF-16，S = 字节串，V = UTF-8）。偏移可以从 LunaTranslator 的日志里拿（`注入钩子: WillPlus3 0040A22E` → 减去 0x400000 得 A22E）；本机实测过的作品 Aurora 会自动填好。
+[00:20:36] 台词：https://blog.gitcode.com/6cd41717c98a2ab7566d67d0925d44da.html
+[00:20:41] 自动翻页 1/6（左键点击 (2307,1012)）
+[00:20:43] 台词：姉さんの家は剣術道場をやっていて、姉さん自身も武芸全般に精通している。
+[00:20:47] 自动翻页 2/6（左键点击 (2307,1012)）
+[00:20:49] 台词：男らしくなると誓ったオレを鍛えてくれた、ある意味、師匠も同然の存在だ。
+[00:20:54] 自动翻页 3/6（左键点击 (2307,1012)）
+[00:20:56] 台词：「空港ついたけど、いまどこ――っと……」
+[00:21:00] 自动翻页 4/6（左键点击 (2307,1012)）
+[00:21:02] 台词：スマホのメッセージアプリを使い、姉さんに連絡を入れたけど、既読はつかない。
+[00:21:05] 停止文本源：lines=5 merged=9 gated=1 引擎=WillPlus
+[00:21:05] 原始行审计：认出 3 条 · 只有人名 0 条 · 噪声 10 条 · 半截碎片 12 条 · **漏掉 0 条**

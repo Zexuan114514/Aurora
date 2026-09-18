@@ -2,32 +2,32 @@ Aurora 会话 / 进程树自检
 ====================================================
 
 [1] 直接启动 exe：按镜像路径认本体
-  OK  启动返回 ok  {'ok': True, 'pid': 7572, 'started_at': 1789742439.3332565}
-  OK  20s 内认出游戏本体  pid=7572 matched_by=path
+  OK  启动返回 ok  {'ok': True, 'pid': 21452, 'started_at': 1789748656.098699}
+  OK  20s 内认出游戏本体  pid=21452 matched_by=path
   OK  按路径匹配（不是子树）  path
   OK  认出的 pid 镜像路径就是游戏 exe  C:\Users\HuHu1\Desktop\Tasks\v4.1\Aurora\_sandbox\session-fake\selfgame.exe
-  OK  手动结束后结算时长  seconds=1.7
+  OK  手动结束后结算时长  seconds=1.8
   OK  结束后不再算运行中
-       killed=[7572]
+       killed=[21452]
 
 [2] 引导 bat 自己退出：仍判运行中（老实现会误判结束）
-  OK  启动返回 ok  {'ok': True, 'pid': 7072, 'started_at': 1789742441.0718865}
-  OK  引导进程退出后仍判运行中  pid=11020 matched_by=tree
+  OK  启动返回 ok  {'ok': True, 'pid': 22656, 'started_at': 1789748657.9369075}
+  OK  引导进程退出后仍判运行中  pid=7476 matched_by=tree
   OK  按子树匹配到了真正的游戏进程  tree
   OK  手动结束也结算时长  seconds=6.0
-  OK  子进程确实被结束  pid=11020
+  OK  子进程确实被结束  pid=7476
 
 [3] 游戏自然退出：play_count / sessions / 时长入账
-  OK  api.launch 返回 ok  {'ok': True, 'pid': 13588, 'started_at': 1789742448.0968173}
+  OK  api.launch 返回 ok  {'ok': True, 'pid': 27108, 'started_at': 1789748665.1912768}
   OK  启动次数 +1  1
   OK  运行中 bootstrap 正常且标记 running  1 个运行中
   OK  运行结束后自动结算（不用手动点结束）  running=False
-  OK  会话写进 sessions  {'started_at': 1789742448, 'ended_at': 1789742455, 'seconds': 4}
+  OK  会话写进 sessions  {'started_at': 1789748665, 'ended_at': 1789748672, 'seconds': 4}
   OK  累计时长入账  4
   OK  会话标记被清掉  pid=0 launcher=0
 
 [4] 转区启动：argv 原样交给 LE
-  OK  带 launcher 启动成功  {'ok': True, 'pid': 15808, 'started_at': 1789742456.1185422}
+  OK  带 launcher 启动成功  {'ok': True, 'pid': 7108, 'started_at': 1789748673.226208}
   OK  LE 收到 -runas <GUID> <exe> <参数>  -runas|{33333333-3333-3333-3333-333333333333}|C:\Users\HuHu1\Desktop\Tasks\v4.1\Aurora\_sandbox\session-fake\selfgame.exe|-n|5
 
 结论: 全部通过

@@ -13,17 +13,17 @@ Aurora 网络自检
   OK  auto 模式给出源说明  Windows 系统代理
 
 [端点连通性 test_network]
-  OK  Steam 商店   1111 ms
-  OK  Steam 图片   3452 ms
-  OK  VNDB       1621 ms
-  OK  Bangumi    1557 ms
-  OK  翻译接口       1889 ms
-  用时 9.6s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
+  OK  Steam 商店   917 ms
+  OK  Steam 图片   704 ms
+  OK  VNDB       1663 ms
+  OK  Bangumi    479 ms
+  OK  翻译接口       1670 ms
+  用时 5.4s，生效代理 http://127.0.0.1:7897（Windows 系统代理）
   OK  至少 3 个端点通  5/5
 
 [直连 vs 手动（换路）]
   OK  切到直连后 current() 也变了
-  直连请求失败：URLError: <urlopen error timed out>
+  直连请求失败：URLError: <urlopen error _ssl.c:1011: The handshake operation timed out>
   WARN 当前离线，跳过换路断言
 
 [沙盒还原]
