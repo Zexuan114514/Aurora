@@ -635,12 +635,25 @@ def residual_artifacts(text: str) -> list[str]:
 GARBAGE_RE = re.compile(r"[\ue000-\uf8ff\ufffd\ufff0-\uffff\x00-\x08\x0b\x0c\x0e-\x1f]")
 GOOD_RE = re.compile(r"[\u3040-\u30ff\u4e00-\u9fff\uff01-\uff60a-zA-Z0-9\s，。、！？…—「」『』（）()：:；;・～~ー]")
 
+#: 台词里可能出现的字符（日文/中文/拉丁/常见标点与全角符号）。除此之外的字符
+#: （天城文、希伯来文、西里尔文…）基本都是「没转区/读错编码」的乱码。
+EXPECTED_RE = re.compile(
+    r"[\u0020-\u007e\u00a0-\u00ff\u2010-\u203b\u203c-\u206f\u2190-\u21ff"
+    r"\u2460-\u24ff\u2500-\u257f\u25a0-\u25ff\u2600-\u27bf\u3000-\u303f"
+    r"\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
+    r"\ufe30-\ufe4f\uff01-\uff60\uff61-\uff9f\uffe0-\uffee]")
+
 def looks_like_garbage(text: str) -> bool:
     """乱码判定：未转区（非日语代码页）时游戏会吐出假名+私用区/控制符混杂的串。"""
     body = (text or "").strip()
     if not body:
         return True
     if GARBAGE_RE.search(body):
+        return True
+    # 混进了意料之外的文字系统（实测白色相簿2 的乱码线程：
+    # `इव孙ؔ䝬׋孙ؔ灐灒灟灹灱炄灰` —— 天城文/希伯来文混着汉字）
+    others = sum(1 for ch in body if not EXPECTED_RE.match(ch))
+    if others >= 2 and others / len(body) > 0.15:
         return True
     # 注意：这一条不能太激进。钩子是分片吐文本的，被截断的短句很容易凑不够
     # 有效字符比例，如果因此判成乱码，真文本所在线程会连着被误杀（反馈里的
@@ -665,7 +678,11 @@ def looks_like_dialogue(text: str) -> bool:
     if looks_like_noise(body):
         return False
     kana = len(KANA_RE.findall(body))
-    return kana >= 2 or (kana >= 1 and len(CJK_RE.findall(body)) >= 2)
+    if kana >= 2 or (kana >= 1 and len(CJK_RE.findall(body)) >= 2):
+        return True
+    # 短台词（「あ…」「はい」这种只有一两个假名的）也算 —— 白色相簿2 里
+    # 这类句子很多，不认的话真文本线程永远当不上领跑线程
+    return kana >= 1 and bool(re.match(r"^[「『（(【]", body))
 
 
 def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
@@ -679,6 +696,10 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
         return True
     if len(re.findall(r"\(&\w\)", body)) >= 2:
         return True                    # 「ファイル(&F)画面(&S)…」菜单栏
+    # 视频/窗口/文件名之类（实测白色相簿2 的 `mv01`、`ActiveMovie Window`）：
+    # 纯拉丁字母数字、没标点、又很短，不可能是日文台词
+    if len(body) <= 24 and re.fullmatch(r"[A-Za-z0-9_.\- ]+", body):
+        return True
     if looks_like_garbage(body):
         return True
     if len(set(body)) <= 2 and len(body) >= 6:              # 分割线之类
@@ -841,6 +862,9 @@ class VnTextEngine:
                 title = screencap_mod.window_title(int(window.get("hwnd") or 0))
                 if title:
                     self._noise_names.add(norm_name(title))
+            # 视频/子窗口的标题也会被钩子当文本吐出来（`ActiveMovie Window`）
+            for title in screencap_mod.window_titles(self._pid):
+                self._noise_names.add(norm_name(title))
         except Exception as exc:
             config.log(f"vntext title probe failed: {exc}")
         self._noise_names.discard("")
@@ -1113,6 +1137,10 @@ class VnTextEngine:
                     return
                 if old.startswith(text):
                     pending["at"] = now         # 重复/回退，忽略
+                    # 同一条短文本反复重发（说话人名字就是每翻一页重发一次）：
+                    # 记一笔，识别「名字线程」时用得上 —— 两条名字行被 0.35 秒
+                    # 缓冲合并成一条时，只靠 _register_line 计数是数不出来的
+                    row["repeats"] = row.get("repeats", 0) + 1
                     return
                 # 引擎可能把「缺字的前半段」先写出来、再补一份更完整的：
                 # 只要一份基本包含另一份，就保留更长的那份，别当成新句子
@@ -1121,6 +1149,7 @@ class VnTextEngine:
                         and len(shorter) >= 0.6 * len(longer):
                     pending["text"] = longer
                     pending["at"] = now
+                    row["repeats"] = row.get("repeats", 0) + 1
                     return
         if pending:
             self._flush_thread(key)             # 上一句先落地
@@ -1204,8 +1233,11 @@ class VnTextEngine:
                 row["short"] = row.get("short", 0) + 1
             else:
                 row["long"] = row.get("long", 0) + 1
-            # 只出短名字、从不出长句的线程 = 「说话人名字」线程（实测 Escu:de）
-            name_thread = row.get("short", 0) >= 2 and not row.get("long", 0)
+            # 只出短名字、从不出长句的线程 = 「说话人名字」线程（实测 Escu:de）。
+            # repeats 来自分片缓冲（同一条短文本反复重发），两条名字行被缓冲合并
+            # 成一条时也能认出来
+            name_like = row.get("short", 0) + row.get("repeats", 0)
+            name_thread = name_like >= 2 and not row.get("long", 0)
             if looks_like_dialogue(clean):
                 row["dialogue"] = row.get("dialogue", 0) + 1
             row["sample"] = clean[:60]

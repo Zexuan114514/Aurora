@@ -66,13 +66,13 @@ while True:
         time.sleep(0.05)
         # 说话人名字单独一条（Escu:de 实测）：不该单独翻，要并成下一句的【名字】
         emit("00000005", "speaker", "HS5@0", "アマリリス")
-        time.sleep(0.6)          # 真实场景里名字是每次翻页重发一次，间隔远大于 0.35s
+        time.sleep(1.2)          # 真实场景里名字是每次翻页重发一次，间隔远大于 0.35s
         emit("00000003", "wrapped", "HS3@0", "「参考、ですか。確か作家の先生をされていると伺いました」")
-        time.sleep(0.6)
+        time.sleep(1.2)
         emit("00000005", "speaker", "HS5@0", "アマリリス")
-        time.sleep(0.6)
+        time.sleep(1.2)
         emit("00000003", "wrapped", "HS3@0", "「まだまだ勉強中です」")
-        time.sleep(0.6)
+        time.sleep(1.2)
         emit("00000001", "menu", "HS1@0", "設定")
     elif cmd.startswith("detach"):
         break
@@ -361,7 +361,7 @@ def main() -> int:
           str(eng_race.status().get("merged")))
     # 不像台词的杂讯仍要被门禁挡掉（菜单动画之类）
     raced.clear()
-    eng_race._register_line("thread-C", "s0001-09s0001-09s0001-09s0001-05")
+    eng_race._register_line("thread-C", "迷宮探索中継続表示切替案内")   # 无假名、非短名，非台词
     check("领跑线程之外的非台词仍被挡掉", len(raced) == 0, f"发出 {len(raced)} 条")
     check("门禁计数有记录", eng_race.status().get("gated", 0) >= 1,
           str(eng_race.status().get("gated")))
@@ -373,6 +373,35 @@ def main() -> int:
     check("窗口标题与 exe 名可比对",
           vntext.norm_name("RIDDLE JOKER") == vntext.norm_name("RiddleJoker.exe")[:11],
           f"{vntext.norm_name('RIDDLE JOKER')} vs {vntext.norm_name('RiddleJoker.exe')}")
+
+    # 白色相簿2 实测：同一进程里既有乱码线程、菜单线程，又有视频窗口标题与文件名，
+    # 自动选线程不能被它们带跑
+    write("\n[白色相簿2 实测：乱码/视频/菜单线程不参与]")
+    check("混入天城文/希伯来文的乱码判为噪声",
+          vntext.looks_like_noise("इव孙ؔ䝬\u05cb孙ؔ灐灒灟灹灱炄灰"))
+    check("视频窗口标题判为噪声", vntext.looks_like_noise("ActiveMovie Window"))
+    check("视频文件名判为噪声", vntext.looks_like_noise("mv01"))
+    check("短台词仍算台词", vntext.looks_like_dialogue("「あ…」"))
+    wa2: list[dict] = []
+    eng_wa2 = vntext.VnTextEngine(settings_getter=lambda: {"vntext_max_chars": 1200},
+                                  on_line=wa2.append)
+    for key, text in (
+        ("3:3EBC:7", "इவ孙ؔ䝬\u05cb孙ؔ灐灒灟灹灱炄灰"),
+        ("4:3EBC:7", "画面設定環境設定システムヘルプ"),
+        ("5:3EBC:7", "ActiveMovie WindowActiveMovie Window"),
+        ("6:3EBC:4", "mv01"),
+        ("7:3EBC:4", "「あ…」"),
+        ("7:3EBC:4", "とうとう、降ってきた。"),
+        ("7:3EBC:4", "街はすっかり白に染まっている。"),
+        ("3:3EBC:7", "灱炄灰灱炄灰इவ孙ؔ䝬\u05cb孙ؔ灐灒灟灹灱炄灰"),
+    ):
+        eng_wa2._register_line(key, text)
+    check("只发射真台词那三句",
+          [row["text"] for row in wa2] == ["「あ…」", "とうとう、降ってきた。",
+                                           "街はすっかり白に染まっている。"],
+          str([row["text"][:20] for row in wa2]))
+    check("活动线程指向真文本线程", eng_wa2._active_key().startswith("7:3EBC"),
+          eng_wa2._active_key())
 
     write("\n[引擎标识与规则集]")
     check("TVP/KIRIKIRI 规则可取出",

@@ -29,6 +29,9 @@ user32.WindowFromPoint.restype = wintypes.HWND
 user32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
 user32.GetAncestor.restype = wintypes.HWND
 user32.GetWindowTextW.argtypes = [wintypes.HWND, ctypes.c_wchar_p, ctypes.c_int]
+user32.EnumChildWindows.argtypes = [
+    wintypes.HWND, ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM),
+    wintypes.LPARAM]
 
 gdi32.CreateCompatibleDC.argtypes = [wintypes.HDC]
 gdi32.CreateCompatibleDC.restype = wintypes.HDC
@@ -100,6 +103,38 @@ def window_title(hwnd: int) -> str:
         return buffer.value.strip()
     except Exception:
         return ""
+
+
+def window_titles(pid: int) -> list[str]:
+    """该进程所有可见顶层窗口的标题（含视频子窗口那种）。
+
+    有些引擎会把窗口标题当文本吐进钩子流（实测白色相簿2 的 `ActiveMovie Window`），
+    这些标题要拿来当噪声过滤掉。
+    """
+    pid = int(pid or 0)
+    if not pid:
+        return []
+    found: list[str] = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def callback(hwnd, _lparam):
+        owner = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        if owner.value != pid or not user32.IsWindowVisible(hwnd):
+            return True
+        title = window_title(int(hwnd))
+        if title and title not in found:
+            found.append(title)
+        return True
+
+    try:
+        user32.EnumWindows(callback, 0)
+        # ActiveMovie 这类视频窗口是子窗口，顶层枚举看不到
+        for hwnd, _rect in ((row["hwnd"], row["rect"]) for row in windows_of(pid)):
+            user32.EnumChildWindows(wintypes.HWND(int(hwnd)), callback, 0)
+    except Exception:
+        pass
+    return found
 
 
 def is_exposed(hwnd: int) -> bool:

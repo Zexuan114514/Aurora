@@ -65,6 +65,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--translate-wait", type=float, default=45.0,
                         help="收完台词后等译文的最长时间")
     parser.add_argument("--keep-game", action="store_true", help="结束后不关闭游戏")
+    parser.add_argument("--no-kill", action="store_true",
+                        help="别清残留的 TextractorCLI（你自己开着启动器时用这个）")
     return parser.parse_args()
 
 
@@ -197,7 +199,7 @@ def main() -> int:
         print(line, flush=True)
 
     note(f"目标游戏：{game.get('name')} ({exe})")
-    stale = kill_stale_cli()
+    stale = 0 if ARGS.no_kill else kill_stale_cli()
     note(f"清理残留 TextractorCLI：{stale} 个")
 
     if ARGS.no_launch:

@@ -1,9 +1,9 @@
 Aurora 游戏内翻译 · 真机自测报告
-生成时间：2026-09-18 13:16:51
-游戏：悠刻のファムファタル  exe=E:\Games\Galgames\悠刻のファムファタル\femme_fatale.exe  pid=[11028]
-文本源：mode= 引擎=TVP/KIRIKIRI cli=E:\Textractor\x86\TextractorCLI.exe error=
+生成时间：2026-09-18 14:55:35
+游戏：白色相簿2  exe=E:\Games\Galgames\WHITE ALBUM2\WA2.exe  pid=[16060]
+文本源：mode= 引擎=unknown cli=E:\Textractor\x86\TextractorCLI.exe error=
 进程模块：
-  E:\Games\Galgames\悠刻のファムファタル\femme_fatale.exe
+  E:\Games\Galgames\WHITE ALBUM2\WA2.exe
   C:\WINDOWS\SYSTEM32\ntdll.dll
   C:\WINDOWS\System32\wow64.dll
   C:\WINDOWS\System32\wow64base.dll
@@ -11,84 +11,31 @@ Aurora 游戏内翻译 · 真机自测报告
   C:\WINDOWS\System32\wow64con.dll
   C:\WINDOWS\System32\wow64cpu.dll
 
-结论：全部通过
-原始行审计：认出 8 / 只有人名 0 / 噪声 10 / 半截碎片 0 / 漏掉 0
+结论：有问题
+  ✗ 只收到 0 条台词（要求 ≥3）
+  ✗ 引擎标识仍为 unknown
+原始行审计：认出 0 / 只有人名 0 / 噪声 2 / 半截碎片 0 / 漏掉 0
 
---- 原始钩子行（18 条）---
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 管道已连接
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: hijacking process located from 0x00400000 to 0x00C62000
+--- 原始钩子行（2 条）---
 [默认] name= code=
     Usage: {'attach'|'detach'|hookcode} -Pprocessid
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: GetCharABCWidthsFloatW
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng:ShinaRio: unknown version
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng:CaramelBox: failed
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    vnreng: INSERT Escude
-[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 注入钩子: Escude
-[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    「……どんな内容だったんだ」
-[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    彰
-[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    アマリリス
-[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    「そちらは内密にさせて下さいませ」
-[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    アマリリス
-[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    「ですが仲間外れにしないで欲しいと言った手前、お断りすることはできませんね」
-[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    アマリリス
-[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    「それではお客様。一夜のお時間を頂きます。どうぞ私と共に館の探検に赴きましょう」
-[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    彰
-[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
-    「こっちこそよろしく」
+    Textractor: 已经注入
 
---- 清洗后的台词 + 译文（6 条）---
-原文：「……どんな内容だったんだ」
-译文：……是什么内容来着  [llm] artifacts=[]
-
-原文：アマリリス
-译文：孤挺花  [cache] artifacts=[]
-
-原文：「そちらは内密にさせて下さいませ」
-译文：那件事，还请容我保密。  [llm] artifacts=[]
-
-原文：【アマリリス】「ですが仲間外れにしないで欲しいと言った手前、お断りすることはできませんね」
-译文：アマリリス「不过，既然是我自己先说了希望不要把我排除在外，事到如今也没法拒绝了。」  [llm] artifacts=[]
-
-原文：【アマリリス】「それではお客様。一夜のお時間を頂きます。どうぞ私と共に館の探検に赴きましょう」
-译文：【阿玛丽莉丝】「那么，客人。请容我占用您一夜的时间。请随我一同去探索这座宅邸吧」  [llm] artifacts=[]
-
-原文：「こっちこそよろしく」
-译文：我才是，请多指教。  [llm] artifacts=[]
-
+--- 清洗后的台词 + 译文（0 条）---
 --- 过程日志 ---
-[13:16:16] 目标游戏：悠刻のファムファタル (E:\Games\Galgames\悠刻のファムファタル\femme_fatale.exe)
-[13:16:16] 清理残留 TextractorCLI：0 个
-[13:16:16] 游戏进程 pid=11028 bits=32
-[13:16:16] 进程模块 7 个：femme_fatale.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
-[13:16:16] 游戏窗口：{'hwnd': 395894, 'rect': (564, 168, 2251, 1311)}
-[13:16:16] 文本源：mode=hook 引擎=unknown cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
-[13:16:16] 候选进程：['mes\\Galgames\\悠刻のファムファタル\\femme_fatale.exe']
-[13:16:23] 自动翻页 1/8（左键点击 (1689,1195)）
-[13:16:24] 台词：「……どんな内容だったんだ」
-[13:16:28] 自动翻页 2/8（左键点击 (1689,1195)）
-[13:16:29] 台词：アマリリス
-[13:16:29] 台词：「そちらは内密にさせて下さいませ」
-[13:16:33] 自动翻页 3/8（左键点击 (1689,1195)）
-[13:16:35] 台词：【アマリリス】「ですが仲間外れにしないで欲しいと言った手前、お断りすることはできませんね」
-[13:16:39] 自动翻页 4/8（左键点击 (1689,1195)）
-[13:16:40] 台词：【アマリリス】「それではお客様。一夜のお時間を頂きます。どうぞ私と共に館の探検に赴きましょう」
-[13:16:44] 自动翻页 5/8（左键点击 (1689,1195)）
-[13:16:45] 台词：「こっちこそよろしく」
-[13:16:51] 停止文本源：lines=6 merged=0 gated=0 引擎=TVP/KIRIKIRI
-[13:16:51] 原始行审计：认出 8 条 · 只有人名 0 条 · 噪声 10 条 · 半截碎片 0 条 · **漏掉 0 条**
+[14:53:33] 目标游戏：白色相簿2 (E:\Games\Galgames\WHITE ALBUM2\WA2.exe)
+[14:53:33] 清理残留 TextractorCLI：0 个
+[14:53:33] 游戏进程 pid=16060 bits=32
+[14:53:33] 进程模块 7 个：WA2.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
+[14:53:33] 游戏窗口：{'hwnd': 395202, 'rect': (382, 259, 2251, 1346)}
+[14:53:35] 文本源：mode=hook 引擎=unknown cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
+[14:53:35] 候选进程：['E:\\Games\\Galgames\\WHITE ALBUM2\\WA2.exe']
+[14:53:41] 自动翻页 1/6（左键点击 (1507,1321)）
+[14:53:46] 自动翻页 2/6（左键点击 (1507,1321)）
+[14:53:52] 自动翻页 3/6（左键点击 (1507,1321)）
+[14:53:57] 自动翻页 4/6（左键点击 (1507,1321)）
+[14:54:03] 自动翻页 5/6（左键点击 (1507,1321)）
+[14:54:08] 自动翻页 6/6（左键点击 (1507,1321)）
+[14:55:35] 停止文本源：lines=0 merged=0 gated=0 引擎=unknown
+[14:55:35] 原始行审计：认出 0 条 · 只有人名 0 条 · 噪声 2 条 · 半截碎片 0 条 · **漏掉 0 条**
