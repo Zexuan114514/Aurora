@@ -1,9 +1,9 @@
 Aurora 游戏内翻译 · 真机自测报告
-生成时间：2026-09-18 11:48:54
-游戏：Riddle Joker  exe=E:\Games\Galgames\RIDDLE JOKER\RiddleJoker.exe  pid=[14968]
+生成时间：2026-09-18 13:16:51
+游戏：悠刻のファムファタル  exe=E:\Games\Galgames\悠刻のファムファタル\femme_fatale.exe  pid=[11028]
 文本源：mode= 引擎=TVP/KIRIKIRI cli=E:\Textractor\x86\TextractorCLI.exe error=
 进程模块：
-  E:\Games\Galgames\RIDDLE JOKER\RiddleJoker.exe
+  E:\Games\Galgames\悠刻のファムファタル\femme_fatale.exe
   C:\WINDOWS\SYSTEM32\ntdll.dll
   C:\WINDOWS\System32\wow64.dll
   C:\WINDOWS\System32\wow64base.dll
@@ -12,105 +12,83 @@ Aurora 游戏内翻译 · 真机自测报告
   C:\WINDOWS\System32\wow64cpu.dll
 
 结论：全部通过
-原始行审计：认出 14 / 只有人名 4 / 噪声 3 / 半截碎片 5 / 漏掉 0
+原始行审计：认出 8 / 只有人名 0 / 噪声 10 / 半截碎片 0 / 漏掉 0
 
---- 原始钩子行（26 条）---
+--- 原始钩子行（18 条）---
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    Textractor: 管道已连接
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    Textractor: hijacking process located from 0x00400000 to 0x00C62000
 [默认] name= code=
     Usage: {'attach'|'detach'|hookcode} -Pprocessid
 [0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
-    Textractor: 管道已连接
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    実実行行犯犯をを無無力力化化すするるだだけけなならら、、１１人人ででももななんんととかかななるるだだろろううがが…………。。
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    実実実行行行犯犯犯ををを無無無力力力化化化すすするるるだだだけけけなななららら、、、１１１人人人でででもももなななんんんとととかかかなななるるるだだだろろろうううががが………………。。。
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    やややはははりりり辛辛辛いいいななな、、、こここののの熱熱熱気気気。。。
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    ややははりり辛辛いいなな、、ここのの熱熱気気。。
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    思思わわずずたためめ息息をを吐吐ここううととししたたそそのの寸寸前前、、七七海海のの声声がが俺俺ののたためめ息息をを遮遮っったた。。
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    思思思わわわずずずたたためめめ息息息ををを吐吐吐こここうううとととしししたたたそそそののの寸寸寸前前前、、、七七七海海海ののの声声声ががが俺俺俺のののたたためめめ息息息ををを遮遮遮っっったたた。。。
-[5:3A78:DE4600:DE6A07:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    【レヴィ９】【レヴィ９】
-[4:3A78:DE4600:DE69C5:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    【レヴィ９】【レヴィ９】【レヴィ９】
-[7:3A78:DE4600:DE6A07:14] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    しろしろ
-[6:3A78:DE4600:DE69C5:14] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    しろしろしろ
-[8:3A78:DE4600:DE65A0:14] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    みみみ
-[9:3A78:DE4600:DE65DA:14] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    みみ
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    「「見見つつけけたたっっ！！ 対対象象はは、、白白実実通通りりをを南南下下中中」」
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    「「「見見見つつつけけけたたたっっっ！！！ 対対対象象象ははは、、、白白白実実実通通通りりりををを南南南下下下中中中」」」
-[5:3A78:DE4600:DE6A07:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    【レヴィ６】【レヴィ６】
-[4:3A78:DE4600:DE69C5:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    【レヴィ６】【レヴィ６】【レヴィ６】
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    「「「よよよししし、、、移移移動動動すすするるるぞぞぞ」」」
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    「「よよしし、、移移動動すするるぞぞ」」
-[A:3A78:DE4600:DE69C5:18] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    Suspicion
-[B:3A78:DE4600:DE6A07:18] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    Suspicion
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    辿辿辿りりり着着着いいいたたた先先先ででで、、、気気気付付付かかかれれれぬぬぬよよようううににに俺俺俺たたたちちちははは物物物陰陰陰ににに隠隠隠れれれたたた。。。
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    辿辿りり着着いいたた先先でで、、気気付付かかれれぬぬよよううにに俺俺たたちちはは物物陰陰にに隠隠れれたた。。
-[2:3A78:DE4600:DE65A0:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    視視視線線線ののの先先先にににははは２２２人人人ののの少少少年年年がががいいいたたた。。。
-[3:3A78:DE4600:DE65DA:27] name=KiriKiriZ:HW-8*14:-8*0@F4600 code=RiddleJoker.exe
-    視視線線のの先先ににはは２２人人のの少少年年ががいいたた。。
+    Textractor: 注入钩子: GetCharABCWidthsFloatW
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    vnreng:ShinaRio: unknown version
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    vnreng:CaramelBox: failed
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    vnreng: INSERT Escude
+[0:0:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF:FFFFFFFFFFFFFFFF] name=控制台 code=HB0@0
+    Textractor: 注入钩子: Escude
+[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    「……どんな内容だったんだ」
+[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    彰
+[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    アマリリス
+[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    「そちらは内密にさせて下さいませ」
+[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    アマリリス
+[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    「ですが仲間外れにしないで欲しいと言った手前、お断りすることはできませんね」
+[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    アマリリス
+[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    「それではお客様。一夜のお時間を頂きます。どうぞ私と共に館の探検に赴きましょう」
+[2:2B14:42B990:0:2B] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    彰
+[3:2B14:42B990:0:2D] name=Escude:HSNX0:0@2B990 code=femme_fatale.exe
+    「こっちこそよろしく」
 
---- 清洗后的台词 + 译文（7 条）---
-原文：実行犯を無力化するだけなら、１人でもなんとかなるだろうが……。
-译文：如果只是让实行犯失去行动能力，一个人也总会有办法的……  [llm] artifacts=[]
+--- 清洗后的台词 + 译文（6 条）---
+原文：「……どんな内容だったんだ」
+译文：……是什么内容来着  [llm] artifacts=[]
 
-原文：やはり辛いな、この熱気。
-译文：果然还是够呛啊，这股热气。  [llm] artifacts=[]
+原文：アマリリス
+译文：孤挺花  [cache] artifacts=[]
 
-原文：思わずため息を吐こうとしたその寸前、七海の声が俺のため息を遮った。
-译文：正不由得想叹口气的那一瞬间，七海的声音打断了我这声叹息。  [llm] artifacts=[]
+原文：「そちらは内密にさせて下さいませ」
+译文：那件事，还请容我保密。  [llm] artifacts=[]
 
-原文：「見つけたっ！ 対象は、白実通りを南下中」
-译文：找到了！目标正在白实大道南下中。  [llm] artifacts=[]
+原文：【アマリリス】「ですが仲間外れにしないで欲しいと言った手前、お断りすることはできませんね」
+译文：アマリリス「不过，既然是我自己先说了希望不要把我排除在外，事到如今也没法拒绝了。」  [llm] artifacts=[]
 
-原文：「よし、移動するぞ」
-译文：好，移动吧。  [llm] artifacts=[]
+原文：【アマリリス】「それではお客様。一夜のお時間を頂きます。どうぞ私と共に館の探検に赴きましょう」
+译文：【阿玛丽莉丝】「那么，客人。请容我占用您一夜的时间。请随我一同去探索这座宅邸吧」  [llm] artifacts=[]
 
-原文：辿り着いた先で、気付かれぬように俺たちは物陰に隠れた。
-译文：抵达目的地后，我们为了不被发现，躲进了暗处。  [llm] artifacts=[]
-
-原文：視線の先には２人の少年がいた。
-译文：视线前方，是两个少年。  [llm] artifacts=[]
+原文：「こっちこそよろしく」
+译文：我才是，请多指教。  [llm] artifacts=[]
 
 --- 过程日志 ---
-[11:48:15] 目标游戏：Riddle Joker (E:\Games\Galgames\RIDDLE JOKER\RiddleJoker.exe)
-[11:48:15] 清理残留 TextractorCLI：0 个
-[11:48:15] 游戏进程 pid=14968 bits=32
-[11:48:15] 进程模块 7 个：RiddleJoker.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
-[11:48:15] 游戏窗口：{'hwnd': 8847960, 'rect': (1570, 883, 1412, 845)}
-[11:48:16] 文本源：mode=hook 引擎=unknown cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
-[11:48:16] 候选进程：['es\\Galgames\\RIDDLE JOKER\\RiddleJoker.exe']
-[11:48:22] 自动翻页 1/10（左键点击 (2276,1544)）
-[11:48:24] 台词：実行犯を無力化するだけなら、１人でもなんとかなるだろうが……。
-[11:48:27] 自动翻页 2/10（左键点击 (2276,1544)）
-[11:48:28] 台词：やはり辛いな、この熱気。
-[11:48:31] 自动翻页 3/10（左键点击 (2276,1544)）
-[11:48:33] 台词：思わずため息を吐こうとしたその寸前、七海の声が俺のため息を遮った。
-[11:48:35] 自动翻页 4/10（左键点击 (2276,1544)）
-[11:48:39] 台词：「見つけたっ！ 対象は、白実通りを南下中」
-[11:48:40] 自动翻页 5/10（左键点击 (2276,1544)）
-[11:48:41] 台词：「よし、移動するぞ」
-[11:48:44] 自动翻页 6/10（左键点击 (2276,1544)）
-[11:48:49] 自动翻页 7/10（左键点击 (2276,1544)）
-[11:48:49] 台词：辿り着いた先で、気付かれぬように俺たちは物陰に隠れた。
-[11:48:51] 台词：視線の先には２人の少年がいた。
-[11:48:54] 停止文本源：lines=7 merged=7 gated=6 引擎=TVP/KIRIKIRI
-[11:48:54] 原始行审计：认出 14 条 · 只有人名 4 条 · 噪声 3 条 · 半截碎片 5 条 · **漏掉 0 条**
+[13:16:16] 目标游戏：悠刻のファムファタル (E:\Games\Galgames\悠刻のファムファタル\femme_fatale.exe)
+[13:16:16] 清理残留 TextractorCLI：0 个
+[13:16:16] 游戏进程 pid=11028 bits=32
+[13:16:16] 进程模块 7 个：femme_fatale.exe, ntdll.dll, wow64.dll, wow64base.dll, wow64win.dll, wow64con.dll, wow64cpu.dll
+[13:16:16] 游戏窗口：{'hwnd': 395894, 'rect': (564, 168, 2251, 1311)}
+[13:16:16] 文本源：mode=hook 引擎=unknown cli=E:\Textractor\x86\TextractorCLI.exe bits=32/32 error=
+[13:16:16] 候选进程：['mes\\Galgames\\悠刻のファムファタル\\femme_fatale.exe']
+[13:16:23] 自动翻页 1/8（左键点击 (1689,1195)）
+[13:16:24] 台词：「……どんな内容だったんだ」
+[13:16:28] 自动翻页 2/8（左键点击 (1689,1195)）
+[13:16:29] 台词：アマリリス
+[13:16:29] 台词：「そちらは内密にさせて下さいませ」
+[13:16:33] 自动翻页 3/8（左键点击 (1689,1195)）
+[13:16:35] 台词：【アマリリス】「ですが仲間外れにしないで欲しいと言った手前、お断りすることはできませんね」
+[13:16:39] 自动翻页 4/8（左键点击 (1689,1195)）
+[13:16:40] 台词：【アマリリス】「それではお客様。一夜のお時間を頂きます。どうぞ私と共に館の探検に赴きましょう」
+[13:16:44] 自动翻页 5/8（左键点击 (1689,1195)）
+[13:16:45] 台词：「こっちこそよろしく」
+[13:16:51] 停止文本源：lines=6 merged=0 gated=0 引擎=TVP/KIRIKIRI
+[13:16:51] 原始行审计：认出 8 条 · 只有人名 0 条 · 噪声 10 条 · 半截碎片 0 条 · **漏掉 0 条**

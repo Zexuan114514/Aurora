@@ -57,6 +57,22 @@ while True:
         ]):
             emit("00000002", "dialogue", "HS2@0", text)
             time.sleep(0.05)
+        # 引擎把一句话折成多行时，CLI 会原样逐行打印，只有第一行带 [handle:...] 头
+        sys.stdout.buffer.write(
+            "[00000003:000004D2:00000000:0:0:wrapped:HS3@0] 「ごめん、そのつもりだったんだけど完全に思い付き。\\n"
+            "夜の洋館の雰囲気がとても良くて、そこでの仕事を見させて\\n"
+            "もらったら参考になるかなと」\\n".encode("utf-16-le"))
+        sys.stdout.buffer.flush()
+        time.sleep(0.05)
+        # 说话人名字单独一条（Escu:de 实测）：不该单独翻，要并成下一句的【名字】
+        emit("00000005", "speaker", "HS5@0", "アマリリス")
+        time.sleep(0.6)          # 真实场景里名字是每次翻页重发一次，间隔远大于 0.35s
+        emit("00000003", "wrapped", "HS3@0", "「参考、ですか。確か作家の先生をされていると伺いました」")
+        time.sleep(0.6)
+        emit("00000005", "speaker", "HS5@0", "アマリリス")
+        time.sleep(0.6)
+        emit("00000003", "wrapped", "HS3@0", "「まだまだ勉強中です」")
+        time.sleep(0.6)
         emit("00000001", "menu", "HS1@0", "設定")
     elif cmd.startswith("detach"):
         break
@@ -142,14 +158,26 @@ def main() -> int:
     state = engine.start("probe-game", 1234, "hook")
     check("attach 成功并进入 hook 模式", state.get("running") and state["engine"] == "hook",
           str(state.get("error")))
-    deadline = time.time() + 8
-    while time.time() < deadline and len(lines) < 3:
+    # 假 CLI 会连发：3 句台词 → 折行 3 行的长句 → 名字 → 两句对话（其中一句带【名字】）
+    # 一次等够再断言，别用「等 3 条就动手」这种会和缓冲打架的写法
+    deadline = time.time() + 15
+    while time.time() < deadline and len(lines) < 7:
         time.sleep(0.2)
     texts = [row["text"] for row in lines]
     check("收到台词且顺序正确",
           len(lines) >= 3 and texts[0].startswith("彼女"), str(texts[:4]))
     check("菜单类噪声被挡掉", not any("セーブ" in t or "ロード" in t or "設定" in t for t in texts),
           str(texts))
+    # Escu:de 实测：一句话被折成 3 行，续行没有 [handle:...] 头，必须并回一句
+    wrapped = [t for t in texts if t.startswith("「ごめん")]
+    check("多行文本被并回一句（折行续行）",
+          len(wrapped) == 1 and "夜の洋館" in wrapped[0] and "もらったら参考になるかなと」" in wrapped[0],
+          str(wrapped))
+    named = [t for t in texts if t.startswith("【アマリリス】")]
+    check("说话人名字并进下一句当【名字】",
+          len(named) >= 1 and all("「" in t for t in named),
+          str(named[:2]))
+    check("名字行不再单独翻一遍", texts.count("アマリリス") <= 1, str(texts))
     status = engine.status()
     names = {t["name"] for t in status["threads"]}
     check("线程列表有记录", "dialogue" in names and "menu" in names, str(names))
@@ -163,7 +191,9 @@ def main() -> int:
     check("锁定支持前缀", engine.status()["locked"] == full_key[:8],
           engine.status()["locked"])
     engine.send_hook("HS9@1234")
-    time.sleep(1.2)
+    deadline = time.time() + 5
+    while time.time() < deadline and not any("手動フック" in row["text"] for row in lines):
+        time.sleep(0.2)
     check("手写 hook 码能透传并回文本",
           any("手動フック" in row["text"] for row in lines), str(texts[-3:]))
     engine.lock_thread("")

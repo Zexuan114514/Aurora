@@ -550,6 +550,34 @@ def tidy_ocr_text(text: str) -> str:
     return _CJK_GAP_RE.sub("", body)
 
 
+_WRAP_CJK_RE = re.compile(rf"[{_CJK}\u3000-\u303f\uff01-\uff60]")
+
+
+def join_wrapped(left: str, right: str) -> str:
+    """把引擎折行后的续行接回一句：日文直接相连，西文之间补空格。"""
+    if not left:
+        return right
+    if not right:
+        return left
+    if _WRAP_CJK_RE.match(left[-1]) or _WRAP_CJK_RE.match(right[0]):
+        return left + right
+    return f"{left} {right}"
+
+
+def looks_like_speaker_name(text: str) -> bool:
+    """像不像「说话人名字」那一行。
+
+    不少引擎把名字单独发一条（实测悠刻のファムファタル 的 `アマリリス`）：很短、
+    没有标点、也不是完整句子。这种行不该单独翻一句，应该并到下一句当【名字】。
+    """
+    body = (text or "").strip()
+    if not body or len(body) > 12 or "\n" in body:
+        return False
+    if re.search(r"[。、，．！？!?…「」『』（）()\[\]]", body):
+        return False
+    return bool(re.search(rf"[{_CJK}]", body))
+
+
 def split_name_prefix(body: str) -> tuple[str, str]:
     """拆开开头的【名字】前缀（可能重复写了多遍），返回 (名字, 正文)。"""
     match = NAME_PREFIX_RE.match(body)
@@ -690,11 +718,13 @@ class VnTextEngine:
         self._interval = 0.9
         self._pending: dict[str, dict] = {}
         self._recent: list[tuple[str, float]] = []
+        self._name_pending: dict | None = None
         self._merged = 0
         self._gated = 0
         self._engine = "unknown"
         self._profile: dict = {}
         self._leader = ""
+        self._last_record: dict | None = None
         self._cli_bits = 0
         self._target_bits = 0
 
@@ -831,6 +861,8 @@ class VnTextEngine:
 
         self._pending.clear()
         self._leader = ""
+        self._last_record = None
+        self._name_pending = None
         threading.Thread(target=self._flush_loop, daemon=True,
                          name="aurora-vntext-flush").start()
         self._engine = detect_engine(self._pid)
@@ -1011,8 +1043,23 @@ class VnTextEngine:
                 parsed = parse_hook_line(text)
                 if not parsed:
                     continue
+                # 引擎把一句话折成多行发给 Textractor 时，CLI 会把整个文本原样打印，
+                # 只有**第一行**带 `[handle:pid:addr:ctx:ctx2:名字:钩子码]` 头，后面
+                # 几行是裸文本（实测 Escu:de 的悠刻のファムファタル：一句被折成 3 行）。
+                # 以前这些续行会被当成「另一个匿名线程」的独立台词，于是一句话被拆成
+                # 好几条依次翻译、悬浮窗逐条顶掉 —— 用户只来得及看到最后一行。
+                if not parsed["thread"] and not parsed["name"] and self._last_record:
+                    last = self._last_record
+                    if time.time() - last["at"] <= 0.2 and not last["key"].startswith("0:0"):
+                        merged = join_wrapped(last["text"], parsed["text"])
+                        last["text"] = merged
+                        last["at"] = time.time()
+                        self._buffer_fragment(last["key"], merged, last["name"], last["code"])
+                        continue
                 self._note_engine_hint(parsed["text"], parsed["name"], parsed["code"])
                 key = parsed["thread"] or parsed["name"] or "默认"
+                self._last_record = {"key": key, "text": parsed["text"], "at": time.time(),
+                                     "name": parsed["name"], "code": parsed["code"]}
                 self._buffer_fragment(key, parsed["text"], parsed["name"], parsed["code"])
                 continue
                 with self._lock:
@@ -1085,6 +1132,15 @@ class VnTextEngine:
         while not self._stop.is_set():
             time.sleep(0.12)
             now = time.time()
+            # 攒着的「说话人名字」等不到下一句台词就自己发出去，别丢了
+            with self._lock:
+                pending_name = self._name_pending
+                if pending_name and now - float(pending_name.get("at") or 0) > 3.0:
+                    self._name_pending = None
+                else:
+                    pending_name = None
+            if pending_name:
+                self._emit(str(pending_name.get("text") or ""), "hook")
             with self._lock:
                 keys = [k for k, row in self._pending.items()
                         if now - row["at"] >= self.FRAGMENT_IDLE]
@@ -1126,12 +1182,30 @@ class VnTextEngine:
             return
         if norm_name(clean) in getattr(self, "_noise_names", ()):
             return
+        # 菜单/系统行（セーブ・ロード・設定…）在这里就拦掉：
+        # 它们既不该发射，更不能被下面的「说话人名字」逻辑当成名字，
+        # 否则会把下一句台词污染成「【ロード】教室をあとにする。」而整句被丢掉
+        max_chars = int((self._get_settings() or {}).get("vntext_max_chars") or 1200)
+        if looks_like_noise(clean, max_chars):
+            with self._lock:
+                row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
+                                                  "sample": "", "dialogue": 0,
+                                                  "last_seen": time.time()})
+                row["count"] = row.get("count", 0) + 1
+                row["last_seen"] = time.time()
+            return
         with self._lock:
             row = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
                                               "sample": "", "dialogue": 0,
                                               "last_seen": time.time()})
             row["count"] += 1
             row["last_seen"] = time.time()
+            if looks_like_speaker_name(clean):
+                row["short"] = row.get("short", 0) + 1
+            else:
+                row["long"] = row.get("long", 0) + 1
+            # 只出短名字、从不出长句的线程 = 「说话人名字」线程（实测 Escu:de）
+            name_thread = row.get("short", 0) >= 2 and not row.get("long", 0)
             if looks_like_dialogue(clean):
                 row["dialogue"] = row.get("dialogue", 0) + 1
             row["sample"] = clean[:60]
@@ -1142,6 +1216,15 @@ class VnTextEngine:
                     self._leader = self._active_by_score()
             active = self._active_key()
             leader_dialogue = self._seen.get(active, {}).get("dialogue", 0)
+        if name_thread:
+            # 先攒着，等下一句台词拼成【名字】；超过 3 秒没有台词就当普通台词发出去
+            self._name_pending = {"text": clean, "key": key, "at": time.time()}
+            return
+        if self._name_pending:
+            with self._lock:
+                pending, self._name_pending = self._name_pending, None
+            if pending and pending["key"] != key and time.time() - pending["at"] <= 3.0:
+                clean = f"【{pending['text']}】{clean}"
         if self._locked and not (key == self._locked or key.startswith(self._locked)):
             self._gated += 1
             return

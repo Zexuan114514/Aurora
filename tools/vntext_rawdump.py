@@ -95,6 +95,20 @@ def rows_of(text: str) -> dict:
             "code": code, "text": body.strip()}
 
 
+def merge_wrapped(rows: list[dict]) -> list[dict]:
+    """把「没有 [handle:...] 头」的续行并回上一条（引擎折行时 CLI 会原样多行打印）。"""
+    out: list[dict] = []
+    for row in rows:
+        if not row["thread"] and not row["name"] and out \
+                and not out[-1]["thread"].startswith("0:0"):
+            last = out[-1]
+            last["text"] = f"{last['text']}{row['text']}"
+            last["wrapped"] = last.get("wrapped", 0) + 1
+            continue
+        out.append(row)
+    return out
+
+
 def main() -> int:
     pid, exe = resolve_target()
     cli = ARGS.cli or vntext.find_cli("")
@@ -199,6 +213,13 @@ def main() -> int:
         lines.append(f"[{key}] name={info['name']} code={info['code']} 行数={info['count']}")
         for sample in info["samples"]:
             lines.append(f"    {sample}")
+    lines.append("")
+    merged_rows = merge_wrapped(records)
+    lines.append(f"=== 折行并回后的行（{len(merged_rows)} 条，原始 {len(records)} 条）===")
+    for row in merged_rows:
+        tail = f"  (+{row['wrapped']} 续行)" if row.get("wrapped") else ""
+        lines.append(f"[{row['at']:7.2f}] {row['name']}{tail}")
+        lines.append(f"    {row['text']}")
     lines.append("")
     lines.append(f"=== 全部原始行（{len(records)} 条）===")
     for row in records:
