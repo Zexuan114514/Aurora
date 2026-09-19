@@ -41,7 +41,10 @@ ENGINE_SIGNATURES = (
     ("TVP/KIRIKIRI", ("tvp(kirikiri)", "kirikiri", "krkr", "tvp_", "krkrz")),
     ("WillPlus", ("willplus", "advhd", "will_", "wpm")),
     ("BGI/Ethornell", ("bgi", "ethornell", "buriko")),
-    ("Artemis/Siglus", ("siglus", "artemis", "ave;new")),
+    # Artemis/Emote（あざらしそふと 等）：引擎运行时是 emotedriver.dll（自己用
+    # D3D11 画字、不碰 GDI），另有 iarsys64.dll 辅助 —— 实测 アマカノ３
+    ("Artemis/Emote", ("emotedriver", "iarsys", "artemis")),
+    ("Siglus", ("siglus", "ave;new")),
 )
 
 #: 钩子输出里的引擎特征。实测：游戏模块名里看不出来的引擎（DRACU RIOT 进程里
@@ -53,7 +56,7 @@ HOOK_ENGINE_HINTS = (
     ("TVP/KIRIKIRI", ("kirikiriz", "kirikiri", "tvp(kirikiri)")),
     ("WillPlus", ("willplus", "advhd", "embedwillplus")),
     ("BGI/Ethornell", ("ethornell", "buriko", "bgimt")),
-    ("Artemis/Siglus", ("siglus", "artemis")),
+    ("Artemis/Emote", ("artemis",)),
     ("Leaf", ("leafloader", "leafengine")),      # 只用长词，免得英文里的 "leaf" 误判
     ("Escu:de", ("escude",)),
     ("CatSystem2/Ares", ("catsystem", "cs2", "ares")),
@@ -80,7 +83,7 @@ INSERT_ENGINE_NAMES = {
     "willplus": "WillPlus", "willplusw": "WillPlus", "willplusa": "WillPlus",
     "willplus2": "WillPlus", "willplus3": "WillPlus", "embedwillplus": "WillPlus",
     "ethornell": "BGI/Ethornell", "bgi": "BGI/Ethornell", "buriko": "BGI/Ethornell",
-    "siglus": "Siglus", "siglusengine": "Siglus", "artemis": "Artemis/Siglus",
+    "siglus": "Siglus", "siglusengine": "Siglus", "artemis": "Artemis/Emote",
     "catsystem2": "CatSystem2/Ares", "catsystem": "CatSystem2/Ares",
     "majiro": "Majiro", "malie": "Malie", "yuris": "YU-RIS", "rugp": "RUGP",
     "nexas": "NeXAS", "nitroplus": "Nitroplus", "alice": "AliceSoft",
@@ -98,6 +101,15 @@ ENGINE_PROFILES = {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
         "hook_hint": "TVP/KIRIKIRI：优先用 GetTextExtentPoint32W:HQ8@0:gdi32.dll 这条钩子，"
                      "它通常能给出完整正文（实测 DRACU RIOT）。",
+    },
+    "Artemis/Emote": {
+        "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
+        "hook_hint": "Artemis/Emote：引擎自己用 D3D11 画字（emotedriver.dll 只导入"
+                     "KERNEL32 + D3DCOMPILER_47），GDI 文本钩子全空；Textractor 也没有"
+                     "这个引擎的专用钩子。出路是**用户钩子码**：用 MisakaHookFinder"
+                     "（内嵌 Textractor 的文本搜索）搜出特殊码，例如 アマカノ３ 的"
+                     "HS65001#-6C@1B1F70:Amakano3.exe，填到「翻译」面板存为专用即可；"
+                     "本机实测过的作品 Aurora 会自动带出。临时也可以用 OCR 模式。",
     },
     "WillPlus": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
@@ -158,6 +170,23 @@ WILLPLUS_AUTO_HOOKS = [
                 "实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能"
                 "吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。",
     },
+    {
+        # Artemis / Emote（アマカノ３ = 甜蜜女友 3）：引擎自己用 D3D11 画字，
+        # GDI 钩子全空。用户用 MisakaHookFinder（内嵌 Textractor 的「文本搜索」：
+        # 先在内存里找到变化的文本，再找出读它的代码）搜到的特殊码实测可用：
+        #     HS65001#-6C@1401B1F70   （基址 0x140000000 → RVA 0x1B1F70）
+        # 这里按「模块 + RVA」的形式存，换一次加载地址也不会失效。
+        "name": "amakano3.exe",
+        "size": 5170176,
+        "crc32": 0xA1FF529B,
+        "rva": 0x1B1F70,
+        "offset": -0x6C,
+        "mode": "S",        # S = 字节串（这份文本是 UTF-8，见下面的 codepage）
+        "codepage": 65001,  # HS65001#… = UTF-8
+        "game": "アマカノ３（甜蜜女友 3）",
+        "note": "地址来自 MisakaHookFinder 搜出的 `HS65001#-6C@1401B1F70`；"
+                "实测能完整提取对话（`明らかに、詩夢の顔が青い。`）。",
+    },
 ]
 
 #: H-code 的模式字母（来自 Textractor 源码 host/hookcode.cpp）：
@@ -194,11 +223,13 @@ def match_willplus_hook(name: str, size: int, crc32: int) -> dict | None:
 
 
 def build_hook_code(row: dict, module: str = "") -> str:
-    """按实测记录拼 H-code：`H<模式><data_offset>@<RVA>:<模块文件名>`。"""
+    """按实测记录拼 H-code：`H<模式>[<编码>#]<data_offset>@<RVA>:<模块文件名>`。"""
     offset = int(row.get("offset") or 0)
     sign = "-" if offset < 0 else ""
     mode = str(row.get("mode") or "Q")[:1].upper() or "Q"
-    return f"H{mode}{sign}{abs(offset):X}@{int(row['rva']):X}:{module}"
+    codepage = row.get("codepage")
+    page = f"{int(codepage)}#" if codepage else ""
+    return f"H{mode}{page}{sign}{abs(offset):X}@{int(row['rva']):X}:{module}"
 
 
 def willplus_hook_code(exe: str | Path) -> str:
@@ -1667,6 +1698,10 @@ class VnTextEngine:
         if not clean:
             return
         if norm_name(clean) in getattr(self, "_noise_names", ()):
+            return
+        # Textractor 会把用户钩子码原样回显到输出流里（实测 `HS65001#-6C@1401B1F70`），
+        # 那不是台词，别送翻译
+        if looks_like_hook_code(clean) or looks_like_hook_code(text):
             return
         # 系统刷屏（Siglus 的场景名/资源表）要拿**原始文本**判：
         # 清洗会把重复折掉、折完反而像一句正常台词

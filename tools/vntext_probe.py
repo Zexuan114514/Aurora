@@ -561,6 +561,17 @@ def main() -> int:
           bool(sig) and vntext.build_hook_code(sig, "AdvHD_crack.exe")
           == "HQ-4@A22E:AdvHD_crack.exe",
           str(sig and vntext.build_hook_code(sig, "AdvHD_crack.exe")))
+    # Artemis/Emote（アマカノ３）：用户用 MisakaHookFinder 搜到的特殊码 HS65001#-6C@1401B1F70
+    amak = vntext.match_willplus_hook("Amakano3.exe", 5170176, 0xA1FF529B)
+    check("Artemis 实测码能拼成模块+RVA 形式",
+          bool(amak) and vntext.build_hook_code(amak, "Amakano3.exe")
+          == "HS65001#-6C@1B1F70:Amakano3.exe",
+          str(amak and vntext.build_hook_code(amak, "Amakano3.exe")))
+    check("Artemis 文本按 UTF-8 读（S + 65001#）",
+          bool(amak) and amak.get("mode") == "S" and amak.get("codepage") == 65001)
+    # 引擎标识：模块名里带 emotedriver/iarsys 就认得出（アマカノ３ 实测）
+    check("Artemis/Emote 引擎标识可按模块名认出",
+          vntext.profile_for("Artemis/Emote").get("hook_hint", "").startswith("Artemis/Emote"))
     check("hook 码格式校验",
           vntext.looks_like_hook_code("HQ-4@A22E:AdvHD_crack.exe")
           and vntext.looks_like_hook_code("HS10@0:gdi32.dll")
