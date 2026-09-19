@@ -1,6 +1,6 @@
 Aurora 游戏内翻译 · 真机自测报告
-生成时间：2026-09-19 16:07:26
-游戏：甜蜜女友 3  exe=E:\Games\Galgames\アマカノ３\Amakano3.exe  pid=[25392]
+生成时间：2026-09-19 17:11:10
+游戏：甜蜜女友 3  exe=E:\Games\Galgames\アマカノ３\Amakano3.exe  pid=[26068]
 文本源：mode= 引擎=unknown cli=E:\Textractor\x64\TextractorCLI.exe error=
 进程模块：
   E:\Games\Galgames\アマカノ３\Amakano3.exe
@@ -24,18 +24,18 @@ Aurora 游戏内翻译 · 真机自测报告
   C:\WINDOWS\SYSTEM32\WINMM.dll
   C:\WINDOWS\SYSTEM32\D3DCOMPILER_47.dll
   C:\WINDOWS\SYSTEM32\DINPUT.dll
-  C:\WINDOWS\SYSTEM32\MFPlat.DLL
   C:\WINDOWS\System32\ADVAPI32.dll
-  C:\WINDOWS\SYSTEM32\MF.dll
   C:\WINDOWS\System32\msvcrt.dll
-  C:\WINDOWS\System32\shcore.dll
   C:\WINDOWS\System32\sechost.dll
+  C:\WINDOWS\SYSTEM32\MF.dll
+  C:\WINDOWS\SYSTEM32\MFPlat.DLL
+  C:\WINDOWS\System32\shcore.dll
   C:\WINDOWS\SYSTEM32\DSOUND.dll
   C:\WINDOWS\SYSTEM32\dxgi.dll
   C:\WINDOWS\SYSTEM32\cryptsp.dll
-  C:\WINDOWS\SYSTEM32\powrprof.dll
   C:\WINDOWS\SYSTEM32\ResampleDmo.DLL
   C:\WINDOWS\System32\OLEAUT32.dll
+  C:\WINDOWS\SYSTEM32\powrprof.dll
   C:\WINDOWS\SYSTEM32\winmmbase.dll
   C:\WINDOWS\SYSTEM32\MFCORE.DLL
   C:\WINDOWS\SYSTEM32\msdmo.dll
@@ -45,33 +45,22 @@ Aurora 游戏内翻译 · 真机自测报告
   C:\WINDOWS\SYSTEM32\RTWorkQ.DLL
 
 结论：有问题
+  ✗ 只收到 0 条台词（要求 ≥3）
   ✗ 引擎标识仍为 unknown
 原始行审计：认出 0 / 只有人名 0 / 噪声 0 / 半截碎片 0 / 漏掉 0
 
 --- 原始钩子行（0 条）---
 
---- 清洗后的台词 + 译文（3 条）---
-原文：「これでちょっとは落ち着ける?」
-译文：这样能稍微冷静点了吗？  [llm] artifacts=[]
-
-原文：詩夢兄は何も変わってない」 1 「
-译文：诗梦兄一点都没变。  [llm] artifacts=[]
-
-原文：ニ = ロ
-译文：ニ = ロ  [llm] artifacts=[]
-
+--- 清洗后的台词 + 译文（0 条）---
 --- 过程日志 ---
-[16:06:54] 目标游戏：甜蜜女友 3 (E:\Games\Galgames\アマカノ３\Amakano3.exe)
-[16:06:54] 清理残留 TextractorCLI：0 个
-[16:06:54] 游戏进程 pid=25392 bits=64
-[16:06:54] 进程模块 103 个：Amakano3.exe, ntdll.dll, KERNEL32.DLL, KERNELBASE.dll, USER32.dll, win32u.dll, GDI32.dll, gdi32full.dll, msvcp_win.dll, ucrtbase.dll, SHELL32.dll, ole32.dll, combase.dll, RPCRT4.dll
-[16:06:54] 游戏窗口：{'hwnd': 2033554, 'rect': (955, 463, 1944, 1144)}
-[16:06:55] 文本源：mode=ocr 引擎=unknown cli=E:\Textractor\x64\TextractorCLI.exe bits=64/64 error=
-[16:06:55] 候选进程：['E:\\Games\\Galgames\\アマカノ３\\Amakano3.exe']
-[16:06:57] 台词：「これでちょっとは落ち着ける?」
-[16:07:02] 自动翻页 1/3（左键点击 (1927,1357)）
-[16:07:08] 台词：詩夢兄は何も変わってない」 1 「
-[16:07:08] 自动翻页 2/3（左键点击 (1927,1357)）
-[16:07:11] 台词：ニ = ロ
-[16:07:26] 停止文本源：lines=3 merged=0 gated=0 引擎=unknown
-[16:07:26] 原始行审计：认出 0 条 · 只有人名 0 条 · 噪声 0 条 · 半截碎片 0 条 · **漏掉 0 条**
+[17:09:57] 目标游戏：甜蜜女友 3 (E:\Games\Galgames\アマカノ３\Amakano3.exe)
+[17:09:57] 清理残留 TextractorCLI：0 个
+[17:09:57] 游戏进程 pid=26068 bits=64
+[17:09:57] 进程模块 104 个：Amakano3.exe, ntdll.dll, KERNEL32.DLL, KERNELBASE.dll, USER32.dll, win32u.dll, GDI32.dll, gdi32full.dll, msvcp_win.dll, ucrtbase.dll, SHELL32.dll, ole32.dll, combase.dll, RPCRT4.dll
+[17:09:57] 游戏窗口：{'hwnd': 3867540, 'rect': (955, 463, 1944, 1144)}
+[17:09:59] 文本源：mode=ocr 引擎=unknown cli=E:\Textractor\x64\TextractorCLI.exe bits=64/64 error=
+[17:09:59] 候选进程：['E:\\Games\\Galgames\\アマカノ３\\Amakano3.exe']
+[17:10:05] 自动翻页 1/2（左键点击 (1927,1357)）
+[17:10:13] 自动翻页 2/2（左键点击 (1927,1357)）
+[17:11:10] 停止文本源：lines=0 merged=0 gated=0 引擎=unknown
+[17:11:10] 原始行审计：认出 0 条 · 只有人名 0 条 · 噪声 0 条 · 半截碎片 0 条 · **漏掉 0 条**

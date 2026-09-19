@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import ctypes
+import difflib
 import re
 import threading
 import time
@@ -333,3 +334,89 @@ def reset(pid: int = 0) -> None:
             _CACHE.pop(int(pid), None)
         else:
             _CACHE.clear()
+
+
+# --------------------------------------------------------------------------- #
+def _variants(probe: str) -> list[str]:
+    """OCR 结果可能带着说话人名字/杂讯 → 多试几个「去掉开头一点」的版本。"""
+    out = [probe]
+    parts = probe.split(" ")
+    if len(parts) > 1:
+        out.append(" ".join(parts[1:]).strip())
+        out.append(parts[-1].strip())
+    for cut in (1, 2, 3, 4):
+        if len(probe) > cut + 4:
+            out.append(probe[cut:])
+    return [row for row in dict.fromkeys(out) if len(row) >= 4]
+
+
+def find_similar(pid: int, text: str, *, min_ratio: float = 0.6) -> list[tuple[float, str]]:
+    """在进程内存里找「和这段文字最像」的句子（OCR 纠错用）。
+
+    OCR 会把字认错（实测 アマカノ３：`強がりをうが` ← `強がりを言うけど`），
+    但真句就在进程内存里，用相似度一比就能把错字纠回来。
+    """
+    probe = re.sub(r"\s+", "", str(text or ""))
+    if not pid or len(probe) < 6:
+        return []
+    variants = _variants(probe)
+    with _LOCK:
+        state = _CACHE.setdefault(pid, {"hot": set(), "regions": [], "at": 0.0})
+    handle = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
+    if not handle:
+        return []
+    found: dict[str, float] = {}
+
+    def scan(regions) -> None:
+        for base, size in regions:
+            for decoded in _read_texts(handle, base, size):
+                if not decoded:
+                    continue
+                for match in TEXT_RUN_RE.finditer(decoded):
+                    candidate = match.group(0).strip()
+                    if not (6 <= len(candidate) <= max(80, len(probe) * 2 + 20)):
+                        continue
+                    if not difflib.SequenceMatcher(None, probe, candidate).quick_ratio() \
+                            >= min_ratio:
+                        continue
+                    best = 0.0
+                    for variant in variants:
+                        ratio = difflib.SequenceMatcher(None, variant, candidate).ratio()
+                        best = max(best, ratio)
+                    if best >= min_ratio and found.get(candidate, 0) < best:
+                        found[candidate] = best
+                if len(found) >= 60:
+                    return
+        return
+
+    try:
+        if not state["regions"]:
+            state["regions"] = _regions(handle)
+            state["at"] = time.time()
+        hot = [row for row in state["regions"] if row[0] in state["hot"]]
+        if hot:
+            scan(hot)
+        if not found and len(hot) != len(state["regions"]):
+            scan(state["regions"])
+        return sorted(((ratio, text_row) for text_row, ratio in found.items()),
+                      key=lambda row: -row[0])
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def snap(pid: int, text: str, *, min_ratio: float = 0.72, margin: float = 0.08) -> str:
+    """把 OCR 文本吸附到内存里的原文；不确定就原样返回空串。"""
+    rows = find_similar(pid, text)
+    if not rows:
+        return ""
+    best_ratio, best = rows[0]
+    if best_ratio < min_ratio:
+        return ""
+    runner = rows[1][0] if len(rows) > 1 else 0.0
+    if runner and best_ratio - runner < margin:
+        return ""                       # 两个候选太接近 → 不敢替换
+    probe = re.sub(r"\s+", "", str(text or ""))
+    if re.sub(r"\s+", "", best) == probe:
+        return ""                       # 和 OCR 一样，不用动
+    config.log(f"memmatch snap: {text[:26]!r} -> {best[:40]!r} ({best_ratio:.2f})")
+    return best

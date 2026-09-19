@@ -1808,6 +1808,23 @@ class VnTextEngine:
             return fixed
         return ""
 
+    def _snap_ocr(self, text: str) -> str:
+        """把 OCR 文本吸附到游戏内存里的原文（只读扫描，拿不准返回空串）。"""
+        if not self._pid:
+            return ""
+        try:
+            from . import memmatch
+
+            fixed = memmatch.snap(self._pid, text)
+        except Exception as exc:
+            config.log(f"memmatch snap failed: {exc}")
+            return ""
+        if fixed and fixed != text:
+            self._completed += 1
+            self._push_status()
+            return fixed
+        return ""
+
     def _promote(self, cand: dict) -> None:
         """候选行定稿：缺字变体抑制 → 说话人名字合并 → 线程门禁 → 去重 → 发射。
 
@@ -2010,6 +2027,11 @@ class VnTextEngine:
             if text and self._ocr_streak >= 2:
                 max_chars = int((self._get_settings() or {}).get("vntext_max_chars") or 1200)
                 if not looks_like_noise(text, max_chars):
+                    # OCR 会认错字（实测 アマカノ３：`強がりをうが` ← `強がりを言うけど`），
+                    # 而真句就在游戏内存里 → 用相似度把 OCR 结果吸附到原文，拿不准就不动
+                    fixed = self._snap_ocr(text)
+                    if fixed:
+                        text = fixed
                     # dedupe=True：同一屏文字只翻一次（OCR 每 0.9 秒抓一次，
                     # 不去重就会把同一句反复送给翻译）
                     self._emit(text, "ocr")
