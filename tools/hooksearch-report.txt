@@ -9,8 +9,8 @@ Aurora 钩子查找器自检
 
 [调试器链路（合成目标进程）]
   OK  目标进程已就绪  buf=0x20000000 stub=0x21000000
-  OK  能在目标进程内存里定位文本缓冲区  ['0x20000000', '0x1c28e3cb0d8', '0x1c28e4751c0']
-  OK  定位结果带编码信息  [{'address': 536870912, 'encoding': 'utf-16', 'exact': True}, {'address': 1935121625304, 'encoding': 'utf-16', 'exact': True}]
+  OK  能在目标进程内存里定位文本缓冲区  ['0x20000000', '0x18199fdb0d8', '0x1819a0851c0']
+  OK  定位结果带编码信息  [{'address': 536870912, 'encoding': 'utf-16', 'exact': True}, {'address': 1656145948888, 'encoding': 'utf-16', 'exact': True}]
   OK  断点命中并生成候选  reason= hits=1
   OK  栈槽偏移正确（指针就在 ESP 处 → 0）  [0]
   OK  能拼出候选 H-code  HQ0@8:target.exe

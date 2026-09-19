@@ -544,6 +544,106 @@ def search(pid: int, buffers: list[dict], *, seconds: float = 8.0,
 # --------------------------------------------------------------------------- #
 # 差分法：台词往往是渲染时临时生成的（内存里查不到逐字副本），所以改「盯变化」
 # --------------------------------------------------------------------------- #
+
+def _text_at(handle, address: int, *, max_bytes: int = 400) -> tuple[str, str]:
+    """把一个地址当字符串读出来 → (文本, 编码)；不像台词就返回 ("", "")。"""
+    if not address or address < 0x10000:
+        return "", ""
+    raw = _read_raw(handle, address, max_bytes)
+    if len(raw) < 6:
+        return "", ""
+    for label, codec in (("utf-16", "utf-16-le"), ("utf-8", "utf-8"), ("sjis", "cp932")):
+        try:
+            text = raw.decode(codec, "ignore")
+        except Exception:
+            continue
+        run = text.split("\x00")[0]
+        match = memmatch.TEXT_RUN_RE.search(run)
+        if not match:
+            continue
+        body = match.group(0).strip()
+        if not (6 <= len(body) <= 200):
+            continue
+        if not DIALOGUE_HINT_RE.search(body):
+            continue
+        if re.search(r"[\u0400-\u04ff\u0530-\u058f\u0590-\u05ff\u0900-\u097f]",
+                     body):
+            continue
+        return body, label
+    return "", ""
+
+
+def harvest(pid: int, *, seconds: float = 12.0, stop_event=None,
+            on_progress=None) -> list[dict]:
+    """采样式收集候选（Misaka「翻页数次后列出所有候选」的思路，但不挂钩子）。
+
+    做法：高频采样每个线程的栈 —— 每次拿到 ESP，扫 [ESP-0x100, ESP+0x100] 的槽；
+    凡是槽值指向一段「日文台词」的，就把 **(该帧返回地址, 槽相对 ESP 的偏移, 文本)**
+    记成一条候选（同一组按出现次数累加）。
+
+    好处：不用附加调试器、不挂钩子、不批量改代码；而且**文本我们已经直接读到**，
+    所以「哪条候选吐出来的才是原文」可以和当前 OCR 到的台词一比就自动判定。
+    """
+    handle = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
+    if not handle:
+        raise HookFinderError("no-access", "读不了游戏内存（权限不足？）")
+    wow = _is_wow64(handle)
+    rows: dict[tuple, dict] = {}
+    started = time.time()
+    samples = 0
+    try:
+        while time.time() - started < max(1.0, float(seconds)):
+            if stop_event is not None and stop_event.is_set():
+                break
+            for tid in _thread_ids(pid):
+                if stop_event is not None and stop_event.is_set():
+                    break
+                ctx = _Context(tid, wow)
+                if not ctx.handle:
+                    continue
+                kernel32.SuspendThread(ctx.handle)
+                state = ctx.get()
+                kernel32.ResumeThread(ctx.handle)
+                ctx.close()
+                if not state:
+                    continue
+                samples += 1
+                sp = int(state["sp"])
+                step = 4 if wow else 8
+                data = _read_raw(handle, sp - STACK_SCAN_BACK,
+                                 STACK_SCAN_BACK + STACK_SCAN_FORWARD)
+                if len(data) < step * 4:
+                    continue
+                ret = int.from_bytes(data[STACK_SCAN_BACK:STACK_SCAN_BACK + step],
+                                     "little")
+                for index in range(0, len(data) - step + 1, step):
+                    slot_addr = sp - STACK_SCAN_BACK + index
+                    value = int.from_bytes(data[index:index + step], "little")
+                    if not value or value == slot_addr:
+                        continue
+                    text, encoding = _text_at(handle, value)
+                    if not text:
+                        continue
+                    key = (ret, slot_addr - sp, encoding)
+                    row = rows.setdefault(key, {"rip": ret, "offset": slot_addr - sp,
+                                                "padding": 0, "encoding": encoding,
+                                                "text": text, "count": 0})
+                    row["count"] += 1
+                    if len(text) > len(row["text"]):
+                        row["text"] = text
+            if on_progress:
+                try:
+                    on_progress(len(rows), samples)
+                except Exception:
+                    pass
+            time.sleep(0.05)
+    finally:
+        kernel32.CloseHandle(handle)
+    out = sorted(rows.values(), key=lambda row: -row["count"])
+    config.log(f"hookfinder harvest: 采样 {samples} 次，候选 {len(out)} 条")
+    return out[:40]
+
+
 DIALOGUE_HINT_RE = re.compile(r"[\u3040-\u30ff]")       # 有假名才像台词
 
 

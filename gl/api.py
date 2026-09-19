@@ -716,6 +716,59 @@ class Api:
                         target = vntext.tidy_ocr_text(result["text"])
             if len(target) < 2:
                 target = ""
+            # ── 主路径：采样式收集（Misaka「翻页数次后列候选」的思路，不挂钩子）──
+            #    采样所有线程栈 → 拿到「返回地址 + 槽偏移 + 那段文本」；
+            #    文本能直接读到 → 和 OCR 到的当前台词一比，就知道哪条是原文。
+            collected: list[dict] = []
+            if True:
+                self._set_hooksearch(
+                    phase="collecting", target=target,
+                    message="正在采样收集候选：Aurora 会翻几页，请别操作游戏")
+                clicking = threading.Event()
+
+                def click_loop() -> None:
+                    while not clicking.is_set():
+                        time.sleep(3.0)
+                        if clicking.is_set():
+                            break
+                        self._hooksearch_advance(hwnd)
+
+                clicker = threading.Thread(target=click_loop, daemon=True,
+                                           name="aurora-hooksearch-advance")
+                clicker.start()
+                try:
+                    collected = hookfinder.harvest(
+                        pid, seconds=12.0, stop_event=self._hooksearch_stop,
+                        on_progress=lambda found, samples: self._set_hooksearch(
+                            message=f"已采样 {samples} 次、拿到 {found} 条候选…"))
+                finally:
+                    clicking.set()
+                if self._hooksearch_stop.is_set():
+                    return self._set_hooksearch(phase="idle", message="已中止")
+                if collected:
+                    scored = []
+                    for row in collected:
+                        score = 0.0
+                        if target:
+                            score = difflib.SequenceMatcher(
+                                None, target, str(row.get("text") or "")).ratio()
+                        scored.append((score, row))
+                    scored.sort(key=lambda item: (-item[0], -item[1].get("count", 0)))
+                    pool = [row for _score, row in scored[:12]]
+                    self._set_hooksearch(
+                        phase="verifying", steps=len(collected),
+                        candidates=[{"code": "", "count": row.get("count", 0),
+                                     "encoding": row.get("encoding"),
+                                     "sample": str(row.get("text") or "")[:40],
+                                     "verified": False} for row in pool],
+                        message=f"采到 {len(collected)} 条候选，按「和当前台词像不像」排序…")
+                    verified = self._hooksearch_verify_pool(game_id, pid, hwnd, pool,
+                                                            target)
+                    if verified:
+                        return self._set_hooksearch(
+                            phase="done", code=verified,
+                            message=f"找到了：{verified}（已存为该游戏专用码）")
+            # ── 兜底：断点法（差分定位缓冲区 + 硬件数据断点）──
             buffers: list[dict] = []
             if target:
                 self._set_hooksearch(phase="scanning", target=target,
@@ -839,6 +892,33 @@ class Api:
 
     def _hooksearch_on_hit(self, row: dict) -> None:
         self._set_hooksearch(message=f"已捕获访问（第 {row.get('count')} 次）：{hex(int(row.get('rip') or 0))}")
+
+    def _hooksearch_verify_pool(self, game_id: str, pid: int, hwnd: int,
+                                pool: list[dict], target: str) -> str:
+        """把采样来的候选变成 H-code 逐个验证，返回第一个能出真台词的码。"""
+        tried = 0
+        for row in pool:
+            if self._hooksearch_stop.is_set():
+                return ""
+            module, base = hookfinder.module_of(pid, int(row.get("rip") or 0))
+            if not module:
+                continue
+            try:
+                code = hookfinder.build_code(
+                    module=module, module_base=base, rip=int(row["rip"]),
+                    offset=int(row["offset"]), padding=int(row.get("padding") or 0),
+                    encoding=str(row.get("encoding") or "utf-16"))
+            except hookfinder.HookFinderError:
+                continue
+            tried += 1
+            if tried > 8:
+                break
+            self._set_hooksearch(
+                message=f"验证第 {tried} 个候选：{code}"
+                        f"（采样到：{str(row.get('text') or '')[:20]}）")
+            if self._hooksearch_try(game_id, hwnd, code, target):
+                return code
+        return ""
 
     def _hooksearch_fail(self, reason: str, message: str) -> None:
         config.log(f"hooksearch: {reason} {message}")
