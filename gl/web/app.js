@@ -1291,7 +1291,10 @@
   }
 
   /* ---------------------------------------------------------- 游戏内翻译 */
-  const VN_ENGINE_LABEL = { hook: "Textractor 钩子", ocr: "屏幕 OCR", "": "未运行" };
+const VN_ENGINE_LABEL = { hook: "Textractor 钩子", ocr: "屏幕 OCR", "": "未运行" };
+let vnEmptySince = 0;          // 「一直没抓到文本」的起始时间（提醒用）
+let vnFindTimer = null;        // 查找器会话期间的状态轮询
+const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refreshVntext 复用
   const VN_ERROR_LABEL = {
     "no-textractor": "没找到 TextractorCLI，请在设置里指定，或改用 OCR 模式",
     "no-language": "系统缺少日语 OCR 组件，装好后再试",
@@ -1325,6 +1328,16 @@
     if (state.merged) parts.push(`已合并 ${state.merged} 份重复文本`);
     if (state.gated) parts.push(`已按线程过滤 ${state.gated} 条杂讯`);
     if (state.hook_hint) parts.push(state.hook_hint);
+    // 「没抓到文本」提醒（不自动执行，只提示；用户点了才开查找器）
+    if (running && state.engine === "hook" && !(state.lines || 0)
+        && !((state.threads || []).length)) {
+      if (!vnEmptySince) vnEmptySince = Date.now();
+      if (Date.now() - vnEmptySince > 15000) {
+        parts.push("没抓到文本？点下面的「找不到文本？开始侦测」让 Aurora 自己找钩子");
+      }
+    } else {
+      vnEmptySince = 0;
+    }
     if (running && state.engine === "hook" && state.game_locale === false) {
       parts.push("这个游戏没开转区：日文原版很容易出乱码，建议用「⋯ → 转区启动…」开启后再翻译");
     }
@@ -1421,6 +1434,7 @@
       renderVntextPanel(state);
       renderVntextSettings(state);
     }
+    if (vnFindHooks.poll) vnFindHooks.poll();     // 面板重开时恢复查找器状态
     return state;
   }
 
@@ -1575,6 +1589,61 @@
       }
       refreshVntext();
     };
+    // 自研钩子查找器：找不到文本时手动触发（会临时附加调试器，期间游戏可能卡一下）
+    const PHASE_LABEL = { idle: "未开始", starting: "准备中", ocr: "识别台词",
+                          scanning: "定位文本", collecting: "等待游戏访问",
+                          verifying: "验证候选", done: "成功", error: "失败" };
+    const renderFind = (hs) => {
+      if (!hs) return;
+      const phase = hs.phase || "idle";
+      $("vnFindNote").textContent =
+        `[${PHASE_LABEL[phase] || phase}] ${hs.message || ""}`
+        + (hs.target ? ` · 目标：${hs.target.slice(0, 24)}` : "")
+        + (hs.code ? ` · 已存：${hs.code}` : "");
+      const cands = hs.candidates || [];
+      $("vnFindCands").innerHTML = cands.map((row) => `
+        <button class="vn-thread${row.verified ? " on" : ""}" data-vn-find="${esc(row.code)}"
+                title="点一下 = 存为该游戏的专用码">
+          <span>${esc(row.code)}</span><small>${row.verified ? "已验证" : (row.count || 0)}</small>
+        </button>`).join("");
+      if (phase === "idle" || phase === "done" || phase === "error") {
+        if (vnFindTimer) { clearInterval(vnFindTimer); vnFindTimer = null; }
+      }
+    };
+    const pollFind = async () => {
+      const hs = await call("get_hook_search_status");
+      renderFind(hs);
+    };
+    vnFindHooks.render = renderFind;
+    vnFindHooks.poll = pollFind;
+    $("vnFind").onclick = async () => {
+      const text = $("vnFindText").value.trim();
+      const res = await call("start_hook_search", state.focus, text);
+      if (!res || res.ok === false) {
+        toast((res && res.message) || "现在没法开始查找", 5200);
+        renderFind(res);
+        return;
+      }
+      renderFind(res);
+      if (!vnFindTimer) vnFindTimer = setInterval(pollFind, 1500);
+      toast("开始侦测：请在游戏里点一下推进台词（或点「翻一页」）", 5200);
+    };
+    $("vnFindStop").onclick = async () => {
+      await call("stop_hook_search");
+      toast("已中止查找");
+      pollFind();
+    };
+    $("vnAdvance").onclick = async () => {
+      const res = await call("advance_game", state.focus);
+      toast(res && res.ok ? `已翻页（${res.how}）` : "没送出去：先把游戏窗口点到前台");
+    };
+    $("vnFindCands").addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-vn-find]");
+      if (!btn) return;
+      const res = await call("set_vntext_hook", state.focus, btn.dataset.vnFind);
+      toast(res && res.ok !== false ? "已存为这个游戏的专用 hook 码" : "保存失败");
+      refreshVntext();
+    });
     el.vnThreads.addEventListener("click", async (e) => {
       const btn = e.target.closest("[data-vn-thread]");
       if (!btn) return;

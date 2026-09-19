@@ -487,6 +487,18 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
     </div>
     <p class="set-note" id="vnHookNote">—</p>
     <div class="set-row">
+      <label>找钩子</label>
+      <button class="mini-btn" id="vnFind">找不到文本？开始侦测</button>
+      <button class="mini-btn" id="vnFindStop">中止</button>
+      <button class="mini-btn" id="vnAdvance">翻一页</button>
+    </div>
+    <div class="set-row">
+      <label>当前台词</label>
+      <input type="text" id="vnFindText" placeholder="留空＝自动 OCR 识别当前台词" spellcheck="false">
+    </div>
+    <p class="set-note" id="vnFindNote">Textractor 抓不到文本时：Aurora 会自己盯住这句台词的内存，抓出读取它的代码并生成专用钩子码。</p>
+    <div class="vn-threads" id="vnFindCands"></div>
+    <div class="set-row">
       <label>OCR 区域</label>
       <button class="mini-btn" id="vnFraming">框选区域…</button>
       <span class="hint" id="vnRegion"></span>
