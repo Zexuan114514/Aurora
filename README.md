@@ -410,6 +410,26 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 
 ---
 
+## 参考的开源项目
+
+Aurora 的实现离不开下面这些项目 —— 一律**只借鉴思路、或通过公开接口调用**，没有复制它们的代码或数据（Textractor / LunaHook / Misaka 系列均为 GPL，我们既没有打包也没有搬运其引擎表）：
+
+| 项目 | 在 Aurora 里扮演的角色 |
+| --- | --- |
+| [Textractor](https://github.com/Artikash/Textractor) | 游戏内翻译的钩子引擎：调用它的 TextractorCLI.exe 取文本，H-code 语法也照它的 host/hookcode.cpp 来拼 |
+| [Locale Emulator](https://github.com/xupefei/Locale-Emulator) | 「转区启动」：只调用你本机已安装的 LEProc.exe，不下载、不打包 |
+| [LunaTranslator](https://github.com/HIllya51/LunaTranslator) | 钩子覆盖面最广的成熟方案；遇到钩子无解的引擎，设置页与 README 直接指路过去 |
+| [MisakaHookFinder](https://github.com/hanmin0822/MisakaHookFinder) · [MisakaTranslator](https://github.com/hanmin0822/MisakaTranslator) | 自研「钩子查找器」的**思路来源**（翻页数次 → 收集所有候选 → 挑输出就是原文的那条）；我们改成采样线程栈来收集，代码是自己写的 |
+| [FuckGalEngine](https://github.com/Inori/FuckGalEngine) | 研究 WillPlus/AdvHD 文本与脚本格式时的参考（文件级解包/脚本文具） |
+| [SExtractor](https://github.com/satan53x/SExtractor) | 研究 Artemis/Emote 脚本文本提取时的参考 |
+| [pywebview](https://github.com/r0x0r/pywebview) | 启动器界面（Windows 上用 Edge WebView2，缺运行时会回退 Qt） |
+| [PyInstaller](https://github.com/pyinstaller/pyinstaller) | 把整个启动器打包成单文件 Aurora.exe |
+| Windows.Media.Ocr（[winrt 投影包](https://pypi.org/project/winrt-Windows.Media.Ocr/)） | OCR 模式用的系统自带日语识别器 |
+
+> 两个实测结论也一并留档，方便别人少走弯路：
+> - Textractor 自带钩子在 **Emote/Artemis x64 引擎**（如 アマカノ３）上抓不到文本：引擎用 motedriver.dll + D3D11 **自己画字**，GDI 文本 API 根本不被调用；可用码形如 HS65001#-6C@1B1F70:Amakano3.exe / HS65001#20@38A78:emotedriver.dll。
+> - 给 Textractor 的 Issue 草稿见 [docs/textractor-issue-emote.md](docs/textractor-issue-emote.md)。
+
 ## 常见问题
 
 **双击「启动 Aurora.bat」没反应或闪退？**
