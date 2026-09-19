@@ -428,7 +428,7 @@ Aurora 的实现离不开下面这些项目 —— 一律**只借鉴思路、或
 
 > 两个实测结论也一并留档，方便别人少走弯路：
 > - Textractor 自带钩子在 **Emote/Artemis x64 引擎**（如 アマカノ３）上抓不到文本：引擎用 motedriver.dll + D3D11 **自己画字**，GDI 文本 API 根本不被调用；可用码形如 HS65001#-6C@1B1F70:Amakano3.exe / HS65001#20@38A78:emotedriver.dll。
-> - 给 Textractor 的 Issue 草稿见 [docs/textractor-issue-emote.md](docs/textractor-issue-emote.md)。
+> - 给 Textractor 的 Issue（Emote/Artemis x64 抓不到文本的证据与改进建议）已经提给上游，草稿不再随仓库分发。
 
 ## 常见问题
 
