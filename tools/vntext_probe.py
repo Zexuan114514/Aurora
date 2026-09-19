@@ -752,8 +752,17 @@ def main() -> int:
     finally:
         ocr._langs = saved_langs
     check("OCR 逐字空格被去掉",
-          vntext.tidy_ocr_text("出 会 っ て 、 A B") == "出会って 、 A B",
+          vntext.tidy_ocr_text("出 会 っ て 、 A B") == "出会って、 A B",
           vntext.tidy_ocr_text("出 会 っ て 、 A B"))
+    # アマカノ３（引擎自绘文字、只能 OCR）实测噪声：边框读成 `-`/`ー`/`|`、词中间插 `-`
+    check("OCR 边框噪声被清掉",
+          vntext.tidy_ocr_text("詩夢こ - んなのすぐに動くでルよ 」")
+          == "詩夢こんなのすぐに動くでルよ」",
+          vntext.tidy_ocr_text("詩夢こ - んなのすぐに動くでルよ 」"))
+    check("OCR 标点两侧空格被清掉",
+          vntext.tidy_ocr_text("- ー - 「 これでちょっとは落ち着ける ? 」")
+          == "「これでちょっとは落ち着ける?」",
+          vntext.tidy_ocr_text("- ー - 「 これでちょっとは落ち着ける ? 」"))
     # OCR 每 0.9 秒抓一屏，同一句不能反复送翻译
     ocr_lines: list[str] = []
     eng_ocr = vntext.VnTextEngine(settings_getter=lambda: {}, on_line=ocr_lines.append)

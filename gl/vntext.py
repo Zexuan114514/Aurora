@@ -734,9 +734,27 @@ _CJK_GAP_RE = re.compile(rf"(?<=[{_CJK}])[ \t\u3000]+(?=[{_CJK}])")
 
 def tidy_ocr_text(text: str) -> str:
     """整理 OCR 结果：Windows OCR 会把日文按字切开（「出 会 っ て」），
-    汉字/假名之间的空格要去掉，否则译文会被当成一堆孤立字。"""
+    汉字/假名之间的空格要去掉，否则译文会被当成一堆孤立字。
+
+    实测 アマカノ３（引擎自绘文字、只能走 OCR）：文本框的边框会被读成孤立的
+    `-`/`ー`/`|`，还会在词中间插一个 `-`（`こ - んなの`）；标点两侧也会多出空格。
+    这些都清掉，交给翻译的才是干净的台词。
+    """
     body = " ".join(str(text or "").split())
-    return _CJK_GAP_RE.sub("", body)
+    body = _CJK_GAP_RE.sub("", body)
+    body = _OCR_DASH_RE.sub(" ", body)                     # 边框/连字符噪声
+    body = _OCR_LONE_DASH_RE.sub(" ", body)                # 孤立的 `ー`（长音符在词里才有意义）
+    body = re.sub(r"\s+([、。，．！？!?…‥」』）〕】])", r"\1", body)
+    body = re.sub(r"([（〔【「『])\s+", r"\1", body)
+    body = re.sub(rf"([、。，．！？!?…‥」』）〕】])\s+(?=[{_CJK}])", r"\1", body)
+    body = _CJK_GAP_RE.sub("", body)
+    return " ".join(body.split())
+
+
+#: OCR 会把文本框边框/分隔线读成这些东西（日文里的破折号是 ―/—，不在这里）
+_OCR_DASH_RE = re.compile(r"\s*[-‐‑|｜]+\s*")
+#: 孤立的 `ー`（前后都是空白/边界）也是边框噪声；词里的长音符不受影响（コーヒー）
+_OCR_LONE_DASH_RE = re.compile(r"(?<!\S)[ー\u2015]+(?!\S)")
 
 
 _WRAP_CJK_RE = re.compile(rf"[{_CJK}\u3000-\u303f\uff01-\uff60]")
