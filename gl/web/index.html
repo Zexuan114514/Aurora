@@ -888,6 +888,7 @@ window.addEventListener("unhandledrejection", (e) =>
 <script>
 (function () {
   var s = document.createElement("script");
+  s.type = "module";                 /* P4.1 起 app.js 是 ES 模块（页面走本地 http 加载） */
   s.src = "app.js?v=" + (window.__ASSET_V || Date.now());
   document.head.appendChild(s);
 })();

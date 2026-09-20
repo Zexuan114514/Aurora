@@ -317,3 +317,24 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 ③ **真实界面**：把设置页模糊滑杆改成 7 → `settings.json` 里 `blur = 7`。
 `run_all` 8/8、`pytest` 51 passed。
 
+## P4.1 前端 ES 模块化第一步（2026-09-20 22:45）
+
+**先确认了 P4 的前置条件**：`_sandbox/p4/check_protocol.py` 实测主窗口 `location.href` 是
+`http://127.0.0.1:55697/index.html`（pywebview 检测到本地 URL 就自动起了内置静态服务器），
+所以 **ES 模块今天就能用**，不必等 P5 的自建资源服务。
+
+| 改动 | 内容 |
+| --- | --- |
+| `gl/web/app.js` | 从 IIFE 改成 **ES 模块**（去掉外层包装、删掉本地 `api()/call()`）；版本 3688 → 3922 行，行为零变化 |
+| `gl/web/app/core/api.js` | 新增：桥接唯一出口（`bridge()` / `bridgeReady()` / `call()`）—— 全前端只有这里摸 `window.pywebview.api` |
+| `gl/web/index.html` | 注入的脚本改成 `type="module"` |
+| `tools/build_exe.py` | 前端清单新增 `WEB_MODULE_DIRS = ("app",)`，模块树按目录整棵打进包（用户素材目录仍然排除） |
+| `tools/checks/baseline.json` | 登记 `gl/web/app/core/api.js`、刷新 `app.js` 行数 |
+
+**为什么敢动**：`tools/e2e.py` 会真起窗口、真点按钮、真校验 90 项；改造前后各跑一次，
+`e2e` **90/90**、`tools/visual.py` 的 `errors=[]`（没有 JS 报错）、`run_all` 8/8。
+
+**下一刀（P4.2）**：把状态与实体更新收进 `gl/web/app/core/store.js`（现在散在 3900 行的 `state`
+与各处 `render()`），再按 `views/{hall,game,settings,categories}` 拆；`window.__aurora`
+（`ring()`/`layout()`）与 `window.__auroraErrors` 这两个稳定测试面必须原样保留。
+

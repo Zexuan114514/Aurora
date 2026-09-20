@@ -1,8 +1,11 @@
+/* Aurora 游戏启动器 · 前端主模块（P4.1 起是 ES 模块）
+ * 桥接调用统一走 ./app/core/api.js；后续视图会继续拆到 ./app/views/。
+ */
+import { call } from "./app/core/api.js";
+
 /* ============================================================
    Aurora 游戏启动器 · 前端逻辑
    ============================================================ */
-(() => {
-  "use strict";
 
   // 最小尺寸由后端按显示器缩放比例钳制（见 gl/api.py: resize_apply）
   /* 记录找不到的元素：HTML 与 JS 对不上时报出来，而不是整页静默死掉 */
@@ -154,12 +157,6 @@
     });
   }
 
-  const api = () => (window.pywebview && window.pywebview.api) || null;
-  const call = async (name, ...args) => {
-    const a = api();
-    if (!a || typeof a[name] !== "function") throw new Error("bridge not ready");
-    return a[name](...args);
-  };
 
   const hours = (sec) => {
     if (sec >= 3600) return (sec / 3600).toFixed(sec >= 36000 ? 0 : 1) + " 小时";
@@ -3923,4 +3920,3 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   } else {
     whenReady();
   }
-})();
