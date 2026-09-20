@@ -13,6 +13,23 @@ from typing import Iterable
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
+def _force_utf8_console() -> None:
+    """把标准输出切到 UTF-8。
+
+    检查脚本的标题与结论是中文；在英文 code page 的机器上（GitHub Actions 的
+    windows-latest 就是），`print` 会抛 UnicodeEncodeError 让检查整批失败。
+    这里主动 reconfigure，跑在 pytest 捕获里时（没有 reconfigure）静默跳过。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")   # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+
+_force_utf8_console()
+
+
 class Result:
     """一次检查的结果：失败项会阻断 CI，告警只提示。"""
 
