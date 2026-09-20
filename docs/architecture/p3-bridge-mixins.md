@@ -370,3 +370,23 @@ import 主模块，变成循环依赖。
 整块搬出去：视图只 import `core/{api,dom,store}`，不再反向依赖主模块；
 `window.__aurora.ring()/layout()` 保持不变。
 
+### P4.3-b 第一块视图 `views/categories.js`（2026-09-20 23:50）
+
+书架 / 多选 / 游戏状态这一段（`setOrganizing` … `setGameStatus`，103 行）整块搬进
+`gl/web/app/views/categories.js`。
+
+| 设计点 | 做法 |
+| --- | --- |
+| 不反向依赖主模块 | 视图只 import `core/{api,dom,store}`；主模块的渲染与提示函数（`render`/`renderCatBar`/`applyShelfPayload`/`setScope`/`renderDetail`/`toast`/`modal`/`cssEscape`/`STATUS_LABEL`）由 `createCategoriesView(ctx)` **注入**——所以不会出现「视图 import 主模块」的循环依赖 |
+| 调用点零改动 | 主模块里 `const { setOrganizing, togglePick, … } = createCategoriesView({…})`，原有 `onclick` 绑定一个字没改 |
+| 守卫跟着升级 | `check_contract` 的「前端调用点」与 `check_layers` 的「不许绕过 `call()`」都从只看 `app.js` 改成扫**整棵前端模块树**（`gl/web/app/**/*.js`）——否则视图里的 7 个调用点会被判成「不再调用」 |
+
+结果：`app.js` 3838 → 3744 行；`run_all` 8/8（前端调用点 96 个，全部有后端实现）、
+`e2e` **90/90**。
+
+> 备注：第一次 e2e 跑出 88/90，两项失败是「背景图已应用」（要联网取 Steam 封面）与
+> 「拖拽缩放窗口」（鼠标拖拽时序）——重跑即 90/90，属偶发，与本次改动无关。
+
+**下一刀（P4.3-c）**：同法搬 `views/hall.js`（环/布局 + `window.__aurora.ring()/layout()`
+的取数逻辑，测试面签名不变），再是 `views/settings.js`、`views/vntext.js`。
+

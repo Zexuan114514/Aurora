@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3838
+      "lines": 3744
     },
     {
       "path": "gl/web/index.html",
@@ -388,6 +388,10 @@
     {
       "path": "gl/web/app/core/dom.js",
       "lines": 64
+    },
+    {
+      "path": "gl/web/app/views/categories.js",
+      "lines": 118
     }
   ],
   "threads": [
@@ -1324,6 +1328,17 @@
         {
           "from": "app.js 里的 api()/call()",
           "to": "gl/web/app/core/api.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-b",
+      "date": "2026-09-20",
+      "note": "书架/多选/状态整块搬进 app/views/categories.js（依赖注入 ctx，视图不反向依赖主模块）；契约与分层守卫改成扫整棵前端模块树；e2e 90/90",
+      "moves": [
+        {
+          "from": "app.js: setOrganizing…setGameStatus",
+          "to": "gl/web/app/views/categories.js"
         }
       ]
     }

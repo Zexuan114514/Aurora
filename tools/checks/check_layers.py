@@ -39,9 +39,15 @@ def check() -> Result:
         result.note("sys.path 只在 main.py 里改写")
 
     # 规则 2（今天生效）：前端不得绕过 call() 直接摸 pywebview.api
-    app_js = read_text("gl/web/app.js")
-    direct = [line.strip()[:60] for line in app_js.splitlines()
-              if "pywebview.api." in line and "const api = ()" not in line]
+    # P4 起前端拆成模块树（app.js + gl/web/app/**），整棵树都不许绕过 call()
+    js_files = [ROOT / "gl/web/app.js"] + sorted((ROOT / "gl/web/app").rglob("*.js"))
+    direct: list[str] = []
+    for path in js_files:
+        if not path.is_file() or "__pycache__" in path.parts:
+            continue
+        for line in read_text(path.relative_to(ROOT).as_posix()).splitlines():
+            if "pywebview.api." in line and "const api = ()" not in line:
+                direct.append(f"{path.name}: {line.strip()[:56]}")
     if direct:
         result.fail(f"app.js 里存在绕过 call() 的桥接调用：{direct[:3]}")
     else:

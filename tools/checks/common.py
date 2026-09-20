@@ -191,11 +191,18 @@ def imports_of(path: pathlib.Path) -> set[str]:
     return names
 
 
-def frontend_calls(js_path: pathlib.Path | str) -> set[str]:
-    """前端通过 call("name") 调用的桥接方法名。"""
+def frontend_calls(*js_paths: pathlib.Path | str) -> set[str]:
+    """前端通过 call("name") 调用的桥接方法名。
+
+    P4 起前端是模块树（gl/web/app/**），所以支持传多个文件——桥接调用点可能
+    分散在 core/ 与 views/ 里。
+    """
     import re
 
-    return set(re.findall(r'call\(\s*"([a-z_]+)"', read_text(js_path)))
+    found: set[str] = set()
+    for path in js_paths:
+        found |= set(re.findall(r'call\(\s*"([a-z_]+)"', read_text(path)))
+    return found
 
 
 def emitted_topics(*paths: pathlib.Path | str) -> set[str]:

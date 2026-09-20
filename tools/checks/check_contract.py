@@ -68,7 +68,12 @@ def check() -> Result:
         result.note(f"内部方法集合变化（不阻断）：新增 {sorted(internal_live - internal_snap)}，"
                     f"消失 {sorted(internal_snap - internal_live)}")
 
-    calls = frontend_calls(APP_JS)
+    # P4 起前端是模块树：app.js + gl/web/app/**（core/ 与 views/ 里的 call() 都要算）
+    frontend_js = [APP_JS] + sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "gl/web/app").rglob("*.js")
+        if "__pycache__" not in path.parts)
+    calls = frontend_calls(*frontend_js)
     flagged = {m["name"] for m in channels["main"]["methods"] if m.get("called_by_frontend")}
     if calls != flagged:
         result.fail(f"前端调用点与快照不一致：新增调用 {sorted(calls - flagged)}，"
