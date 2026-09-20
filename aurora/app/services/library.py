@@ -7,14 +7,44 @@ from __future__ import annotations
 
 from aurora.app.events import default_bus
 from aurora.app.projection import _public
+from gl import config, detect   # TODO(P3.8): 收口到 aurora.infra
+import shutil
+import time
+import uuid
+from pathlib import Path
 
 
 class LibraryService:
     """游戏库数据用例（不含文件对话框与导入扫描）。"""
 
-    def __init__(self, library, pm) -> None:
+
+
+    #: 一次拖放最多导入多少个 exe，避免误拖整个盘符时炸库
+    MAX_DROPPED = 40
+    #: 拖入文件夹时最多向下找几层（游戏常见是 <游戏名>\Game\xxx.exe）
+    DROP_MAX_DEPTH = 3
+    #: 明显不是游戏启动器的目录，不往里翻
+    DROP_SKIP_DIRS = {
+        "$recycle.bin", "system volume information", "windows", "appdata",
+        "program files", "program files (x86)", "programdata", "node_modules",
+        ".git", ".svn", "__pycache__", "redist", "_commonredist", "commonredist",
+        "directx", "vcredist", "dotnet", "support", "docs", "documentation",
+    }
+    #: 安装器 / 卸载器之类的可执行文件，不是游戏本体
+    DROP_SKIP_EXES = {
+        "unins000.exe", "unins001.exe", "unins002.exe", "dxsetup.exe",
+        "setup.exe", "install.exe", "installer.exe", "vcredist_x64.exe",
+        "vcredist_x86.exe", "unitycrashhandler32.exe", "unitycrashhandler64.exe",
+        "crashreportclient.exe", "ue4prereqsetup_x64.exe", "python.exe",
+    }
+
+    def __init__(self, library, pm, *, auto_search_async=None,
+                 apply_window_icon=None) -> None:
         self._library = library
         self._pm = pm
+        #: 导入后触发自动匹配（MetadataService 提供；用 lambda 注入以免装配顺序耦合）
+        self._auto_search_async = auto_search_async
+        self._apply_window_icon = apply_window_icon
 
     def list_shelves(self) -> dict:
         return self._shelves_payload()
@@ -151,5 +181,146 @@ class LibraryService:
         updated = self._library.update(game_id, custom_icon="")
         if updated:
             default_bus().publish("game:updated", _public(updated, self._pm))
-            self.apply_window_icon("")
+            self._apply_window_icon("")
         return {"ok": bool(updated), "game": _public(updated, self._pm) if updated else None}
+
+    # ---- 导入流程（P3.8-h 从桥接层搬出） ----
+
+    def _scan_folder(self, folder: Path, limit: int) -> list[str]:
+        """在文件夹里找 .exe（有限深度，跳过明显的杂项目录）。"""
+        found: list[str] = []
+        stack: list[tuple[Path, int]] = [(folder, 0)]
+        while stack and len(found) < limit:
+            current, depth = stack.pop()
+            try:
+                entries = sorted(current.iterdir())
+            except OSError:
+                continue
+            for entry in entries:
+                if len(found) >= limit:
+                    break
+                try:
+                    if entry.is_dir():
+                        if depth < self.DROP_MAX_DEPTH and \
+                                entry.name.lower() not in self.DROP_SKIP_DIRS:
+                            stack.append((entry, depth + 1))
+                    elif entry.is_file() and entry.suffix.lower() == ".exe" and \
+                            entry.name.lower() not in self.DROP_SKIP_EXES:
+                        found.append(str(entry))
+                except OSError:
+                    continue
+        return found
+
+    def _expand_dropped(self, paths: list[str]) -> tuple[list[str], int]:
+        """把拖入的条目展开成 exe 列表，返回 (exe 列表, 被忽略的数量)。"""
+        found: list[str] = []
+        ignored = 0
+        for raw in paths or []:
+            if not raw:
+                continue
+            path = Path(str(raw))
+            try:
+                if path.is_file() and path.suffix.lower() in LAUNCHABLE_EXTS:
+                    if str(path) not in found:
+                        found.append(str(path))
+                elif path.is_dir():
+                    hits = self._scan_folder(path, self.MAX_DROPPED - len(found))
+                    if hits:
+                        for hit in hits:
+                            if str(hit) not in found:
+                                found.append(str(hit))
+                    else:
+                        ignored += 1
+                else:
+                    ignored += 1
+            except OSError:
+                ignored += 1
+        return found[:self.MAX_DROPPED], ignored
+
+    def import_dropped(self, paths: list[str]) -> dict:
+        """处理拖进窗口的文件/文件夹（由 main.py 注册的 drop 监听调用）。"""
+        exes, ignored = self._expand_dropped(paths or [])
+        if not exes:
+            return {"ok": False, "error": "no-exe", "ignored": ignored}
+        games = [g for g in (self._import_one(exe) for exe in exes) if g]
+        default_bus().publish("games:imported", {
+            "games": games,
+            "ids": [g["id"] for g in games],
+            "ignored": ignored,
+        })
+        config.log(f"dropped import: {len(games)} game(s), ignored={ignored}")
+        return {"ok": bool(games), "games": games, "ignored": ignored}
+
+    def add_by_path(self, path: str) -> dict:
+        game = self._import_one(path)
+        if game is None:
+            return {"ok": False, "error": "invalid", "path": path}
+        return {"ok": True, "game": game}
+
+    def _import_one(self, path: str, auto_search: bool | None = None) -> dict | None:
+        exe = Path(path)
+        if not exe.is_file():
+            return None
+        existing = self._library.find_by_exe(str(exe))
+        if existing:
+            self._auto_search_async(existing["id"])
+            return _public(existing, self._pm)
+
+        info = detect.describe_path(exe)
+        record = {
+            "id": uuid.uuid4().hex[:12],
+            "exe": str(exe),
+            "name": info["candidates"][0] if info["candidates"] else exe.stem,
+            "exe_stem": info["exe_stem"],
+            "dir_name": info["dir_name"],
+            "queries": info["queries"],
+            "strong_queries": info["strong_queries"],
+            "added_at": int(time.time()),
+            "metadata_state": "pending",
+            "background": "",
+            "images": [],
+        }
+        self._library.add(record)
+        config.log(f"imported {exe} -> queries={info['queries']}")
+        if auto_search is None:
+            auto_search = bool(self._library.settings.get("auto_search", True))
+        if auto_search:
+            self._auto_search_async(record["id"])
+        return _public(record, self._pm)
+
+    def remove_game(self, game_id: str) -> dict:
+        ok = self._library.remove(game_id)
+        if ok:
+            self._purge_assets(game_id)
+        return {"ok": ok}
+
+    def _purge_assets(self, game_id: str) -> None:
+        """删除该游戏产生的本地素材副本（自定义图标 + 本地背景图）。"""
+        self._remove_icon_files(game_id)
+        self._purge_covers(game_id)
+        for folder in (config.BG_SOURCE_DIR, config.USER_BG_DIR):
+            try:
+                for item in folder.glob(f"{game_id}-*"):
+                    if item.is_file():
+                        item.unlink()
+            except Exception as exc:
+                config.log(f"purge background failed: {exc}")
+
+    # ---- 素材清理（P3.8-h 从桥接层搬出） ----
+
+    def _purge_covers(self, game_id: str) -> None:
+        for folder in (config.COVER_SOURCE_DIR, config.USER_COVER_DIR):
+            try:
+                for item in folder.glob(f"{game_id}-*"):
+                    if item.is_file():
+                        item.unlink()
+            except Exception as exc:
+                config.log(f"purge cover failed: {exc}")
+
+    def _remove_icon_files(self, game_id: str) -> None:
+        for folder in (config.ICON_SOURCE_DIR, config.USER_ICON_DIR):
+            try:
+                for item in folder.glob(f"{game_id}.*"):
+                    item.unlink()
+            except Exception:
+                pass

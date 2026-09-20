@@ -20,23 +20,11 @@ class LibraryBridgeMixin:
 
 
     def remove_game(self, game_id: str) -> dict:
-        ok = self._library.remove(game_id)
-        if ok:
-            self._purge_assets(game_id)
-        return {"ok": ok}
+        return self._library_service.remove_game(game_id)
 
 
     def _purge_assets(self, game_id: str) -> None:
-        """删除该游戏产生的本地素材副本（自定义图标 + 本地背景图）。"""
-        self._remove_icon_files(game_id)
-        self._purge_covers(game_id)
-        for folder in (config.BG_SOURCE_DIR, config.USER_BG_DIR):
-            try:
-                for item in folder.glob(f"{game_id}-*"):
-                    if item.is_file():
-                        item.unlink()
-            except Exception as exc:
-                config.log(f"purge background failed: {exc}")
+        return self._library_service._purge_assets(game_id)
 
 
     def toggle_favorite(self, game_id: str) -> dict:
@@ -141,13 +129,7 @@ class LibraryBridgeMixin:
 
 
     def _purge_covers(self, game_id: str) -> None:
-        for folder in (config.COVER_SOURCE_DIR, config.USER_COVER_DIR):
-            try:
-                for item in folder.glob(f"{game_id}-*"):
-                    if item.is_file():
-                        item.unlink()
-            except Exception as exc:
-                config.log(f"purge cover failed: {exc}")
+        return self._library_service._purge_covers(game_id)
 
 
     # ------------------------------------------------------------------ #
@@ -240,12 +222,7 @@ class LibraryBridgeMixin:
 
 
     def _remove_icon_files(self, game_id: str) -> None:
-        for folder in (config.ICON_SOURCE_DIR, config.USER_ICON_DIR):
-            try:
-                for item in folder.glob(f"{game_id}.*"):
-                    item.unlink()
-            except Exception:
-                pass
+        return self._library_service._remove_icon_files(game_id)
 
 
     def set_launch_args(self, game_id: str, args: str) -> dict:
@@ -312,107 +289,20 @@ class LibraryBridgeMixin:
 
 
     def _scan_folder(self, folder: Path, limit: int) -> list[str]:
-        """在文件夹里找 .exe（有限深度，跳过明显的杂项目录）。"""
-        found: list[str] = []
-        stack: list[tuple[Path, int]] = [(folder, 0)]
-        while stack and len(found) < limit:
-            current, depth = stack.pop()
-            try:
-                entries = sorted(current.iterdir())
-            except OSError:
-                continue
-            for entry in entries:
-                if len(found) >= limit:
-                    break
-                try:
-                    if entry.is_dir():
-                        if depth < self.DROP_MAX_DEPTH and \
-                                entry.name.lower() not in self.DROP_SKIP_DIRS:
-                            stack.append((entry, depth + 1))
-                    elif entry.is_file() and entry.suffix.lower() == ".exe" and \
-                            entry.name.lower() not in self.DROP_SKIP_EXES:
-                        found.append(str(entry))
-                except OSError:
-                    continue
-        return found
+        return self._library_service._scan_folder(folder, limit)
 
 
     def _expand_dropped(self, paths: list[str]) -> tuple[list[str], int]:
-        """把拖入的条目展开成 exe 列表，返回 (exe 列表, 被忽略的数量)。"""
-        found: list[str] = []
-        ignored = 0
-        for raw in paths or []:
-            if not raw:
-                continue
-            path = Path(str(raw))
-            try:
-                if path.is_file() and path.suffix.lower() in LAUNCHABLE_EXTS:
-                    if str(path) not in found:
-                        found.append(str(path))
-                elif path.is_dir():
-                    hits = self._scan_folder(path, self.MAX_DROPPED - len(found))
-                    if hits:
-                        for hit in hits:
-                            if str(hit) not in found:
-                                found.append(str(hit))
-                    else:
-                        ignored += 1
-                else:
-                    ignored += 1
-            except OSError:
-                ignored += 1
-        return found[:self.MAX_DROPPED], ignored
+        return self._library_service._expand_dropped(paths)
 
 
     def import_dropped(self, paths: list[str]) -> dict:
-        """处理拖进窗口的文件/文件夹（由 main.py 注册的 drop 监听调用）。"""
-        exes, ignored = self._expand_dropped(paths or [])
-        if not exes:
-            return {"ok": False, "error": "no-exe", "ignored": ignored}
-        games = [g for g in (self._import_one(exe) for exe in exes) if g]
-        self._emit("games:imported", {
-            "games": games,
-            "ids": [g["id"] for g in games],
-            "ignored": ignored,
-        })
-        config.log(f"dropped import: {len(games)} game(s), ignored={ignored}")
-        return {"ok": bool(games), "games": games, "ignored": ignored}
+        return self._library_service.import_dropped(paths)
 
 
     def add_by_path(self, path: str) -> dict:
-        game = self._import_one(path)
-        if game is None:
-            return {"ok": False, "error": "invalid", "path": path}
-        return {"ok": True, "game": game}
+        return self._library_service.add_by_path(path)
 
 
-    def _import_one(self, path: str, auto_search: bool | None = None) -> dict | None:
-        exe = Path(path)
-        if not exe.is_file():
-            return None
-        existing = self._library.find_by_exe(str(exe))
-        if existing:
-            self._auto_search_async(existing["id"])
-            return _public(existing, self._pm)
-
-        info = detect.describe_path(exe)
-        record = {
-            "id": uuid.uuid4().hex[:12],
-            "exe": str(exe),
-            "name": info["candidates"][0] if info["candidates"] else exe.stem,
-            "exe_stem": info["exe_stem"],
-            "dir_name": info["dir_name"],
-            "queries": info["queries"],
-            "strong_queries": info["strong_queries"],
-            "added_at": int(time.time()),
-            "metadata_state": "pending",
-            "background": "",
-            "images": [],
-        }
-        self._library.add(record)
-        config.log(f"imported {exe} -> queries={info['queries']}")
-        if auto_search is None:
-            auto_search = bool(self._library.settings.get("auto_search", True))
-        if auto_search:
-            self._auto_search_async(record["id"])
-        return _public(record, self._pm)
+    def _import_one(self, path: str, auto_search: bool | None=None) -> dict | None:
+        return self._library_service._import_one(path, auto_search)

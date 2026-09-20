@@ -52,7 +52,9 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._pm = process.ProcessManager()
         self._sources = SourceManager(self._library)
         self._settings = SettingsService(self._library, self._sources)
-        self._library_service = LibraryService(self._library, self._pm)
+        self._library_service = LibraryService(self._library, self._pm,
+                                             auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
+                                             apply_window_icon=self.apply_window_icon)
         self._window: webview.Window | None = None
         self._drag: dict | None = None
         self._lock = threading.RLock()
@@ -150,24 +152,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         except Exception as exc:
             config.log(f"store shutdown failed: {exc}")
 
-    #: 一次拖放最多导入多少个 exe，避免误拖整个盘符时炸库
-    MAX_DROPPED = 40
-    #: 拖入文件夹时最多向下找几层（游戏常见是 <游戏名>\Game\xxx.exe）
-    DROP_MAX_DEPTH = 3
-    #: 明显不是游戏启动器的目录，不往里翻
-    DROP_SKIP_DIRS = {
-        "$recycle.bin", "system volume information", "windows", "appdata",
-        "program files", "program files (x86)", "programdata", "node_modules",
-        ".git", ".svn", "__pycache__", "redist", "_commonredist", "commonredist",
-        "directx", "vcredist", "dotnet", "support", "docs", "documentation",
-    }
-    #: 安装器 / 卸载器之类的可执行文件，不是游戏本体
-    DROP_SKIP_EXES = {
-        "unins000.exe", "unins001.exe", "unins002.exe", "dxsetup.exe",
-        "setup.exe", "install.exe", "installer.exe", "vcredist_x64.exe",
-        "vcredist_x86.exe", "unitycrashhandler32.exe", "unitycrashhandler64.exe",
-        "crashreportclient.exe", "ue4prereqsetup_x64.exe", "python.exe",
-    }
 
     #: 运行中每隔多少秒把「还活着」写一次盘（用于崩溃/被强关时估算时长）
     HEARTBEAT_SECONDS = 30

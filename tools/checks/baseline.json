@@ -47,7 +47,7 @@
     },
     {
       "path": "aurora/app/services/library.py",
-      "lines": 155
+      "lines": 326
     },
     {
       "path": "aurora/app/services/metadata.py",
@@ -135,7 +135,7 @@
     },
     {
       "path": "aurora/ui/bridge/library.py",
-      "lines": 418
+      "lines": 308
     },
     {
       "path": "aurora/ui/bridge/metadata.py",
@@ -171,7 +171,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 194
+      "lines": 178
     },
     {
       "path": "gl/config.py",
@@ -951,6 +951,27 @@
           194
         ]
       }
+    },
+    {
+      "phase": "P3.8-h",
+      "date": "2026-09-20",
+      "note": "导入流程（_import_one/import_dropped/add_by_path/_scan_folder/_expand_dropped）与素材清理（_purge_assets/_purge_covers/_remove_icon_files）下沉；拖放常量随服务走；auto_search_async 与 apply_window_icon 用惰性协作者注入",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/library.py（7 个导入/清理方法 + 4 个常量）",
+          "to": "aurora/app/services/library.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/library.py": [
+          418,
+          308
+        ],
+        "gl/api.py": [
+          194,
+          178
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1011,5 +1032,6 @@
   ],
   "modules_added_in_p3_8g": [
     "aurora/app/services/hooksearch.py"
-  ]
+  ],
+  "modules_added_in_p3_8h": []
 }
