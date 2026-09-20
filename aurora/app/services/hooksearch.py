@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 from aurora.app.events import default_bus
+from aurora.domain.text_rules import hook_candidate_score
 from gl import (config, gameinput, hookfinder, ocr, screencap, vntext,
                 winapi)   # TODO(P3.8): 收口到 aurora.platform / aurora.infra
 
@@ -169,7 +170,7 @@ class HookSearchService:
                 if collected:
                     # 先按「文本像不像台词」打分（OCR 只占 0.25 权重），再按采样次数
                     scored = sorted(
-                        ((vntext.hook_candidate_score(str(row.get("text") or ""),
+                        ((hook_candidate_score(str(row.get("text") or ""),
                                                      ocr_target=target,
                                                      count=int(row.get("count") or 0)), row)
                          for row in collected),
@@ -183,7 +184,7 @@ class HookSearchService:
                         candidates=[{"code": "", "count": row.get("count", 0),
                                      "encoding": row.get("encoding"),
                                      "sample": str(row.get("text") or "")[:40],
-                                     "score": vntext.hook_candidate_score(
+                                     "score": hook_candidate_score(
                                          str(row.get("text") or ""), ocr_target=target,
                                          count=int(row.get("count") or 0)),
                                      "verified": False} for row in pool],

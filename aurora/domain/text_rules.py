@@ -699,7 +699,20 @@ def hook_candidate_score(text: str, *, ocr_target: str = "", count: int = 0) -> 
         return 0.0
     if looks_like_garbage(body) or looks_like_system_spam(body) or looks_like_noise(body):
         return 0.0
+    # 实测乱码特征（アマカノ３ 真机）：引擎文本是 UTF-8，被按 UTF-16 读出来就是
+    # 「罕见汉字 + 零散片假名」的串（圠荈レ譈䣲骍Ｘ / ヿ蔀痀䡃䶋䣈），既像台词又骗过重复检测。
+    hira = sum(1 for ch in body if "\u3040" <= ch <= "\u309f")
+    kata = sum(1 for ch in body if "\u30a0" <= ch <= "\u30ff")
+    kanji = sum(1 for ch in body if "\u4e00" <= ch <= "\u9fff")
+    rare = sum(1 for ch in body if ("\u3400" <= ch <= "\u4dbf") or ("\uf900" <= ch <= "\ufaff")
+               or ("\U00020000" <= ch <= "\U0002ffff"))
+    if rare:
+        return 0.0
+    if kanji >= 2 and hira == 0 and kata <= 1:
+        return 0.0
     score = 0.0
+    if hira:
+        score += 0.10          # 真台词一定有平假名
     if looks_like_dialogue(body):
         score += 0.55
     if 4 <= len(body) <= 120:
