@@ -338,3 +338,18 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 与各处 `render()`），再按 `views/{hall,game,settings,categories}` 拆；`window.__aurora`
 （`ring()`/`layout()`）与 `window.__auroraErrors` 这两个稳定测试面必须原样保留。
 
+### P4.2 状态与实体更新收进 `core/store.js`（2026-09-20 23:05）
+
+| 改动 | 内容 |
+| --- | --- |
+| `gl/web/app/core/store.js` | 新增：唯一 `state`（活绑定导出）+ 实体更新 helper：`findGame` / `currentGame` / `setBusy` / `upsertGame` / `pushGame` / `patchGame` / `replaceGames` / `replaceShelves` |
+| `gl/web/app.js` | 删掉本地 `state`（24 行）与 `currentGame` 的实现，改为 import；**事件处理里的实体更新全部改走 helper**（`game:updated/stopped/running`、`games:imported`、`metadata:searching/notfound/error`、`refreshLibrary`、书架刷新） |
+| 约束 | 视图仍可直接**读** `state.x`；但**写实体必须**经过 store helper —— 后面拆 `views/` 时不会出现两边各改一半 |
+
+改完 `app.js` 3889 行（比 P4.1 少 33 行），`run_all` 8/8、`e2e` **90/90**、
+`tools/visual.py` 无 JS 错误。
+
+**下一刀（P4.3）**：按视图拆 `gl/web/app/views/{hall,game,settings,categories}.js`
+（每个视图只导出 `mount`/`render`，跨视图状态一律走 store），`window.__aurora.ring()/layout()`
+改成从 `views/hall.js` 取数，测试面签名不变。
+

@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3922
+      "lines": 3889
     },
     {
       "path": "gl/web/index.html",
@@ -1283,6 +1283,17 @@
         {
           "from": "gl/hookfinder.py",
           "to": "aurora/platform/hookfinder.py"
+        }
+      ]
+    },
+    {
+      "phase": "P4.1",
+      "date": "2026-09-20",
+      "note": "app.js 改成 ES 模块（页面走本地 http 加载）：抽出 gl/web/app/core/api.js 作为唯一桥接出口；e2e 90/90、visual 无 JS 错误",
+      "moves": [
+        {
+          "from": "app.js 里的 api()/call()",
+          "to": "gl/web/app/core/api.js"
         }
       ]
     },

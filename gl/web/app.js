@@ -2,6 +2,8 @@
  * 桥接调用统一走 ./app/core/api.js；后续视图会继续拆到 ./app/views/。
  */
 import { call } from "./app/core/api.js";
+import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
+         replaceGames, replaceShelves } from "./app/core/store.js";
 
 /* ============================================================
    Aurora 游戏启动器 · 前端逻辑
@@ -61,33 +63,6 @@ import { call } from "./app/core/api.js";
     dropHint: $("dropHint"),
     modal: $("modal"), modalTitle: $("modalTitle"), modalBody: $("modalBody"),
     modalInput: $("modalInput"), modalOk: $("modalOk"), modalCancel: $("modalCancel"),
-  };
-
-  const state = {
-    games: [],
-    focus: null,          // 焦点游戏的 id（大厅与游戏页共用），导入块为 "__add__"
-    page: "hall",         // hall | game
-    settingsOpen: false,
-    settingsTab: "look",
-    settings: {},
-    sources: [],
-    filter: "",
-    sort: "default",
-    version: "",
-    dpr: window.devicePixelRatio || 1,
-    busy: {},
-    iconFor: null,
-    steam: [],
-    picked: new Set(),
-    batch: null,
-    sites: [],
-    view: "home",                                    // home | categories
-    scope: { type: "all", value: "" },               // all | unfiled | shelf | status | dev
-    shelves: [],
-    shelfStats: { unfiled: 0, total: 0 },
-    organizing: false,
-    selected: new Set(),
-    devExpand: false,
   };
 
   let pywebviewReady = false;
@@ -379,8 +354,8 @@ import { call } from "./app/core/api.js";
   /* ---------------------------------------------------------- 大厅 */
   const ADD_KEY = "__add__";
 
-  const currentGame = () =>
-    state.games.find((x) => x.id === state.focus) || null;
+  /* P4.2：游戏实体统一从 store 里找（本地同名函数保留，调用点不用动） */
+  const currentGame = () => findGame(state.focus) || null;
 
   const hallKeys = () => {
     const ids = visibleGames().map((g) => g.id);
@@ -1100,7 +1075,7 @@ import { call } from "./app/core/api.js";
   /* 分类接口统一收尾：合并货架列表与受影响的游戏 */
   function applyShelfPayload(res) {
     if (!res) return;
-    if (Array.isArray(res.shelves)) state.shelves = res.shelves;
+    if (Array.isArray(res.shelves)) replaceShelves(res.shelves);
     if (typeof res.unfiled === "number") {
       state.shelfStats = { unfiled: res.unfiled, total: res.total ?? state.games.length };
     }
@@ -2234,7 +2209,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
 
   async function refreshLibrary() {
     const data = await call("bootstrap");
-    state.games = data.games || [];
+    replaceGames(data.games);
     state.settings = data.settings || {};
     state.sources = data.sources || [];
     state.version = data.version || "";
@@ -3705,17 +3680,10 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     emit(event, payload) {
       try {
         if (event === "game:updated" || event === "game:stopped" || event === "game:running") {
-          const idx = state.games.findIndex((g) => g.id === payload.id);
-          let isNew = false;
-          if (idx >= 0) {
-            const running = event === "game:running" ? true
-              : event === "game:stopped" ? false : payload.running;
-            state.games[idx] = { ...state.games[idx], ...payload, running };
-          } else if (payload && payload.id) {
-            state.games.push(payload);
-            isNew = true;
-          }
-          delete state.busy[payload.id];
+          const running = event === "game:running" ? true
+            : event === "game:stopped" ? false : payload.running;
+          const isNew = upsertGame(payload, { running });
+          setBusy(payload.id, false);
           render();
           if (event === "game:running") notifyLocaleStart(payload.locale);
           if (event === "game:updated" && payload.metadata_state === "ok") hintCoverOnce(payload);
@@ -3724,15 +3692,11 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
           // 当前游戏换了壁纸（背景面板 / 其它来源）时跟着换
           else if (payload.id === state.focus) scheduleBackground();
         } else if (event === "metadata:searching") {
-          state.busy[payload.id] = true;
+          setBusy(payload.id, true);
           renderHall();
         } else if (event === "games:imported") {
           // 拖放/导入进来的游戏：并进大厅并聚焦最后一个
-          (payload.games || []).forEach((g) => {
-            const idx = state.games.findIndex((x) => x.id === g.id);
-            if (idx >= 0) state.games[idx] = { ...state.games[idx], ...g };
-            else state.games.push(g);
-          });
+          (payload.games || []).forEach((g) => upsertGame(g));
           const ids = payload.ids || [];
           render();
           if (ids.length) setFocus(ids[ids.length - 1]);
@@ -3740,14 +3704,17 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
           toast(ids.length ? `已导入 ${ids.length} 个游戏` : "没有可导入的 exe"
                 + (ignored ? "（已忽略非 exe 文件）" : ""), ids.length ? 2600 : 4000);
         } else if (event === "metadata:notfound") {
-          delete state.busy[payload.id];
-          let g = state.games.find((x) => x.id === payload.id);
+          setBusy(payload.id, false);
+          let g = findGame(payload.id);
           if (!g && payload.game) {
-            state.games.push(payload.game);
+            pushGame(payload.game);
             if (!currentGame()) state.focus = payload.id;
             g = payload.game;
           }
-          if (g) { g.metadata_state = "notfound"; g.metadata_note = payload.note; }
+          if (g) {
+            patchGame(payload.id, { metadata_state: "notfound",
+                                    metadata_note: payload.note });
+          }
           render();
           // 只有正看着这个游戏时才弹候选面板；
           // 大厅里、以及设置页里都只提示一句，别把面板盖到别的界面上
@@ -3787,7 +3754,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
             toast(`已重新抓取 ${payload.total} 个游戏的信息`);
           }
         } else if (event === "metadata:error") {
-          delete state.busy[payload.id];
+          setBusy(payload.id, false);
           render();
           toast("搜索出错：" + payload.note);
         } else if (event === "translate:done") {
