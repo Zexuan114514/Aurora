@@ -146,6 +146,10 @@
       "lines": 85
     },
     {
+      "path": "aurora/platform/hotkey.py",
+      "lines": 83
+    },
+    {
       "path": "aurora/platform/ocr.py",
       "lines": 156
     },
@@ -156,6 +160,10 @@
     {
       "path": "aurora/platform/screencap.py",
       "lines": 280
+    },
+    {
+      "path": "aurora/platform/tray.py",
+      "lines": 307
     },
     {
       "path": "aurora/platform/winapi.py",
@@ -231,7 +239,7 @@
     },
     {
       "path": "gl/hotkey.py",
-      "lines": 87
+      "lines": 8
     },
     {
       "path": "gl/linetrans.py",
@@ -319,7 +327,7 @@
     },
     {
       "path": "gl/tray.py",
-      "lines": 312
+      "lines": 8
     },
     {
       "path": "gl/vntext.py",
@@ -1121,6 +1129,31 @@
           12
         ]
       }
+    },
+    {
+      "phase": "P3.9-f",
+      "date": "2026-09-20",
+      "note": "tray/hotkey 薄平台件搬进 aurora/platform，gl 留透明别名",
+      "moves": [
+        {
+          "from": "gl/tray.py",
+          "to": "aurora/platform/tray.py"
+        },
+        {
+          "from": "gl/hotkey.py",
+          "to": "aurora/platform/hotkey.py"
+        }
+      ],
+      "drift": {
+        "gl/tray.py": [
+          312,
+          8
+        ],
+        "gl/hotkey.py": [
+          87,
+          8
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1201,5 +1234,9 @@
   ],
   "modules_added_in_p3_9e": [
     "aurora/infra/vntext.py"
+  ],
+  "modules_added_in_p3_9f": [
+    "aurora/platform/hotkey.py",
+    "aurora/platform/tray.py"
   ]
 }

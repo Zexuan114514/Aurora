@@ -1,0 +1,83 @@
+"""Win32 全局热键原语：RegisterHotKey 循环（P3.9-f 从 gl/hotkey.py 搬入）。"""
+from __future__ import annotations
+
+from aurora.infra.tasks import default_runner
+
+import ctypes
+import threading
+from ctypes import wintypes
+
+from gl import config
+
+MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
+MOD_NOREPEAT = 0x4000
+WM_HOTKEY = 0x0312
+
+user32 = ctypes.WinDLL("user32", use_last_error=True)
+
+
+class Hotkeys:
+    """注册一组全局热键，按下的回调在独立线程里执行。"""
+
+    def __init__(self) -> None:
+        self._thread: threading.Thread | None = None
+        self._stop = threading.Event()
+        self._binds: list[tuple[int, int, int]] = []      # (id, modifiers, vk)
+        self._handlers: dict[int, callable] = {}
+        self._registered: list[int] = []
+        self._failed: list[int] = []
+
+    def bind(self, hotkey_id: int, modifiers: int, vk: int, handler) -> None:
+        self._binds.append((hotkey_id, modifiers | MOD_NOREPEAT, vk))
+        self._handlers[hotkey_id] = handler
+
+    def start(self) -> None:
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = default_runner().spawn("appshell.hotkeys", self._loop,
+                                              thread_name="aurora-hotkeys")
+
+    def status(self) -> dict:
+        """哪些热键注册成功、哪些被占用（界面要如实告诉用户）。"""
+        return {"ok": bool(self._registered), "registered": list(self._registered),
+                "failed": list(self._failed)}
+
+    def stop(self) -> None:
+        self._stop.set()
+        try:
+            user32.PostThreadMessageW(self._thread.native_id, 0x0012, 0, 0)   # WM_QUIT
+        except Exception:
+            pass
+
+    def _loop(self) -> None:
+        for hotkey_id, modifiers, vk in self._binds:
+            if user32.RegisterHotKey(None, hotkey_id, modifiers, vk):
+                self._registered.append(hotkey_id)
+            else:
+                self._failed.append(hotkey_id)
+                config.log(f"RegisterHotKey failed id={hotkey_id} vk={vk} "
+                           f"err={ctypes.get_last_error()}")
+        if not self._registered:
+            config.log("所有全局热键都注册失败：请在游戏页「翻译」面板里点「切换穿透」")
+            return
+        msg = wintypes.MSG()
+        while not self._stop.is_set():
+            got = user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
+            if got in (0, -1):
+                break
+            if msg.message == WM_HOTKEY:
+                handler = self._handlers.get(int(msg.wParam))
+                if handler:
+                    try:
+                        handler()
+                    except Exception as exc:
+                        config.log(f"hotkey handler failed: {exc}")
+        for hotkey_id in self._registered:
+            try:
+                user32.UnregisterHotKey(None, hotkey_id)
+            except Exception:
+                pass
+        self._registered.clear()
