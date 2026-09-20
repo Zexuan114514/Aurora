@@ -3,6 +3,7 @@
  */
 import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
+import { createSettingsView } from "./app/views/settings.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -1537,45 +1538,19 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   }
 
   /* ---------------------------------------------------------- 设置页 */
-  function setSettingsTab(name) {
-    state.settingsTab = name || "look";
-    for (const tab of el.setNav.querySelectorAll(".set-tab")) {
-      tab.classList.toggle("on", tab.dataset.pane === state.settingsTab);
-    }
-    for (const pane of el.settingsView.querySelectorAll(".set-pane")) {
-      pane.classList.toggle("on", pane.dataset.pane === state.settingsTab);
-    }
-  }
-
-  async function openSettings(tab) {
-    state.settingsOpen = true;
-    closeAll();
-    render();
-    setSettingsTab(tab || state.settingsTab);
-    await refreshSettingsPanes();
-  }
-
-  function closeSettings() {
-    state.settingsOpen = false;
-    el.settingsView.hidden = true;
-    render();
-  }
-
-  async function refreshSettingsPanes() {
-    $("aboutVersion").textContent = state.version || "—";
-    try {
-      const info = await call("bootstrap");
-      $("aboutDataDir").textContent = info.data_dir || "—";
-      state.settings = info.settings || state.settings;
-      state.version = info.version || state.version;
-      $("aboutVersion").textContent = state.version || "—";
-      applySettingsToUi();
-    } catch (_) { /* 离线也要能开设置 */ }
-    refreshNetworkPane();
-    refreshLocalePane();
-    refreshVntext();
-    renderGlossary();
-  }
+  /* P4.3-c：设置页导航搬进 ./app/views/settings.js（依赖注入 ctx）
+     ctx 里用箭头延迟取值：这些 helper 有些是 const（定义在本行之后），
+     直接传引用会在模块初始化时踩 TDZ（实测整页挂掉，e2e 3/13）。 */
+  const settingsView = createSettingsView({
+    render: (...a) => render(...a),
+    applySettingsToUi: (...a) => applySettingsToUi(...a),
+    refreshNetworkPane: (...a) => refreshNetworkPane(...a),
+    refreshLocalePane: (...a) => refreshLocalePane(...a),
+    refreshVntext: (...a) => refreshVntext(...a),
+    renderGlossary: (...a) => renderGlossary(...a),
+    closeAll: (...a) => closeAll(...a),
+  });
+  const { setSettingsTab, openSettings, closeSettings, refreshSettingsPanes } = settingsView;
 
   /* ---------------------------------------------------------- 背景面板 */
   function renderBgPanel() {

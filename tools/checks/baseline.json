@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3744
+      "lines": 3719
     },
     {
       "path": "gl/web/index.html",
@@ -392,6 +392,10 @@
     {
       "path": "gl/web/app/views/categories.js",
       "lines": 118
+    },
+    {
+      "path": "gl/web/app/views/settings.js",
+      "lines": 54
     }
   ],
   "threads": [
@@ -1339,6 +1343,17 @@
         {
           "from": "app.js: setOrganizing…setGameStatus",
           "to": "gl/web/app/views/categories.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-c",
+      "date": "2026-09-20",
+      "note": "设置页导航搬进 app/views/settings.js；ctx 用箭头延迟取值避开 const 的 TDZ（首次尝试直接传引用 → 整页脚本挂掉、e2e 3/13）；e2e 90/90",
+      "moves": [
+        {
+          "from": "app.js: setSettingsTab/openSettings/closeSettings/refreshSettingsPanes",
+          "to": "gl/web/app/views/settings.js"
         }
       ]
     }

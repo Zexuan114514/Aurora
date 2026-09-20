@@ -390,3 +390,32 @@ import 主模块，变成循环依赖。
 **下一刀（P4.3-c）**：同法搬 `views/hall.js`（环/布局 + `window.__aurora.ring()/layout()`
 的取数逻辑，测试面签名不变），再是 `views/settings.js`、`views/vntext.js`。
 
+### P4.3-c 设置视图 `views/settings.js`（2026-09-21 00:15）
+
+设置页的开关与分页导航（`setSettingsTab` / `openSettings` / `closeSettings` /
+`refreshSettingsPanes`，40 行）搬进 `gl/web/app/views/settings.js`。
+
+**踩到的坑（值得记一笔）**：ctx 一开始直接传函数引用 ——
+
+```js
+createSettingsView({ render, applySettingsToUi, …, closeAll })
+```
+
+其中 `closeAll` 是 **`const` 箭头函数**、定义在工厂调用**之后**，于是模块初始化时
+取它直接踩 TDZ：整页脚本挂掉，e2e 掉到 **3/13**（连「空库显示空状态」都过不了）。
+
+修法：ctx 里一律用**延迟取值**的箭头包装，调用时才去查外层变量：
+
+```js
+closeAll: (...a) => closeAll(...a),
+```
+
+这条经验对后面几刀都适用：**拆视图时 ctx 用箭头包装，不要直接传引用**（函数声明会
+提升、`const` 不会）。`views/categories.js` 那几个 helper 恰好都是函数声明，所以第一刀
+没撞上。
+
+验收：`run_all` 8/8、`e2e` **90/90**；`app.js` 3744 → 3719 行。
+
+**下一刀（P4.3-d）**：搬 `views/hall.js`（环/平铺布局 + `window.__aurora.ring()/layout()`
+的取数逻辑，测试面签名不变）——这一块最大（环动画与拖拽都在里面），单独一轮做。
+
