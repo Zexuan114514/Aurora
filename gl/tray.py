@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import ctypes
 import threading
 from ctypes import wintypes
@@ -147,8 +149,8 @@ class TrayIcon:
     def start(self, timeout: float = 6.0) -> bool:
         if self.alive:
             return True
-        self._thread = threading.Thread(target=self._run, daemon=True, name="aurora-tray")
-        self._thread.start()
+        self._thread = default_runner().spawn("appshell.tray", self._run,
+                                              thread_name="aurora-tray")
         self._ready.wait(timeout)
         if not self.alive:
             config.log("tray: failed to start")

@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from aurora.app.events import EventBus          # noqa: E402
-from aurora.infra.tasks import TaskRunner       # noqa: E402
+from aurora.infra.tasks import TaskRunner, default_runner   # noqa: E402
 
 
 def test_runner_submit_and_active() -> None:
@@ -33,6 +33,32 @@ def test_runner_cancel_token() -> None:
     assert runner.cancel("job") is True
     assert token.is_set(), "协作取消必须置位令牌"
     runner.shutdown()
+
+
+def test_runner_spawn_registers_service_thread() -> None:
+    """长驻服务线程：登记进 runner、daemon、可协作取消。"""
+    runner = TaskRunner(max_workers=2)
+    seen: list[str] = []
+
+    def service() -> None:
+        token = runner.token("svc.loop")
+        while not token.is_set():
+            seen.append("tick")
+            time.sleep(0.05)
+
+    thread = runner.spawn("svc.loop", service, thread_name="aurora-test-svc")
+    assert thread.daemon is True, "服务线程必须是 daemon，否则会卡住进程退出"
+    time.sleep(0.2)
+    assert "svc.loop" in runner.active() and runner.is_running("svc.loop")
+    runner.cancel("svc.loop")
+    thread.join(timeout=2)
+    assert not thread.is_alive(), "取消令牌后服务循环必须退出"
+    assert runner.is_running("svc.loop") is False
+    runner.shutdown()
+
+
+def test_default_runner_is_singleton() -> None:
+    assert default_runner() is default_runner()
 
 
 def test_event_bus_envelope_and_order() -> None:

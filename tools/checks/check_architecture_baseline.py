@@ -22,7 +22,8 @@ def current_threads() -> dict[str, str]:
     for path in roots:
         for line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
             # 前面必须是边界：避免把 save_filename="aurora-library.json" 这类当成线程名
-            match = re.search(r'(?<![A-Za-z_])name=(f?)"(aurora-[^"]+)"', line)
+            match = (re.search(r'(?<![A-Za-z_])name=(f?)"(aurora-[^"]+)"', line)
+                     or re.search(r'thread_name=(f?)"(aurora-[^"]+)"', line))
             if match:
                 found[match.group(2)] = path.relative_to(ROOT).as_posix()
     return found

@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import ctypes
 import threading
 from ctypes import wintypes
@@ -39,8 +41,8 @@ class Hotkeys:
         if self._thread and self._thread.is_alive():
             return
         self._stop.clear()
-        self._thread = threading.Thread(target=self._loop, daemon=True, name="aurora-hotkeys")
-        self._thread.start()
+        self._thread = default_runner().spawn("appshell.hotkeys", self._loop,
+                                              thread_name="aurora-hotkeys")
 
     def status(self) -> dict:
         """哪些热键注册成功、哪些被占用（界面要如实告诉用户）。"""

@@ -1,6 +1,8 @@
 """启动可执行文件并跟踪运行状态。"""
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import ctypes
 import os
 import subprocess
@@ -268,8 +270,8 @@ class ProcessManager:
         return {"ok": True, "pid": proc.pid, "started_at": started}
 
     def _spawn_monitor(self, game_id: str) -> None:
-        threading.Thread(target=self._monitor, args=(game_id,), daemon=True,
-                         name=f"aurora-session-{game_id[:6]}").start()
+        default_runner().spawn(f"session.{game_id[:6]}", self._monitor, game_id,
+                               thread_name=f"aurora-session-{game_id[:6]}")
 
     def _monitor(self, game_id: str) -> None:
         while True:

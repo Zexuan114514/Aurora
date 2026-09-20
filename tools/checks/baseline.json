@@ -79,7 +79,7 @@
     },
     {
       "path": "aurora/infra/tasks.py",
-      "lines": 101
+      "lines": 144
     },
     {
       "path": "aurora/platform/__init__.py",
@@ -147,7 +147,7 @@
     },
     {
       "path": "gl/downloads.py",
-      "lines": 321
+      "lines": 322
     },
     {
       "path": "gl/gameinput.py",
@@ -159,11 +159,11 @@
     },
     {
       "path": "gl/hotkey.py",
-      "lines": 85
+      "lines": 87
     },
     {
       "path": "gl/linetrans.py",
-      "lines": 311
+      "lines": 312
     },
     {
       "path": "gl/locale.py",
@@ -187,11 +187,11 @@
     },
     {
       "path": "gl/overlay.py",
-      "lines": 375
+      "lines": 377
     },
     {
       "path": "gl/process.py",
-      "lines": 398
+      "lines": 400
     },
     {
       "path": "gl/proctree.py",
@@ -247,11 +247,11 @@
     },
     {
       "path": "gl/tray.py",
-      "lines": 310
+      "lines": 312
     },
     {
       "path": "gl/vntext.py",
-      "lines": 1359
+      "lines": 1361
     },
     {
       "path": "gl/web/app.css",
@@ -275,54 +275,54 @@
     },
     {
       "path": "main.py",
-      "lines": 346
+      "lines": 348
     }
   ],
   "threads": [
     {
       "name": "aurora-downloads",
       "file": "gl/downloads.py",
-      "line": 165
+      "line": 167
     },
     {
       "name": "aurora-drop-bind",
       "file": "main.py",
-      "line": 182
+      "line": 185
     },
     {
       "name": "aurora-hooksearch",
-      "file": "gl/api.py",
-      "line": 696
+      "file": "aurora/ui/bridge/vntext.py",
+      "line": 213
     },
     {
       "name": "aurora-hooksearch-advance",
-      "file": "gl/api.py",
-      "line": 739
+      "file": "aurora/ui/bridge/vntext.py",
+      "line": 258
     },
     {
       "name": "aurora-hotkeys",
       "file": "gl/hotkey.py",
-      "line": 42
+      "line": 45
     },
     {
       "name": "aurora-linetrans",
       "file": "gl/linetrans.py",
-      "line": 91
+      "line": 93
     },
     {
       "name": "aurora-overlay-resize",
       "file": "gl/overlay.py",
-      "line": 139
+      "line": 141
     },
     {
       "name": "aurora-refresh-all",
-      "file": "gl/api.py",
-      "line": 1521
+      "file": "aurora/ui/bridge/metadata.py",
+      "line": 39
     },
     {
       "name": "aurora-session-{game_id[:6]}",
       "file": "gl/process.py",
-      "line": 272
+      "line": 274
     },
     {
       "name": "aurora-state-writer",
@@ -331,48 +331,48 @@
     },
     {
       "name": "aurora-steam-import",
-      "file": "gl/api.py",
-      "line": 1611
+      "file": "aurora/ui/bridge/metadata.py",
+      "line": 79
     },
     {
       "name": "aurora-translate-all",
-      "file": "gl/api.py",
-      "line": 1927
+      "file": "aurora/ui/bridge/metadata.py",
+      "line": 396
     },
     {
       "name": "aurora-translate-q",
-      "file": "gl/api.py",
-      "line": 1859
+      "file": "aurora/ui/bridge/metadata.py",
+      "line": 324
     },
     {
       "name": "aurora-tray",
       "file": "gl/tray.py",
-      "line": 150
+      "line": 153
     },
     {
       "name": "aurora-tray-supervisor",
       "file": "main.py",
-      "line": 259
+      "line": 262
     },
     {
       "name": "aurora-vntext-flush",
       "file": "gl/vntext.py",
-      "line": 537
+      "line": 539
     },
     {
       "name": "aurora-vntext-hook",
       "file": "gl/vntext.py",
-      "line": 705
+      "line": 707
     },
     {
       "name": "aurora-vntext-hookcode",
       "file": "gl/vntext.py",
-      "line": 714
+      "line": 716
     },
     {
       "name": "aurora-vntext-ocr",
       "file": "gl/vntext.py",
-      "line": 1236
+      "line": 1238
     }
   ],
   "data": {
@@ -642,6 +642,51 @@
         "aurora/infra/tasks.py": [
           72,
           101
+        ]
+      }
+    },
+    {
+      "phase": "P3.7-b",
+      "date": "2026-09-20",
+      "note": "9 处长驻线程改为 default_runner().spawn()（TaskRunner 服务线程）：会话监控/翻译队列/下载监听/托盘/热键/悬浮窗/CLI flush/拖放绑定/托盘看护",
+      "moves": [
+        {
+          "from": "裸 threading.Thread（9 处）",
+          "to": "TaskRunner.spawn 服务线程（default_runner）"
+        }
+      ],
+      "drift": {
+        "gl/process.py": [
+          398,
+          400
+        ],
+        "gl/linetrans.py": [
+          311,
+          312
+        ],
+        "gl/downloads.py": [
+          321,
+          322
+        ],
+        "gl/tray.py": [
+          310,
+          312
+        ],
+        "gl/hotkey.py": [
+          85,
+          87
+        ],
+        "gl/overlay.py": [
+          375,
+          377
+        ],
+        "gl/vntext.py": [
+          1359,
+          1361
+        ],
+        "main.py": [
+          346,
+          348
         ]
       }
     }

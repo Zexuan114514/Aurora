@@ -1,6 +1,8 @@
 """Aurora 游戏启动器 —— 程序入口。"""
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import ctypes
 import json
 import os
@@ -180,7 +182,7 @@ def bind_file_drop(window: webview.Window, api: Api) -> None:
             if state["bound"] or attempt():
                 return
 
-    threading.Thread(target=retry, daemon=True, name="aurora-drop-bind").start()
+    default_runner().spawn("appshell.drop_bind", retry, thread_name="aurora-drop-bind")
 
 
 def _focus_running_instance() -> bool:
@@ -256,8 +258,8 @@ def bind_tray(window: webview.Window, api: Api) -> dict:
         return not api.minimize_to_tray()
 
     window.events.closing += on_closing
-    threading.Thread(target=_tray_supervisor, args=(window, api, holder),
-                     daemon=True, name="aurora-tray-supervisor").start()
+    default_runner().spawn("appshell.tray_supervisor", _tray_supervisor, window, api, holder,
+                           thread_name="aurora-tray-supervisor")
     return holder
 
 

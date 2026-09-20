@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import os
 import shutil
 import subprocess
@@ -161,9 +163,8 @@ class DownloadWatcher:
             if self._thread and self._thread.is_alive():
                 return
             self._stop.clear()
-            self._thread = threading.Thread(target=self._loop, daemon=True,
-                                            name="aurora-downloads")
-            self._thread.start()
+            self._thread = default_runner().spawn("downloads.watch", self._loop,
+                                                  thread_name="aurora-downloads")
 
     def stop(self) -> None:
         self._stop.set()

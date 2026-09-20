@@ -7,6 +7,8 @@ TextractorCLI 的契约（读它的 host/CLI/main.cpp 得出）：
 """
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import difflib
 import os
 import re
@@ -533,8 +535,8 @@ class VnTextEngine:
         self._name_pending = None
         self._recent_text.clear()
         self._recent.clear()
-        threading.Thread(target=self._flush_loop, daemon=True,
-                         name="aurora-vntext-flush").start()
+        default_runner().spawn("vntext.flush", self._flush_loop,
+                               thread_name="aurora-vntext-flush")
         self._engine = detect_engine(self._pid)
         self._targets = self._collect_targets(self._pid, exe) if self._pid else []
         # 用户钩子码：优先用这个游戏自己存的；没有就看是不是我们实测过的版本

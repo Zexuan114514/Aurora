@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import ctypes
 import threading
 import time
@@ -135,8 +137,8 @@ class Overlay:
                 return False
             self._click_through = view["click_through"]
             self._enable_resize_border()
-            threading.Thread(target=self._resize_border_later, daemon=True,
-                             name="aurora-overlay-resize").start()
+            default_runner().spawn("overlay.resize", self._resize_border_later,
+                                   thread_name="aurora-overlay-resize")
             self._apply_click_through()
             self._visible = True
             return True

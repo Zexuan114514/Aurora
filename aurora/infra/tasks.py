@@ -47,6 +47,8 @@ class TaskRunner:
         self._lock = threading.RLock()
         self._futures: dict[str, Future] = {}
         self._tokens: dict[str, threading.Event] = {}
+        self._services: dict[str, threading.Thread] = {}
+        self._name_prefix = name_prefix
 
     def submit(self, name: str, fn: Callable, *args, **kwargs) -> Future:
         """提交命名任务；同名任务会先取消旧的。"""
@@ -67,6 +69,30 @@ class TaskRunner:
                 self._tokens[name] = threading.Event()
             return self._tokens[name]
 
+    def spawn(self, name: str, target: Callable, *args, thread_name: str = "", **kwargs) -> threading.Thread:
+        """起一条**长驻服务线程**（daemon），同样登记进本 runner。
+
+        与 `submit()` 的分工：`submit` 走有界线程池，适合短任务；`spawn` 给一直在跑的
+        服务循环（会话监控 / 翻译队列 / 托盘 / 热键 / OCR 采样…），避免长驻任务把池占满。
+        取消同样走协作令牌（`token(name)`）。
+        """
+        self.cancel(name)
+        self.token(name)
+        thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=True,
+                                  name=thread_name or f"{self._name_prefix}-{name}")
+        with self._lock:
+            self._services[name] = thread
+        thread.start()
+        return thread
+
+    def is_running(self, name: str) -> bool:
+        with self._lock:
+            thread = self._services.get(name)
+            if thread is not None and thread.is_alive():
+                return True
+            future = self._futures.get(name)
+            return bool(future and not future.done())
+
     def cancel(self, name: str) -> bool:
         """取消任务：置协作令牌 + 尝试撤销尚未开始的任务。"""
         with self._lock:
@@ -84,7 +110,9 @@ class TaskRunner:
 
     def active(self) -> list[str]:
         with self._lock:
-            return sorted(n for n, f in self._futures.items() if not f.done())
+            running = {n for n, f in self._futures.items() if not f.done()}
+            running |= {n for n, t in self._services.items() if t.is_alive()}
+            return sorted(running)
 
     def stats(self) -> dict:
         with self._lock:
@@ -94,8 +122,23 @@ class TaskRunner:
     def shutdown(self, *, grace: float = 3.0) -> None:
         """取消全部任务并关停线程池（应用退出时调用）。"""
         self.cancel_all()
+        with self._lock:
+            services = list(self._services.values())
+        for thread in services:
+            thread.join(timeout=max(0.0, grace / max(1, len(services))))
         self._executor.shutdown(wait=True, cancel_futures=True)
 
     def _forget(self, name: str) -> None:
         with self._lock:
             self._futures.pop(name, None)
+
+
+_DEFAULT: TaskRunner | None = None
+
+
+def default_runner() -> TaskRunner:
+    """进程级默认 runner：给不便注入 runner 的叶子模块用（退出时统一关停）。"""
+    global _DEFAULT
+    if _DEFAULT is None:
+        _DEFAULT = TaskRunner(max_workers=8, name_prefix="aurora-svc")
+    return _DEFAULT

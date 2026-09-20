@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+from aurora.infra.tasks import default_runner
+
 import hashlib
 import json
 import threading
@@ -87,9 +89,8 @@ class LineTranslator:
                                   "token": self._token})
             del self._pending[:-self.MAX_QUEUE]
             if self._worker is None or not self._worker.is_alive():
-                self._worker = threading.Thread(target=self._loop, daemon=True,
-                                                name="aurora-linetrans")
-                self._worker.start()
+                self._worker = default_runner().spawn("linetrans.queue", self._loop,
+                                                      thread_name="aurora-linetrans")
         self._emit("queued", {"text": text, "source": source})
 
     def retranslate_last(self) -> dict:
