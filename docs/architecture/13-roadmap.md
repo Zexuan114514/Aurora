@@ -68,6 +68,8 @@
 | P3.7 线程收编 + 事件总线接线 + 服务化 + 依赖收口 | 待开始 | 同上「P3.7 待办」 |
 | P3.7 线程收编（17 处）+ 回调改事件 | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 执行记录：裸线程清零、6 个内部事件主题接入、`pytest` 33 passed |
 | P3.8 服务化 + gl 依赖收口 + 真机矩阵/重建 exe | 待开始 | 同上「P3.8 待办」 |
+| P3.8-a 设置类服务化（SettingsService） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 执行记录 a：11 个桥接方法变一行转发 |
+| P3.8-b library/metadata/launch/vntext 服务化 + 依赖收口 + 真机收尾 | 待开始 | 同上 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

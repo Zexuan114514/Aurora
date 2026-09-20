@@ -170,6 +170,20 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 3. **收尾**：重跑真机矩阵（`vntext_live` hook 与 OCR、`e2e` 90 项、`visual`）、重建 `Aurora.exe`、
    更新 README 的目录结构与自检脚本小节。
 
+### P3.8 执行记录
+
+| 批次 | 提交 | 内容 | 验收 |
+| --- | --- | --- | --- |
+| a | `3b4e300` | **服务化第一刀**：`aurora/app/services/settings.py`（设置快照 / 资源站 CRUD / 资料源配置）；`aurora/ui/bridge/settings.py` 的 11 个方法退化为一行的 `self._settings.xxx` 转发；`Api` 装配 `SettingsService(self._library, self._sources)` | `pytest` 33 passed、`run_all` 6/6、契约零差异、冒烟全 ok |
+
+> 这一刀又验证了契约守卫的价值：转发方法最初丢掉了返回标注（`-> dict` / `-> list[dict]`），
+> `check_contract` 立刻报「参数/返回与快照不一致」，补回标注后通过。
+
+**下一刀（P3.8-b）建议**：同法下沉 `library`（游戏 CRUD / 分类 / 素材，约 490 行 mixin）
+→ `aurora/app/services/library.py`，再下沉 `metadata` / `launch` / `vntext`；随后处理依赖收口
+（桥接层目前仍 `from gl import config, process, vntext, downloads, locale, netproxy, ...`，
+`check_layers` 会实时列出清单）。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |
