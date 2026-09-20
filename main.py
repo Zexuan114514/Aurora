@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ctypes
+import json
 import os
 import socket
 import sys
@@ -89,6 +90,24 @@ def _asset_version() -> str:
     except Exception:
         pass
     return f"{latest}-{int(time.time() * 1000)}"
+
+
+def _check_migration() -> int:
+    """`--check-migration`：只报告数据迁移计划，不写任何文件。"""
+    from aurora.infra.store import migrations
+
+    try:
+        plan = migrations.plan(config.LAYOUT)
+    except migrations.MigrationError as exc:
+        print(f"迁移无法进行：{exc}")
+        return 2
+    print("数据迁移检查（--check-migration，未写入任何文件）")
+    print(json.dumps(plan.as_dict(), ensure_ascii=False, indent=2))
+    if plan.needed:
+        print(f"\n执行迁移：直接启动 Aurora（备份会写到 {config.STATE_BACKUP_DIR}）")
+    else:
+        print("\n无需迁移。")
+    return 0
 
 
 def _drop_listeners() -> int:
@@ -262,6 +281,8 @@ def build_window(api: Api) -> webview.Window:
 
 
 def main() -> int:
+    if "--check-migration" in sys.argv:
+        return _check_migration()
     config.ensure_dirs()
     config.prune_log()
     config.sync_user_assets()
@@ -276,8 +297,14 @@ def main() -> int:
     api._window = window
     bind_file_drop(window, api)
     bind_tray(window, api)
-    # 主窗口关掉后把译文悬浮窗一并收走，否则它会留在桌面上
-    window.events.closed += lambda: api.close_overlay()
+    # 主窗口关掉后：收走悬浮窗 + 落盘并关停存储写线程
+    def on_closed() -> None:
+        try:
+            api.close_overlay()
+        finally:
+            api.shutdown()
+
+    window.events.closed += on_closed
 
     state = {"polished": False}
 

@@ -6,6 +6,8 @@ import time
 import uuid
 from pathlib import Path
 
+from aurora.infra.store.state import StateStore
+
 from . import config
 
 #: 游戏状态：空 = 未标记
@@ -14,16 +16,75 @@ SHELF_NAME_MAX = 24
 
 
 class Library:
-    """线程安全的 JSON 游戏库。"""
+    """线程安全的游戏库（持久化交给 aurora.infra.store.StateStore）。
 
-    def __init__(self, path: Path | None = None) -> None:
-        self.path = path or config.LIBRARY_FILE
+    P2 起数据分账：`state/settings.json` + `state/library.json` + `state/sessions.jsonl`；
+    本类仍然持内存快照，写入通过 `save()`（去抖）/ `flush()`（立即）落到 StateStore。
+    """
+
+    def __init__(self, path: Path | None = None, *, store: StateStore | None = None) -> None:
         self._lock = threading.RLock()
-        raw = config.read_json(self.path, {}) or {}
-        self._games: list[dict] = list(raw.get("games") or [])
-        self._shelves: list[dict] = list(raw.get("bookshelves") or [])
-        self.settings: dict = {**config.DEFAULT_SETTINGS, **(raw.get("settings") or {})}
+        self._store = store or StateStore(config.LAYOUT)
+        #: 装载报告（迁移 / 恢复 / 空库），供 bootstrap 与诊断展示
+        self.load_report: dict = self._store.load()
+        self._games: list[dict] = self._store.games
+        self._shelves: list[dict] = self._store.shelves
+        self.settings: dict = {**config.DEFAULT_SETTINGS, **dict(self._store.settings)}
+        self._store.settings = self.settings
+        self.path = Path(path) if path else config.LIBRARY_STATE_FILE
         self._normalize()
+
+    # ------------------------------------------------------------------ #
+    # 持久化桥接
+    # ------------------------------------------------------------------ #
+    @property
+    def store(self) -> StateStore:
+        return self._store
+
+    def _sync_refs(self) -> None:
+        """把内存快照重新挂给 store（列表可能被整体替换过）。"""
+        self._store.games = self._games
+        self._store.shelves = self._shelves
+        self._store.settings = self.settings
+
+    def flush(self) -> None:
+        """立即落盘（会话结束、启动/结束游戏、退出前）。"""
+        with self._lock:
+            self._sync_refs()
+            self._store.flush()
+
+    def close(self) -> None:
+        """关停存储写线程（应用退出时调用）。"""
+        with self._lock:
+            self._sync_refs()
+            self._store.close()
+
+    def record_session(self, game_id: str, record: dict) -> None:
+        """记一条会话历史：内存保留最近 50 条 + 追加进 sessions.jsonl。"""
+        with self._lock:
+            game = self.get(game_id)
+            history = list((game or {}).get("sessions") or [])
+            history.append(dict(record))
+            if game is not None:
+                game["sessions"] = history[-50:]
+            self._sync_refs()
+            self._store.append_session(game_id, dict(record))
+            self.save()
+
+    def stats(self) -> dict:
+        with self._lock:
+            self._sync_refs()
+            return self._store.stats()
+
+    def export_payload(self, *, redact: bool = True) -> dict:
+        with self._lock:
+            self._sync_refs()
+            return self._store.export_payload(redact=redact)
+
+    def merge_import(self, payload: dict) -> dict:
+        with self._lock:
+            self._sync_refs()
+            return self._store.merge_import(payload)
 
     # ------------------------------------------------------------------ #
     def _normalize(self) -> None:
@@ -96,13 +157,11 @@ class Library:
         for game in self._games:   # 分类被删掉后残留的 id 一并清掉
             game["bookshelf_ids"] = [x for x in game["bookshelf_ids"] if x in valid]
 
-    def save(self) -> None:
+    def save(self, *, settings_only: bool = False) -> None:
+        """标记待写。`settings_only=True` 时只重写 settings.json（改设置不重写整库）。"""
         with self._lock:
-            config.write_json(
-                self.path,
-                {"version": 1, "games": self._games,
-                 "bookshelves": self._shelves, "settings": self.settings},
-            )
+            self._sync_refs()
+            self._store.mark_dirty(settings_only=settings_only)
 
     # ------------------------------------------------------------------ #
     def all(self) -> list[dict]:
@@ -157,11 +216,12 @@ class Library:
             if seconds > 0:
                 game["play_time"] = int(game.get("play_time", 0) + seconds)
             self.save()
+            self.flush()
 
     def set_setting(self, key: str, value) -> dict:
         with self._lock:
             self.settings[key] = value
-            self.save()
+            self.save(settings_only=True)
             return dict(self.settings)
 
     # ------------------------------------------------------------------ #

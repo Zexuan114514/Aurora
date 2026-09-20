@@ -962,6 +962,19 @@ class Api:
             pass
         return self._overlay.close()
 
+    def shutdown(self) -> None:
+        """应用退出前的收尾：停文本会话与下载监听 → 落盘 → 关停存储写线程。"""
+        for name, action in (("vntext", self.stop_vntext),
+                             ("downloads", self._downloads.stop)):
+            try:
+                action()
+            except Exception as exc:
+                config.log(f"{name} shutdown failed: {exc}")
+        try:
+            self._library.close()
+        except Exception as exc:
+            config.log(f"store shutdown failed: {exc}")
+
     def set_vntext_region(self, game_id: str, region: dict) -> dict:
         game = self._library.get(game_id)
         if not game:
@@ -1536,15 +1549,9 @@ class Api:
         target = Path(result[0] if isinstance(result, (list, tuple)) else result)
         if target.suffix.lower() != ".json":
             target = target.with_suffix(".json")
-        games = self._library.all()
-        payload = {
-            "app": config.APP_NAME,
-            "version": config.VERSION,
-            "exported_at": int(time.time()),
-            "games": games,
-            "bookshelves": self._library.shelves(),
-            "settings": dict(self._library.settings),
-        }
+        # 导出走 StateStore：带上 schema_version，并剥离密钥（ADR-0011）
+        payload = self._library.export_payload(redact=True)
+        games = payload["games"]
         try:
             config.write_json(target, payload)
         except Exception as exc:
@@ -1568,44 +1575,12 @@ class Api:
         if not isinstance(data, dict) or not isinstance(data.get("games"), list):
             return {"ok": False, "error": "bad-file"}
 
-        added: list[dict] = []
-        skipped = 0
-        # 分类：同名合并到现有分类，新名字新建，导入的游戏按映射挂回去
-        shelf_map: dict[str, str] = {}
-        for row in (data.get("bookshelves") or []):
-            if not isinstance(row, dict):
-                continue
-            old_id = str(row.get("id") or "")
-            name = str(row.get("name") or "").strip()
-            if not old_id or not name:
-                continue
-            existing = next((s for s in self._library.shelves()
-                             if s["name"].lower() == name.lower()), None)
-            if existing:
-                shelf_map[old_id] = existing["id"]
-            else:
-                created, _ = self._library.create_shelf(name)
-                if created:
-                    shelf_map[old_id] = created["id"]
-
-        ids = {g["id"] for g in self._library.all()}
-        for row in data["games"]:
-            if not isinstance(row, dict):
-                continue
-            exe = str(row.get("exe") or "")
-            if not exe or self._library.find_by_exe(exe):
-                skipped += 1
-                continue
-            record = dict(row)
-            if not record.get("id") or record["id"] in ids:
-                record["id"] = uuid.uuid4().hex[:12]
-            ids.add(record["id"])
-            record.setdefault("images", [])
-            record.setdefault("background", "")
-            record["bookshelf_ids"] = [shelf_map[x] for x in (record.get("bookshelf_ids") or [])
-                                       if x in shelf_map]
-            self._library.add(record)
-            added.append(_public(record, self._pm))
+        # 合并逻辑归 StateStore（分类同名合并、按 exe 去重、不覆盖已有条目）
+        report = self._library.merge_import(data)
+        if report.get("error"):
+            return {"ok": False, "error": report["error"]}
+        added = [_public(record, self._pm) for record in (report.get("games") or [])]
+        skipped = int(report.get("skipped") or 0)
         if added:
             self._emit("games:imported", {"games": added,
                                           "ids": [g["id"] for g in added], "ignored": skipped})
@@ -2170,13 +2145,13 @@ class Api:
             return
         now = int(time.time())
         started = int(game.get("play_started_at") or 0) or int(now - seconds)
-        history = list(game.get("sessions") or [])
-        history.append({"started_at": started, "ended_at": now, "seconds": int(seconds)})
         self._library.update(
             game_id,
             play_started_at=0, play_pid=0, play_launcher_pid=0, play_heartbeat=0,
-            sessions=history[-50:],
         )
+        # 会话历史：内存保留最近 50 条 + 追加进 state/sessions.jsonl（立即落盘）
+        self._library.record_session(game_id, {"ts_start": started, "ts_end": now,
+                                               "seconds": int(seconds), "source": "session"})
         self._library.touch_played(game_id, seconds)
         updated = self._library.get(game_id)
         if updated:

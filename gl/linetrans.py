@@ -27,7 +27,11 @@ SYSTEM_PROMPT = (
 
 
 def _glossary_path() -> Path:
-    return config.DATA_DIR / "glossary.json"
+    """术语表路径：v2 在 vntext/glossary.json；v1 的 data/glossary.json 仍可读（未迁移时）。"""
+    target = config.GLOSSARY_FILE
+    if not target.exists() and config.LEGACY_GLOSSARY_FILE.exists():
+        return config.LEGACY_GLOSSARY_FILE
+    return target
 
 
 def load_glossary() -> dict:

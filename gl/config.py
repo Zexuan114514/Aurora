@@ -8,10 +8,12 @@ import sys
 import time
 from pathlib import Path
 
-APP_NAME = "Aurora"
-APP_TITLE = "Aurora 游戏启动器"
-APP_ID = "aurora-launcher"
-VERSION = "1.0.0"
+from aurora.infra.store import paths as store_paths
+
+APP_NAME = store_paths.APP_NAME
+APP_TITLE = store_paths.APP_TITLE
+APP_ID = store_paths.APP_ID
+VERSION = store_paths.VERSION
 
 PKG_DIR = Path(__file__).resolve().parent
 WEB_DIR = PKG_DIR / "web"
@@ -20,45 +22,41 @@ PROJECT_DIR = PKG_DIR.parent
 
 def is_frozen() -> bool:
     """是否运行在 PyInstaller 打包出的 exe 里。"""
-    return bool(getattr(sys, "frozen", False))
+    return store_paths.is_frozen()
 
 
 def app_dir() -> Path:
     """程序所在目录：源码运行是项目根目录，打包后是 exe 所在目录。"""
-    if is_frozen():
-        return Path(sys.executable).resolve().parent
-    return PKG_DIR.parent
+    return store_paths.app_dir()
 
 
-def _default_data_dir() -> Path:
-    """数据目录：优先程序目录，不可写时退回 LOCALAPPDATA。"""
-    env = os.environ.get("AURORA_DATA")
-    if env:
-        return Path(env).expanduser().resolve()
+# 路径的唯一真相在 aurora/infra/store/paths.py（P2）；这里只是兼容性的同名常量。
+LAYOUT = store_paths.default_layout()
+DATA_DIR = LAYOUT.root
 
-    candidate = app_dir() / "data"
-    try:
-        candidate.mkdir(parents=True, exist_ok=True)
-        probe = candidate / ".write-test"
-        probe.write_text("ok", encoding="utf-8")
-        probe.unlink()
-        return candidate
-    except Exception:
-        base = os.environ.get("LOCALAPPDATA") or os.environ.get("APPDATA") or str(Path.home())
-        return Path(base) / APP_ID
+#: v2 状态文件
+STATE_DIR = LAYOUT.state
+STATE_BACKUP_DIR = LAYOUT.backup
+SETTINGS_FILE = LAYOUT.settings_file
+LIBRARY_STATE_FILE = LAYOUT.library_file
+SESSIONS_FILE = LAYOUT.sessions_file
+VNTEXT_DIR = LAYOUT.vntext
+GLOSSARY_FILE = LAYOUT.glossary_file
 
+#: v1 路径（迁移输入 / 老工具兼容）
+LIBRARY_FILE = LAYOUT.legacy_library
+LEGACY_GLOSSARY_FILE = LAYOUT.legacy_glossary
+LEGACY_LOG_FILE = DATA_DIR / "aurora.log"
 
-DATA_DIR = _default_data_dir()
-LIBRARY_FILE = DATA_DIR / "library.json"
-CACHE_DIR = DATA_DIR / "cache"
+CACHE_DIR = LAYOUT.cache
 STEAM_CACHE_DIR = CACHE_DIR / "steam"
-WEB_DATA_DIR = DATA_DIR / "webview"
-LOG_FILE = DATA_DIR / "aurora.log"
+WEB_DATA_DIR = LAYOUT.webview
+LOG_FILE = LAYOUT.log_file
 
 # 用户素材：原图存在 data/ 下，副本同步到 web/ 供本地 http 服务访问
-BG_SOURCE_DIR = DATA_DIR / "backgrounds"
-ICON_SOURCE_DIR = DATA_DIR / "icons"
-COVER_SOURCE_DIR = DATA_DIR / "covers"
+BG_SOURCE_DIR = LAYOUT.backgrounds
+ICON_SOURCE_DIR = LAYOUT.icons
+COVER_SOURCE_DIR = LAYOUT.covers
 USER_BG_DIR = WEB_DIR / "userbg"
 USER_ICON_DIR = WEB_DIR / "usericon"
 USER_COVER_DIR = WEB_DIR / "usercovers"
@@ -130,13 +128,26 @@ CACHE_MAX_AGE = 90 * 24 * 3600
 
 
 def ensure_dirs() -> None:
-    for d in (DATA_DIR, CACHE_DIR, STEAM_CACHE_DIR, WEB_DATA_DIR,
-              BG_SOURCE_DIR, ICON_SOURCE_DIR, COVER_SOURCE_DIR,
-              USER_BG_DIR, USER_ICON_DIR, USER_COVER_DIR):
+    store_paths.ensure_dirs(LAYOUT)
+    for d in (STEAM_CACHE_DIR, USER_BG_DIR, USER_ICON_DIR, USER_COVER_DIR):
         try:
             d.mkdir(parents=True, exist_ok=True)
         except Exception:
             pass
+    _migrate_legacy_log()
+
+
+def _migrate_legacy_log() -> None:
+    """v1 的 data/aurora.log 搬到 data/logs/aurora.log（只搬一次，不删数据）。"""
+    try:
+        if LEGACY_LOG_FILE.exists() and not LOG_FILE.exists():
+            LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+            os.replace(LEGACY_LOG_FILE, LOG_FILE)
+            backup = LEGACY_LOG_FILE.with_name(LEGACY_LOG_FILE.name + ".1")
+            if backup.exists():
+                os.replace(backup, LOG_FILE.with_name(LOG_FILE.name + ".1"))
+    except Exception:
+        pass
 
 
 def sync_user_assets() -> None:
