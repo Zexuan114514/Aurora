@@ -22,6 +22,7 @@ CHECKS = (
     "check_fixture",
     "check_tools_manifest",
     "check_architecture_baseline",
+    "check_bridge_targets",
     "check_layers",
     "check_startup",
 )

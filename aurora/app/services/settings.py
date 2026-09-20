@@ -20,7 +20,13 @@ class SettingsService:
     def snapshot(self) -> dict:
         return dict(self._library.settings)
 
-    def set(self, key: str, value) -> dict:
+    def set_setting(self, key: str, value) -> dict:
+        """改一个设置并标脏落盘（桥接方法 `set_setting` 的名字要保持一致）。
+
+        P3.8-a 这里曾被改名成 `set`，而桥接层还调 `set_setting` —— 设置页每次
+        保存都 AttributeError（用户实测：改完重启又回到旧配置）。守卫见
+        tools/checks/check_bridge_targets.py。
+        """
         return self._library.set_setting(key, value)
 
     # ---- 资源站 ----

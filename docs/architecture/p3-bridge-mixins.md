@@ -299,3 +299,21 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 **回归测试**：`tests/test_hook_sample_for.py`（5 条）锁住「界面投影会截断到 12 条」
 「取样扫全量」「raw 兜底」「取最新而非最长」「跳过伪线程」；`pytest` 51 passed。
 
+### P3.10-d 设置不保存：服务方法改名漏改桥接（2026-09-20 22:30）
+
+用户实测：设置页改完重启又回到旧配置。取证（对比 `state/backup/settings-pre-write-*`）
+显示文件里**部分**改动是落了盘的，于是转向调用链，最后定位到：
+
+| 项 | 内容 |
+| --- | --- |
+| 症状 | 设置页任何「普通设置」（模糊/饱和度/主题/强调色…）改完不生效、不落盘 |
+| 真因 | P3.8-a 把 `SettingsService.set_setting` 改名成 `set`，桥接层 `aurora/ui/bridge/settings.py` 还在调 `self._settings.set_setting(...)` → 每次保存抛 `AttributeError`（前端只 toast 一下，日志里也没有痕迹） |
+| 为什么没被守卫拦住 | `check_contract` 只看桥接层自己的方法名与签名（改名不在它视野里）；「启动冒烟」只构造 `Api()` 不调方法 |
+| 修法 | 服务方法名改回 `set_setting`（公开桥接契约名不变） |
+| 新守卫 | `tools/checks/check_bridge_targets.py`：解析桥接 mixin + `gl/api.py` 里所有 `self._服务.方法(...)`，对着服务类（`SettingsService`/`LibraryService`/`MetadataService`/`VnTextService`/`HookSearchService`/`LaunchService`/`TranslationService` + 引擎/悬浮窗）的属性表核一遍。当前核对 **109 处转发全部存在**，已并入 `run_all`（第 8 项检查） |
+
+**验收**：`_sandbox/settings/settings_probe.py` 三段全绿 ——
+① 走桥接写三个探针键 → 内存与文件一致；② 新进程重启读回来仍存活；
+③ **真实界面**：把设置页模糊滑杆改成 7 → `settings.json` 里 `blur = 7`。
+`run_all` 8/8、`pytest` 51 passed。
+
