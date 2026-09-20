@@ -147,6 +147,34 @@ export function hallKeysOf(visibleIds, addKey) {
   return ids;
 }
 
+/**
+ * 平铺布局的排布：把「焦点那张」对到视口中央，其余靠 CSS 横滑。
+ *
+ * 上下文全部传入（row / viewport / keys / focus / ring 运行期对象），
+ * 同时把 ring.float/target 对齐到焦点索引 —— 这样切回环形布局时从这里接着转。
+ * 返回是否真的摆了位（焦点不在列表里就返回 false，调用方无需另外判断）。
+ */
+export function updateFlatRow({ row, viewport, keys, focus, ring, instant = false }) {
+  const index = keys.indexOf(focus);
+  if (index < 0) return false;
+  const tile = row.children[index];
+  if (!tile) return false;
+  for (const node of row.children) {
+    if (node.dataset.ringHidden === "1" || node.style.transform) clearRingStyles(node);
+  }
+  const noAnim = instant || !ring.flatReady;
+  if (noAnim) {
+    ring.flatReady = true;
+    row.style.transition = "none";
+  }
+  const rect = viewport.getBoundingClientRect();
+  const center = tile.offsetLeft + tile.offsetWidth / 2;
+  row.style.transform = `translate3d(${Math.round(rect.width / 2 - center)}px, 0, 0)`;
+  if (noAnim) requestAnimationFrame(() => { row.style.transition = ""; });
+  ring.float = ring.target = index;   // 切回环形时从这里接着转
+  return true;
+}
+
 /** 当前主页布局 + 平铺布局下每张封面的实际位置（全部是读 DOM）。 */
 export function layoutReadout({ row, viewport, layoutName, flatClass }) {
   return {

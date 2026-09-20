@@ -7,7 +7,8 @@ import { createSettingsView } from "./app/views/settings.js";
 import { ringReadout, layoutReadout } from "./app/views/hall.js";
 import { RING_GEOMETRY, RING_BASE, ringGeometryOf,
          placeRingTile, ringMod, ringSigned,
-         clearRingStyles, applyRingSize, hallKeysOf } from "./app/views/hall.js";
+         clearRingStyles, applyRingSize, hallKeysOf,
+         updateFlatRow } from "./app/views/hall.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -495,25 +496,9 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   const hallLayout = () => (state.settings.hall_layout === "flat" ? "flat" : "ring");
 
   function updateRowFlat(instant = false) {
-    const row = el.hallRow;
-    const keys = hallKeys();
-    const index = keys.indexOf(state.focus);
-    if (index < 0) return;
-    const tile = row.children[index];
-    if (!tile) return;
-    for (const node of row.children) {
-      if (node.dataset.ringHidden === "1" || node.style.transform) clearRingStyles(node);
-    }
-    const noAnim = instant || !RING.flatReady;
-    if (noAnim) {
-      RING.flatReady = true;
-      row.style.transition = "none";
-    }
-    const vp = el.hallViewport.getBoundingClientRect();
-    const center = tile.offsetLeft + tile.offsetWidth / 2;
-    row.style.transform = `translate3d(${Math.round(vp.width / 2 - center)}px, 0, 0)`;
-    if (noAnim) requestAnimationFrame(() => { row.style.transition = ""; });
-    RING.float = RING.target = index;   // 切回环形时从这里接着转
+    /* 平铺排布在 ./app/views/hall.js（P4.3-i）；运行期状态仍用这里的 RING */
+    updateFlatRow({ row: el.hallRow, viewport: el.hallViewport, keys: hallKeys(),
+                    focus: state.focus, ring: RING, instant });
   }
 
   /* 布局切换：清掉另一套布局留下的内联样式再重新摆位 */

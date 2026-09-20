@@ -507,3 +507,21 @@ const ringPlace = (node, r) => placeRingTile(node, r, { ring: RING, size: ringSi
 搬完 `ringSync`/`ringFrame`/`ringRun`、`updateRowFlat` 与拖拽/键盘；仍以 `visual` 的
 `ring_check` 数值 + `e2e` 双验收，偏差即回退。
 
+### P4.3-i 平铺排布进 hall 模块（2026-09-21 03:05）
+
+两种布局的**排布算法**现在都在 hall 模块里了：环是 `placeRingTile` + `ringGeometryOf`，
+平铺是这次搬的 `updateFlatRow({row, viewport, keys, focus, ring, instant})`。
+
+它把上下文全部显式传入（含运行期 `ring` 对象），并对齐 `ring.float/target` 到焦点索引
+（这样切回环形布局时从这里接着转）；焦点不在列表里就返回 `false`，调用方不必再判。
+主模块的 `updateRowFlat` 只剩一行调用。
+
+验收：`run_all` 8/8、`e2e` **90/90**、`visual` `errors=[]` 且 ring 判据数值
+`0/347.0`、`16/283.2` 不变。
+
+**P4.3-j（环的最后一刀）**：`createRing({ el, ring, state, onFocusChange, onKeys })` 把
+`ringSync`/`ringFrame`/`ringRun` 与拖拽/键盘一起搬完 —— 这一块要求在 60fps 里写
+`ring.float/target` 与 DOM，改动面最大，必须一次做完并做 `e2e` + `visual` 双验收
+（`ring_check` 数值逐项比对，偏差即回退）。目前环的**几何、单张变换、样式应用、键列表、
+平铺排布**都已归位，这一刀只剩帧循环与输入处理。
+

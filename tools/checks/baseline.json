@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3633
+      "lines": 3618
     },
     {
       "path": "gl/web/index.html",
@@ -399,7 +399,7 @@
     },
     {
       "path": "gl/web/app/views/hall.js",
-      "lines": 170
+      "lines": 198
     }
   ],
   "threads": [
@@ -1413,6 +1413,17 @@
         {
           "from": "app.js: ringMeasure 的样式写入 + hallKeys 的键列表",
           "to": "gl/web/app/views/hall.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-i",
+      "date": "2026-09-21",
+      "note": "平铺排布 updateFlatRow 搬进 views/hall.js；环的帧循环与输入处理留待 createRing（P4.3-j）",
+      "moves": [
+        {
+          "from": "app.js: updateRowFlat 的排布算法",
+          "to": "gl/web/app/views/hall.js: updateFlatRow"
         }
       ]
     }
