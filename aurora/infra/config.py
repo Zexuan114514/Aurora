@@ -15,9 +15,11 @@ APP_TITLE = store_paths.APP_TITLE
 APP_ID = store_paths.APP_ID
 VERSION = store_paths.VERSION
 
-PKG_DIR = Path(__file__).resolve().parent
+# P3.9-g 修正：config 搬进 aurora/infra 后不能再用 __file__ 的 parent（那会指到 aurora/infra），
+# 必须从项目根推导；PKG_DIR 保持原语义（gl/ 目录，web 与 assets 所在处）。
+PROJECT_DIR = Path(__file__).resolve().parents[2]
+PKG_DIR = PROJECT_DIR / "gl"
 WEB_DIR = PKG_DIR / "web"
-PROJECT_DIR = PKG_DIR.parent
 
 
 def is_frozen() -> bool:

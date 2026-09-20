@@ -40,7 +40,8 @@ user32.PostMessageW.argtypes = [wintypes.HWND, ctypes.c_uint, ctypes.c_size_t,
                                 ctypes.c_ssize_t]
 user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 
-HTML_PATH = Path(__file__).resolve().parent / "web" / "overlay.html"
+# P3.9-g 修正：搬到 aurora/ui 后不能按 __file__ 推路径，统一走 config.WEB_DIR
+HTML_PATH = config.WEB_DIR / "overlay.html"
 
 
 class OverlayBridge:

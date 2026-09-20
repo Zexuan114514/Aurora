@@ -95,7 +95,7 @@
     },
     {
       "path": "aurora/infra/config.py",
-      "lines": 231
+      "lines": 233
     },
     {
       "path": "aurora/infra/dialogs.py",
@@ -219,7 +219,7 @@
     },
     {
       "path": "aurora/ui/overlay.py",
-      "lines": 373
+      "lines": 374
     },
     {
       "path": "gl/__init__.py",
@@ -1235,6 +1235,27 @@
         "aurora/ui/bridge/shell.py": [
           157,
           157
+        ]
+      }
+    },
+    {
+      "phase": "P3.9-i",
+      "date": "2026-09-20",
+      "note": "修两处搬迁引入的路径回归：config 的 PKG_DIR/WEB_DIR 改按项目根推导、overlay 的 HTML_PATH 改走 config.WEB_DIR；e2e 由 0/1 恢复到 90/90",
+      "moves": [
+        {
+          "from": "config 按 __file__ 推路径（搬到 infra 后失效）",
+          "to": "config 按项目根推导 + overlay 走 config.WEB_DIR"
+        }
+      ],
+      "drift": {
+        "aurora/infra/config.py": [
+          231,
+          233
+        ],
+        "aurora/ui/overlay.py": [
+          373,
+          374
         ]
       }
     }
