@@ -12,6 +12,7 @@ import importlib
 import json
 import pathlib
 import sys
+import ast
 
 import pytest
 
@@ -109,11 +110,23 @@ def test_shim_reexports_domain_appendix(name: str) -> None:
 
 
 def test_session_rules_wired_into_process_and_api() -> None:
-    """会话公式只应有一份实现：process / api 都必须引用 domain 模块。"""
+    """会话公式只应有一份实现：process / api 都必须引用 domain 模块。
+
+    `gl/api.py` 顶端 import webview，离线 CI 里没有这个依赖，所以对 api.py 只做静态检查。
+    """
     domain = importlib.import_module("aurora.domain.session_rules")
     processor = importlib.import_module("gl.process")
-    api = importlib.import_module("gl.api")
     assert processor.session_rules is domain
-    assert api.session_rules is domain
+
     source = (ROOT / "gl" / "api.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        and node.module == "aurora.domain"
+        and any(alias.name == "session_rules" for alias in node.names)
+    ]
+    assert imported, "gl/api.py 必须从 aurora.domain 导入 session_rules"
+    assert "session_rules.recovered_seconds(" in source
+    assert "session_rules.is_countable(" in source
     assert "min(beat, now)" not in source, "api.py 里不该再留内联的补记公式"

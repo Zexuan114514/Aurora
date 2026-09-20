@@ -101,9 +101,14 @@ def check() -> Result:
     if tests_dir.exists():
         for path in sorted(tests_dir.rglob("*.py")):
             names = imports_of(path)
+            rel = path.relative_to(ROOT).as_posix()
             if names & {"webview"}:
-                result.warn(f"{path.relative_to(ROOT).as_posix()} 在测试里 import 了 pywebview，"
-                            f"离线测试应使用端口替身")
+                result.fail(f"{rel} 在测试里 import 了 pywebview：CI 不装 GUI 依赖，"
+                            f"离线测试要用端口替身或静态断言")
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            if "gl.api" in text:
+                result.fail(f"{rel} 引用了 gl.api（模块顶端 import webview）："
+                            f"改成断言源码/AST，或用 app 端口替身")
     return result
 
 
