@@ -15,8 +15,10 @@ APP_JS = "gl/web/app.js"
 def emit_sources() -> list[str]:
     """`_emit` 与悬浮窗动作现在分散在桥接 mixin 里，扫描要覆盖整个桥接层。"""
     sources = [API, "gl/downloads.py", "gl/overlay.py"]
-    sources += sorted(p.relative_to(ROOT).as_posix()
-                      for p in (ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
+    # 桥接 mixin、用例服务、核心模块都可能 publish 事件：整棵 aurora/ 都扫
+    sources += sorted(path.relative_to(ROOT).as_posix()
+                      for path in (ROOT / "aurora").rglob("*.py")
+                      if "__pycache__" not in path.parts)
     return sources
 
 
@@ -72,7 +74,9 @@ def check() -> Result:
         result.fail(f"悬浮窗桥接与快照不一致：快照 {sorted(snap_overlay)} / "
                     f"代码 {sorted(set(live_overlay) - excluded_overlay)}")
 
-    live_topics = emitted_topics(*emit_sources())
+    # engine.* 是进程内部主题（模块 → 总线 → Api），不算前端事件
+    live_topics = {t for t in emitted_topics(*emit_sources())
+                   if not t.startswith("engine.")}
     snap_topics = set(contract["events"])
     if live_topics - snap_topics:
         result.fail(f"代码里 emit 了新主题但快照没有：{sorted(live_topics - snap_topics)}")

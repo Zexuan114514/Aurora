@@ -204,7 +204,8 @@ def emitted_topics(*paths: pathlib.Path | str) -> set[str]:
 
     topics: set[str] = set()
     for path in paths:
-        for match in re.finditer(r'_emit\(\s*"([a-z:_-]+)"', read_text(path)):
+        # 桥接层用 _emit(...)；服务层直接 default_bus().publish(...)，两种都要认
+        for match in re.finditer(r'(?:_emit|publish)\(\s*"([a-z:_-]+)"', read_text(path)):
             topics.add(match.group(1))
     return topics
 

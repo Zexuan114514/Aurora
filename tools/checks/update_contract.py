@@ -70,9 +70,10 @@ def build() -> dict:
         })
 
     sources = [API, "gl/downloads.py", "gl/overlay.py"]
-    sources += sorted(p.relative_to(ROOT).as_posix()
-                      for p in (ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
-    topics = sorted(emitted_topics(*sources))
+    sources += sorted(path.relative_to(ROOT).as_posix()
+                      for path in (ROOT / "aurora").rglob("*.py")
+                      if "__pycache__" not in path.parts)
+    topics = sorted(t for t in emitted_topics(*sources) if not t.startswith("engine."))
     payload = dict(current)
     payload["channels"] = {
         "main": {

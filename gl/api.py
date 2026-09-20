@@ -21,6 +21,7 @@ from .store import Library
 
 from aurora.app.events import EventBus, default_bus
 from aurora.app.services.library import LibraryService
+from aurora.app.services.translation import TranslationService
 from aurora.app.services.settings import SettingsService
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
@@ -71,10 +72,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
             env["payload"].get("game_id"), env["payload"].get("seconds") or 0.0))
         bus.subscribe("engine.downloads_status", lambda env: self._emit("downloads:status", env["payload"]))
         self._batching = False
-        # 简介翻译：单条常驻队列线程串行处理，避免批量导入时线程爆炸
-        self._translating: set[str] = set()
-        self._trans_queue: "queue.Queue[str]" = queue.Queue()
-        self._trans_worker_started = False
         self._tray = None          # 由 main.py 注入托盘控制器（可选）
         # 获取游戏：盯着下载目录，出现新游戏就自动导入
         self._downloads = downloads.DownloadWatcher(
@@ -94,6 +91,7 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._translator = linetrans.LineTranslator(
             settings_getter=lambda: self._library.settings,
             on_event=None)                # P3.7：译文事件改走总线
+        self._translation = TranslationService(self._library, self._pm, self._translator, self._tasks)
         self._overlay = overlay.Overlay(
             get_settings=lambda: self._library.settings,
             set_option=self._library.set_setting,

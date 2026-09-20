@@ -46,6 +46,10 @@
       "lines": 89
     },
     {
+      "path": "aurora/app/services/translation.py",
+      "lines": 142
+    },
+    {
       "path": "aurora/domain/__init__.py",
       "lines": 1
     },
@@ -119,7 +123,7 @@
     },
     {
       "path": "aurora/ui/bridge/metadata.py",
-      "lines": 434
+      "lines": 341
     },
     {
       "path": "aurora/ui/bridge/session.py",
@@ -151,7 +155,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 192
+      "lines": 190
     },
     {
       "path": "gl/config.py",
@@ -826,6 +830,27 @@
           28
         ]
       }
+    },
+    {
+      "phase": "P3.8-c",
+      "date": "2026-09-20",
+      "note": "TranslationService（7 个方法 + 队列状态）下沉；契约守卫扫描范围扩到 aurora/**（含 services），并区分前端事件与 engine.* 内部主题",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/metadata.py（翻译 7 方法）",
+          "to": "aurora/app/services/translation.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/metadata.py": [
+          434,
+          341
+        ],
+        "gl/api.py": [
+          192,
+          190
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -871,5 +896,8 @@
   "modules_added_in_p3_8b": [
     "aurora/app/projection.py",
     "aurora/app/services/library.py"
+  ],
+  "modules_added_in_p3_8c": [
+    "aurora/app/services/translation.py"
   ]
 }
