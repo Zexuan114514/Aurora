@@ -94,6 +94,10 @@
       "lines": 1
     },
     {
+      "path": "aurora/infra/linetrans.py",
+      "lines": 314
+    },
+    {
       "path": "aurora/infra/netproxy.py",
       "lines": 136
     },
@@ -219,7 +223,7 @@
     },
     {
       "path": "gl/linetrans.py",
-      "lines": 317
+      "lines": 14
     },
     {
       "path": "gl/locale.py",
@@ -1050,6 +1054,23 @@
           15
         ]
       }
+    },
+    {
+      "phase": "P3.9-b",
+      "date": "2026-09-20",
+      "note": "依赖收口第三批：linetrans 翻译队列搬进 aurora/infra，gl 留转发 shim",
+      "moves": [
+        {
+          "from": "gl/linetrans.py",
+          "to": "aurora/infra/linetrans.py"
+        }
+      ],
+      "drift": {
+        "gl/linetrans.py": [
+          317,
+          14
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1120,5 +1141,8 @@
     "aurora/infra/netproxy.py",
     "aurora/platform/ocr.py",
     "aurora/platform/screencap.py"
+  ],
+  "modules_added_in_p3_9b": [
+    "aurora/infra/linetrans.py"
   ]
 }
