@@ -90,6 +90,10 @@
       "lines": 432
     },
     {
+      "path": "aurora/ui/bridge/session.py",
+      "lines": 177
+    },
+    {
       "path": "aurora/ui/bridge/settings.py",
       "lines": 222
     },
@@ -115,7 +119,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 309
+      "lines": 160
     },
     {
       "path": "gl/config.py",
@@ -566,6 +570,23 @@
           309
         ]
       }
+    },
+    {
+      "phase": "P3.5",
+      "date": "2026-09-20",
+      "note": "启动/会话/下载 10 个方法搬进 aurora/ui/bridge/session.py；gl/api.py 2232 -> 160 行，只剩 __init__/bootstrap/shutdown/_emit",
+      "moves": [
+        {
+          "from": "gl/api.py（10 个启动/会话方法）",
+          "to": "aurora/ui/bridge/session.py"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          309,
+          160
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -594,5 +615,8 @@
   "modules_added_in_p3_4": [
     "aurora/ui/bridge/metadata.py",
     "aurora/ui/bridge/vntext.py"
+  ],
+  "modules_added_in_p3_5": [
+    "aurora/ui/bridge/session.py"
   ]
 }

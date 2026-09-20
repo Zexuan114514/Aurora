@@ -104,6 +104,25 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 拆完，然后做 `TaskRunner` + `EventBus`（收掉 20 个具名线程、去掉构造器回调），
 并把桥接层对 `gl` 的临时依赖收口到 `aurora.platform` / `aurora.infra`。
 
+## P3.5 追加：启动 / 会话 / 下载拆完，`api.py` 变成薄壳（2026-09-20）
+
+| 项 | 结果 |
+| --- | --- |
+| 新 mixin | `aurora/ui/bridge/session.py`（176 行 / 10 个方法）：`scan_downloads`、`set_game_locale`、`launch`、`_locale_command`、`_on_game_found`、`_on_game_exit`、`stop`、`_start_heartbeat`、`_beat`、`_recover_sessions` |
+| `gl/api.py` | 1292 → **160 行**（起点 2232 → 160，**-93%**），类内只剩 4 个方法：`__init__`（装配）、`bootstrap`（首屏聚合）、`shutdown`（退出收尾）、`_emit`（唯一事件出口） |
+| `Api` 基类 | 7 个 mixin（window / shell / settings / library / metadata / vntext / session） |
+| 契约 | 公开方法 106 / 前端调用点 96 / 事件主题 14，零差异 |
+| 验收 | `pytest` 26 passed、`run_all` 6/6；冒烟 11 个启动/会话方法零异常（`bootstrap`、`scan_downloads`、`launch`、`_on_game_exit`、`_recover_sessions` 等） |
+
+**测试又抓到一个真缺陷**：`session.py` 少了 `from aurora.domain import session_rules`——
+方法搬出后内联公式仍在调用 domain 函数，但导入没跟着走。`test_session_rules_wired_into_process_and_api`
+正好断言「有且只有一处调用会话公式、且该模块确实 import 了它」，当场报红；修完并让断言跟随搬迁
+（不再写死 `gl/api.py`），以后同类搬迁不会漏导入。
+
+**P3.6 剩下**：`TaskRunner` + `EventBus`（替掉 20 个具名线程与构造器回调）、桥接层对
+`gl` 的临时依赖收口到 `aurora.platform` / `aurora.infra`（含 `gl/winapi.py` → `aurora/platform/`）、
+`app/services` 承接 mixin 里的编排逻辑（现在 mixin 仍是「方法体原样搬家」，P3.6 才真正服务化）。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |

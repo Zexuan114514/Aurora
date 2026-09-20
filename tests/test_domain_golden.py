@@ -118,15 +118,24 @@ def test_session_rules_wired_into_process_and_api() -> None:
     processor = importlib.import_module("gl.process")
     assert processor.session_rules is domain
 
-    source = (ROOT / "gl" / "api.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
+    # P3.5 起会话方法搬到了 aurora/ui/bridge/session.py：只要「有且只有一处」调用 domain 公式，
+    # 并且它所在模块确实 import 了 session_rules 即可。
+    candidates = [ROOT / "gl" / "api.py"] + sorted((ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
+    callers = []
+    for path in candidates:
+        text = path.read_text(encoding="utf-8")
+        if "session_rules.recovered_seconds(" in text or "session_rules.is_countable(" in text:
+            callers.append(path)
+    assert len(callers) == 1, f"会话公式调用点应唯一，实际：{[str(p.relative_to(ROOT)) for p in callers]}"
+    owner = callers[0]
+    tree = ast.parse(owner.read_text(encoding="utf-8"))
     imported = [
         node for node in ast.walk(tree)
         if isinstance(node, ast.ImportFrom)
         and node.module == "aurora.domain"
         and any(alias.name == "session_rules" for alias in node.names)
     ]
-    assert imported, "gl/api.py 必须从 aurora.domain 导入 session_rules"
-    assert "session_rules.recovered_seconds(" in source
-    assert "session_rules.is_countable(" in source
-    assert "min(beat, now)" not in source, "api.py 里不该再留内联的补记公式"
+    assert imported, f"{owner.relative_to(ROOT)} 必须从 aurora.domain 导入 session_rules"
+    for path in candidates:
+        assert "min(beat, now)" not in path.read_text(encoding="utf-8"), \
+            f"{path.relative_to(ROOT)} 里不该再留内联的补记公式"
