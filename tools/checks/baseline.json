@@ -27,7 +27,7 @@
     },
     {
       "path": "aurora/app/ports.py",
-      "lines": 63
+      "lines": 74
     },
     {
       "path": "aurora/app/projection.py",
@@ -96,6 +96,10 @@
     {
       "path": "aurora/infra/config.py",
       "lines": 231
+    },
+    {
+      "path": "aurora/infra/dialogs.py",
+      "lines": 24
     },
     {
       "path": "aurora/infra/downloads.py",
@@ -223,7 +227,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 178
+      "lines": 181
     },
     {
       "path": "gl/config.py",
@@ -1212,6 +1216,27 @@
           8
         ]
       }
+    },
+    {
+      "phase": "P3.9-h",
+      "date": "2026-09-20",
+      "note": "文件对话框端口化：ports.FileDialogPort + infra.dialogs.WebviewFileDialog，桥接层不再直接调窗口的 create_file_dialog",
+      "moves": [
+        {
+          "from": "mixin 直接调 window.create_file_dialog",
+          "to": "FileDialogPort 端口（WebviewFileDialog 实现）"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/library.py": [
+          308,
+          308
+        ],
+        "aurora/ui/bridge/shell.py": [
+          157,
+          157
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1297,5 +1322,8 @@
   "modules_added_in_p3_9g": [
     "aurora/infra/config.py",
     "aurora/ui/overlay.py"
+  ],
+  "modules_added_in_p3_9h": [
+    "aurora/infra/dialogs.py"
   ]
 }

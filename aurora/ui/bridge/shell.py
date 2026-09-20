@@ -103,7 +103,7 @@ class ShellBridgeMixin:
     def pick_executable(self) -> dict:
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=True,
             file_types=("可执行文件 (*.exe;*.bat;*.cmd)", "所有文件 (*.*)"),
@@ -121,7 +121,7 @@ class ShellBridgeMixin:
         """让用户挑一个下载目录。"""
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
+        result = self._dialogs.create_file_dialog(webview.FOLDER_DIALOG)
         if not result:
             return {"ok": False, "cancelled": True}
         path = result[0] if isinstance(result, (list, tuple)) else result
@@ -131,7 +131,7 @@ class ShellBridgeMixin:
     def pick_locale_proc(self) -> dict:
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=False,
             file_types=("可执行文件 (*.exe)", "所有文件 (*.*)"),
@@ -145,7 +145,7 @@ class ShellBridgeMixin:
     def pick_textractor(self) -> dict:
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG, allow_multiple=False,
             file_types=("命令行程序 (*.exe)", "所有文件 (*.*)"))
         if not result:

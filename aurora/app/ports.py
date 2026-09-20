@@ -61,3 +61,14 @@ class StateStorePort(Protocol):
     def export_payload(self, *, redact: bool = True) -> dict: ...
 
     def merge_import(self, payload: dict) -> ImportReport: ...
+
+
+@runtime_checkable
+class FileDialogPort(Protocol):
+    """文件/目录选择端口。
+
+    签名刻意与 pywebview 的 `Window.create_file_dialog` 对齐（`dialog_type` + 关键字参数），
+    这样调用点可以从「直接拿窗口对象」机械迁移过来，也让服务层不再依赖具体窗口实现。
+    """
+
+    def create_file_dialog(self, dialog_type, **kwargs) -> list[str] | str | None: ...

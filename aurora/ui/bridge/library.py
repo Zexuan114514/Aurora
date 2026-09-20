@@ -103,7 +103,7 @@ class LibraryBridgeMixin:
             return {"ok": False}
         if not self._library.get(game_id):
             return {"ok": False, "error": "no-game"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=False,
             file_types=("图片 (*.jpg;*.jpeg;*.png;*.webp;*.bmp)", "所有文件 (*.*)"),
@@ -150,7 +150,7 @@ class LibraryBridgeMixin:
     def pick_local_background(self, game_id: str) -> dict:
         if self._window is None:
             return {"ok": False}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=False,
             file_types=("图片 (*.jpg;*.jpeg;*.png;*.webp;*.bmp)", "所有文件 (*.*)"),
@@ -183,7 +183,7 @@ class LibraryBridgeMixin:
             return {"ok": False}
         if not self._library.get(game_id):
             return {"ok": False, "error": "no-game"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=False,
             file_types=("图片 (*.png;*.jpg;*.jpeg;*.webp;*.ico;*.bmp)", "所有文件 (*.*)"),
@@ -237,7 +237,7 @@ class LibraryBridgeMixin:
         """导出游戏库为一份 JSON（换机 / 备份用）。"""
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.SAVE_DIALOG,
             save_filename="aurora-library.json",
             file_types=("JSON 文件 (*.json)", "所有文件 (*.*)"),
@@ -262,7 +262,7 @@ class LibraryBridgeMixin:
         """从导出的 JSON 里合并游戏（按 exe 路径去重，不动已有条目）。"""
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
+        result = self._dialogs.create_file_dialog(
             webview.OPEN_DIALOG,
             allow_multiple=False,
             file_types=("JSON 文件 (*.json)", "所有文件 (*.*)"),

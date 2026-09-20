@@ -20,6 +20,7 @@ from .sources import SourceManager
 from .store import Library
 
 from aurora.app.events import EventBus, default_bus
+from aurora.infra.dialogs import WebviewFileDialog
 from aurora.app.services.library import LibraryService
 from aurora.app.services.hooksearch import HookSearchService
 from aurora.app.services.launch import LaunchService
@@ -56,6 +57,8 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
                                              auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
                                              apply_window_icon=self.apply_window_icon)
         self._window: webview.Window | None = None
+        #: P3.9-h：文件对话框走端口（窗口晚于 Api 创建，用 getter 惰性取）
+        self._dialogs = WebviewFileDialog(lambda: self._window)
         self._drag: dict | None = None
         self._lock = threading.RLock()
         #: P3.7：后台任务统一走 TaskRunner（心跳先收编，其余逐个搬）
