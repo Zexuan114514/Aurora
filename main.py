@@ -16,7 +16,8 @@ if __package__ in (None, ""):
 
 import webview  # noqa: E402
 
-from gl import config, winapi  # noqa: E402
+from aurora.platform import winapi  # noqa: E402
+from gl import config  # noqa: E402
 from gl.api import Api  # noqa: E402
 
 WINDOW_W, WINDOW_H = 1380, 880

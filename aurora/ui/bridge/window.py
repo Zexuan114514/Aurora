@@ -4,7 +4,8 @@
 """
 from __future__ import annotations
 
-from gl import config, winapi   # TODO(P3.2): 收口到 aurora.platform / aurora.infra
+from aurora.platform import winapi
+from gl import config   # TODO(P3.6): config 收口到 aurora.infra
 
 
 class WindowBridgeMixin:

@@ -22,6 +22,10 @@
       "lines": 1
     },
     {
+      "path": "aurora/app/events.py",
+      "lines": 66
+    },
+    {
       "path": "aurora/app/ports.py",
       "lines": 63
     },
@@ -74,6 +78,18 @@
       "lines": 346
     },
     {
+      "path": "aurora/infra/tasks.py",
+      "lines": 72
+    },
+    {
+      "path": "aurora/platform/__init__.py",
+      "lines": 4
+    },
+    {
+      "path": "aurora/platform/winapi.py",
+      "lines": 332
+    },
+    {
       "path": "aurora/ui/__init__.py",
       "lines": 1
     },
@@ -111,7 +127,7 @@
     },
     {
       "path": "aurora/ui/bridge/window.py",
-      "lines": 135
+      "lines": 136
     },
     {
       "path": "gl/__init__.py",
@@ -255,11 +271,11 @@
     },
     {
       "path": "gl/winapi.py",
-      "lines": 329
+      "lines": 41
     },
     {
       "path": "main.py",
-      "lines": 345
+      "lines": 346
     }
   ],
   "threads": [
@@ -587,6 +603,27 @@
           160
         ]
       }
+    },
+    {
+      "phase": "P3.6-a",
+      "date": "2026-09-20",
+      "note": "TaskRunner + EventBus 落地（含 5 项单测）；gl/winapi.py 搬进 aurora/platform/ 并留转发 shim；main.py 与 window mixin 改用平台层路径",
+      "moves": [
+        {
+          "from": "gl/winapi.py",
+          "to": "aurora/platform/winapi.py"
+        }
+      ],
+      "drift": {
+        "gl/winapi.py": [
+          329,
+          41
+        ],
+        "main.py": [
+          345,
+          346
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -618,5 +655,11 @@
   ],
   "modules_added_in_p3_5": [
     "aurora/ui/bridge/session.py"
+  ],
+  "modules_added_in_p3_6": [
+    "aurora/app/events.py",
+    "aurora/infra/tasks.py",
+    "aurora/platform/__init__.py",
+    "aurora/platform/winapi.py"
   ]
 }

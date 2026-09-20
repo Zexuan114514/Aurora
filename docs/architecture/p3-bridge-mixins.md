@@ -123,6 +123,25 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 `gl` 的临时依赖收口到 `aurora.platform` / `aurora.infra`（含 `gl/winapi.py` → `aurora/platform/`）、
 `app/services` 承接 mixin 里的编排逻辑（现在 mixin 仍是「方法体原样搬家」，P3.6 才真正服务化）。
 
+## P3.6 第一批：任务执行器 / 事件总线 / 平台层落地（2026-09-20）
+
+| 项 | 结果 |
+| --- | --- |
+| `aurora/infra/tasks.py` | `TaskRunner`：命名任务、有界线程池、协作取消令牌、`active()`/`stats()`/`shutdown()`；同名任务重复提交先取消旧的 |
+| `aurora/app/events.py` | `EventBus`：`{topic, seq, ts, payload}` 信封、`"*"` 通配订阅、取消订阅、`recent()` 诊断缓冲、订阅者异常隔离（错误进 `errors`） |
+| `aurora/platform/winapi.py` | 从 `gl/winapi.py` 原样搬入（332 行）；`gl/winapi.py` 变 36 个名字的转发 shim；`main.py` 与 `ui/bridge/window.py` 改用平台层路径，并去掉一处函数内相对 import |
+| 测试 | `tests/test_task_runner.py` 5 项：提交/活跃列表、取消令牌、事件信封与 `seq` 单调、退订与通配、订阅者异常隔离 |
+| 验收 | `pytest` **31 passed**、`run_all` 6/6、契约仍 106/96/14 零差异 |
+
+**P3.7 待办（真正的行为改造）**：
+
+1. 把 20 个具名线程逐个交到 `TaskRunner`（心跳、会话监控、CLI 读循环、OCR 循环、翻译队列、
+   批量任务、下载监听…），退出时统一 `shutdown()`，并把组件回调（`on_line`/`on_status`/`on_found`/`on_exit`）
+   改成 `EventBus` 订阅。
+2. 桥接 mixin 退化为「参数整形 + 调服务 + 推事件」，编排逻辑进 `app/services/*`。
+3. 继续收口 `gl` 依赖：`config` → `aurora.infra.store.paths`、`process`/`vntext`/`downloads`/`locale`/`netproxy`
+   按分层归位（`platform` 或 `infra`），每步都用契约守卫 + 冒烟验证。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |

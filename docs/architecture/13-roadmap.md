@@ -64,6 +64,8 @@
 | P3.5 launch / downloads / bootstrap + TaskRunner/EventBus + gl 依赖收口 | 待开始 | 同上 |
 | P3.5 启动/会话/下载（10 个方法） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md)：`api.py` → 160 行（只剩 4 个方法），7 个 mixin |
 | P3.6 TaskRunner/EventBus + gl 依赖收口 + app/services 服务化 | 待开始 | 同上「P3.6 剩下」 |
+| P3.6 第一批 TaskRunner/EventBus + 平台层 winapi | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节；`pytest` 31 passed |
+| P3.7 线程收编 + 事件总线接线 + 服务化 + 依赖收口 | 待开始 | 同上「P3.7 待办」 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions
