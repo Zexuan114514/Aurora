@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from gl import hookfinder  # noqa: E402
+from aurora.platform import hookfinder  # noqa: E402
 
 
 def test_real_offset_minus_0x70_becomes_code_minus_6c():

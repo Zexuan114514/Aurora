@@ -246,8 +246,12 @@
       "lines": 12
     },
     {
+      "path": "aurora/platform/hookfinder.py",
+      "lines": 1038
+    },
+    {
       "path": "gl/hookfinder.py",
-      "lines": 765
+      "lines": 12
     },
     {
       "path": "gl/hotkey.py",
@@ -262,8 +266,12 @@
       "lines": 151
     },
     {
-      "path": "gl/memmatch.py",
+      "path": "aurora/platform/memmatch.py",
       "lines": 422
+    },
+    {
+      "path": "gl/memmatch.py",
+      "lines": 12
     },
     {
       "path": "gl/metadata.py",
@@ -1258,6 +1266,21 @@
           374
         ]
       }
+    },
+    {
+      "phase": "P3.10-b",
+      "date": "2026-09-20",
+      "note": "memmatch/hookfinder 收口到 aurora/platform（gl 下留透明别名壳）",
+      "moves": [
+        {
+          "from": "gl/memmatch.py",
+          "to": "aurora/platform/memmatch.py"
+        },
+        {
+          "from": "gl/hookfinder.py",
+          "to": "aurora/platform/hookfinder.py"
+        }
+      ]
     }
   ],
   "modules_added_in_p2": [

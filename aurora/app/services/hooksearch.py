@@ -13,8 +13,8 @@ from pathlib import Path
 
 from aurora.app.events import default_bus
 from aurora.domain.text_rules import hook_candidate_score
-from gl import (config, gameinput, hookfinder, ocr, screencap, vntext,
-                winapi)   # TODO(P3.8): 收口到 aurora.platform / aurora.infra
+from aurora.platform import gameinput, hookfinder, ocr, screencap, winapi
+from gl import config, vntext   # TODO(P3.10): config 收口到 aurora.infra
 
 
 class HookSearchService:

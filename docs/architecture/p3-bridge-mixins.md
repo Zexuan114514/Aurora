@@ -262,3 +262,16 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
    单步异常会转交给游戏本体（アマカノ３ 因此崩过两次，WER 异常码 `0x80000004`）。
    现在每个事件都包 `try/finally`，脱离前先 drain（排空）再拆断点。
 
+### P3.10-b 依赖收口：`memmatch` / `hookfinder` 归位
+
+| 变化 | 说明 |
+| --- | --- |
+| `gl/memmatch.py` → `aurora/platform/memmatch.py` | 内存扫描原语（只读；缺字补全 / OCR 吸附） |
+| `gl/hookfinder.py` → `aurora/platform/hookfinder.py` | 找钩子原语（签名播种 + 调试器断点 + 差分定位） |
+| `gl/*.py` 保留 12 行透明别名壳 | 老脚本（`tools/hooksearch_probe.py`、`tools/vntext_probe.py`…）与 `gl/api.py` 无需改动 |
+| 调用方改走新路径 | `aurora/app/services/hooksearch.py` 直接用 `aurora.platform`；`aurora/infra/vntext.py` 的 3 处懒加载改 `aurora.platform.memmatch` |
+
+验收：`run_all` 7/7（架构基线里按 `superseded_by` 的方式登记了搬家）、`pytest` 46 passed、
+自进程冒烟 `memmatch.candidates(os.getpid(), …)` 命中、`gl.memmatch is aurora.platform.memmatch`
+（透明别名生效）。
+

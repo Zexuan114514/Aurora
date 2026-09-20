@@ -591,7 +591,7 @@ class VnTextEngine:
             config.log(f"vntext staged flush on stop failed: {exc}")
         self._stop.set()
         try:
-            from gl import memmatch
+            from aurora.platform import memmatch
 
             memmatch.reset(self._pid)
         except Exception:
@@ -1044,9 +1044,9 @@ class VnTextEngine:
         return self._resolve_staged(force=True)
 
     def _complete_from_memory(self, fragment: str) -> str:
-        """把 GDI 钩子吐的缺字版补成完整台词（见 gl/memmatch.py）。"""
+        """把 GDI 钩子吐的缺字版补成完整台词（见 aurora/platform/memmatch.py）。"""
         try:
-            from gl import memmatch
+            from aurora.platform import memmatch
 
             fixed = memmatch.complete(self._pid, fragment)
         except Exception as exc:
@@ -1064,7 +1064,7 @@ class VnTextEngine:
         if not self._pid:
             return ""
         try:
-            from gl import memmatch
+            from aurora.platform import memmatch
 
             fixed = memmatch.snap(self._pid, text)
         except Exception as exc:

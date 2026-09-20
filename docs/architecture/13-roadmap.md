@@ -72,6 +72,7 @@
 | P3.8-b library/metadata/launch/vntext 服务化 + 依赖收口 + 真机收尾 | 待开始 | 同上 |
 | P3.9 依赖收口（platform/infra/ui 归位 + 对话框端口） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) P3.9 小节：19 个模块归位，真机矩阵 e2e 90/90 |
 | P3.10 「找钩子」重做（签名播种 + 寄存器偏移 + 磁盘镜像扫描） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) P3.10 小节：アマカノ３ 第一个候选即命中 `HS65001#-6C@1B1F70:Amakano3.exe`，界面/服务两级验收通过，`pytest` 46 passed |
+| P3.10-b 依赖收口（memmatch / hookfinder → `aurora/platform`） | ✅ 已完成（2026-09-20） | 同上 P3.10-b 小节：`gl` 下留透明别名壳，老探针无需改动，`run_all` 7/7 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions
