@@ -15,9 +15,9 @@
   "channels": {
     "main": {
       "js_api": "gl.api.Api",
-      "method_count": 147,
+      "method_count": 148,
       "public_method_count": 106,
-      "internal_method_count": 41,
+      "internal_method_count": 42,
       "frontend_call_count": 96,
       "excluded_members": [
         "__init__"
@@ -113,6 +113,20 @@
             }
           ],
           "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_dispatch_event",
+          "params": [
+            {
+              "name": "envelope",
+              "type": "dict",
+              "required": true
+            }
+          ],
+          "returns": "None",
           "kind": "internal",
           "internal": true,
           "called_by_frontend": false

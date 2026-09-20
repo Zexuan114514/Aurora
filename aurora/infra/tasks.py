@@ -6,15 +6,44 @@
 from __future__ import annotations
 
 import threading
+import weakref
 from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures.thread import _worker
 from typing import Callable
+
+
+class _DaemonExecutor(ThreadPoolExecutor):
+    """工作线程设为 daemon：进程退出时不会被没结束的任务卡住。
+
+    标准库默认是非 daemon 线程，任何忘记调 `shutdown()` 的调用方都会挂住解释器退出
+    （实测 tools/session_probe.py 就被卡住）。这里照 CPython 的 `_adjust_thread_count`
+    复制一份，只把 thread.daemon 打开。
+    """
+
+    def _adjust_thread_count(self) -> None:      # pragma: no cover - 依据标准库实现
+        if self._idle_semaphore.acquire(timeout=0):
+            return
+        if len(self._threads) >= self._max_workers:
+            return
+        queue = self._work_queue
+
+        def weakref_cb(_ref, q=queue):
+            q.put(None)
+
+        thread = threading.Thread(
+            name=f"{self._thread_name_prefix or 'aurora-task'}_{len(self._threads)}",
+            target=_worker,
+            args=(weakref.ref(self, weakref_cb), queue, self._initializer, self._initargs))
+        thread.daemon = True
+        thread.start()
+        self._threads.add(thread)
 
 
 class TaskRunner:
     """命名任务注册表 + 有界线程池。"""
 
     def __init__(self, *, max_workers: int = 8, name_prefix: str = "aurora-task") -> None:
-        self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix=name_prefix)
+        self._executor = _DaemonExecutor(max_workers=max_workers, thread_name_prefix=name_prefix)
         self._lock = threading.RLock()
         self._futures: dict[str, Future] = {}
         self._tokens: dict[str, threading.Event] = {}

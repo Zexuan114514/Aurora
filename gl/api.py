@@ -19,7 +19,9 @@ from . import (config, detect, downloads, gameinput, hookfinder, hotkey, linetra
 from .sources import SourceManager
 from .store import Library
 
+from aurora.app.events import EventBus
 from aurora.domain import session_rules
+from aurora.infra.tasks import TaskRunner
 
 # 桥接层共享的投影与常量搬到了 aurora/ui/bridge/shared.py（P3.3）
 from aurora.ui.bridge.shared import (  # noqa: F401  (re-export)
@@ -46,7 +48,12 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._drag: dict | None = None
         self._busy: set[str] = set()
         self._lock = threading.RLock()
-        self._heartbeat: threading.Thread | None = None
+        #: P3.7：后台任务统一走 TaskRunner（心跳先收编，其余逐个搬）
+        self._tasks = TaskRunner(max_workers=8, name_prefix="aurora-task")
+        self._heartbeat = None
+        #: P3.7：事件先进 EventBus（信封见 contracts/events.md），再由唯一出口推给前端
+        self._events = EventBus()
+        self._events.subscribe("*", self._dispatch_event)
         self._batching = False
         # 简介翻译：单条常驻队列线程串行处理，避免批量导入时线程爆炸
         self._translating: set[str] = set()
@@ -118,6 +125,10 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
             except Exception as exc:
                 config.log(f"{name} shutdown failed: {exc}")
         try:
+            self._tasks.shutdown()          # 取消心跳等后台任务，避免非守护线程卡住退出
+        except Exception as exc:
+            config.log(f"tasks shutdown failed: {exc}")
+        try:
             self._library.close()
         except Exception as exc:
             config.log(f"store shutdown failed: {exc}")
@@ -146,11 +157,17 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
 
     # ------------------------------------------------------------------ #
     def _emit(self, event: str, payload: dict) -> None:
-        """把事件推送给前端。"""
+        """发布事件：先进 EventBus（可订阅、可诊断），再由 `_dispatch_event` 推给前端。"""
+        self._events.publish(event, payload)
+
+    def _dispatch_event(self, envelope: dict) -> None:
+        """EventBus 订阅者：把信封载荷推给页面（行为与旧 `_emit` 逐字一致）。"""
         if self._window is None:
             return
         import json
 
+        event = envelope.get("topic") or ""
+        payload = envelope.get("payload") or {}
         try:
             self._window.evaluate_js(
                 f"window.__aurora && window.__aurora.emit({json.dumps(event)},"

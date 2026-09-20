@@ -79,7 +79,7 @@
     },
     {
       "path": "aurora/infra/tasks.py",
-      "lines": 72
+      "lines": 101
     },
     {
       "path": "aurora/platform/__init__.py",
@@ -135,7 +135,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 160
+      "lines": 177
     },
     {
       "path": "gl/config.py",
@@ -288,11 +288,6 @@
       "name": "aurora-drop-bind",
       "file": "main.py",
       "line": 182
-    },
-    {
-      "name": "aurora-heartbeat",
-      "file": "gl/api.py",
-      "line": 2182
     },
     {
       "name": "aurora-hooksearch",
@@ -622,6 +617,31 @@
         "main.py": [
           345,
           346
+        ]
+      }
+    },
+    {
+      "phase": "P3.7-a",
+      "date": "2026-09-20",
+      "note": "Api 引入 TaskRunner + EventBus：心跳线程收编为 session.heartbeat 任务，_emit 走事件总线（信封→前端）；TaskRunner 线程改为 daemon 防止退出卡住",
+      "moves": [
+        {
+          "from": "aurora-heartbeat（裸线程）",
+          "to": "TaskRunner 任务 session.heartbeat"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          160,
+          177
+        ],
+        "aurora/ui/bridge/session.py": [
+          177,
+          177
+        ],
+        "aurora/infra/tasks.py": [
+          72,
+          101
         ]
       }
     }

@@ -129,20 +129,20 @@ class SessionBridgeMixin:
 
 
     def _start_heartbeat(self) -> None:
-        if self._heartbeat is not None and self._heartbeat.is_alive():
+        # P3.7：心跳从裸线程改成 TaskRunner 任务（可取消、可统计、退出统一收）
+        if self._heartbeat is not None and not self._heartbeat.done():
             return
 
         def loop() -> None:
-            while True:
+            token = self._tasks.token("session.heartbeat")
+            while not token.is_set():
                 time.sleep(self.HEARTBEAT_SECONDS)
                 try:
                     self._beat()
                 except Exception:
                     pass
 
-        thread = threading.Thread(target=loop, daemon=True, name="aurora-heartbeat")
-        self._heartbeat = thread
-        thread.start()
+        self._heartbeat = self._tasks.submit("session.heartbeat", loop)
 
 
     def _beat(self) -> None:

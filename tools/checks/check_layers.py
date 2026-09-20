@@ -72,6 +72,21 @@ def check() -> Result:
                 if name == "infra":
                     result.fail(f"{rel} 直接 import 了 infra（必须经端口注入）")
 
+    # aurora/ 里禁止用相对 import 引用 gl 遗留模块（搬出 gl 后会解析到 aurora 命名空间）
+    legacy = {"config", "winapi", "process", "vntext", "downloads", "locale", "netproxy",
+              "steamlib", "screencap", "tray", "hotkey", "linetrans", "overlay", "hookfinder",
+              "memmatch", "proctree", "gameinput", "store", "detect", "translate", "ocr",
+              "metadata", "sources", "proctree"}
+    for path in _walk("aurora"):
+        module = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+        for node in ast.walk(module):
+            if not isinstance(node, ast.ImportFrom) or not node.level:
+                continue
+            head = (node.module or "").split(".")[0]
+            names = [a.name for a in node.names] if not node.module else []
+            if head in legacy or any(n in legacy for n in names):
+                result.fail(f"{path.relative_to(ROOT).as_posix()} 用相对 import 引用 gl 遗留模块"
+                            f"（第 {node.lineno} 行）：改成 from gl import …")
     # 桥接 mixin：只能做参数整形与编排，不得直接碰 infra
     legacy = []
     for path in _walk("aurora/ui/bridge"):

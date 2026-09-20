@@ -8,7 +8,7 @@ import ctypes
 from ctypes import wintypes
 from pathlib import Path
 
-from . import config
+from gl import config   # TODO(P3.7): config 收口到 aurora.infra
 
 DWMWA_USE_IMMERSIVE_DARK_MODE = 20
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
