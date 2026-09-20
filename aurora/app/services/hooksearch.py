@@ -158,7 +158,10 @@ class HookSearchService:
             #    采样永远撞不上（アマカノ３ 实测 1200+ 条候选全是噪声）。真正管用的是
             #    MisakaHookFinder / Textractor「Search for hooks」那套：
             #    先用特征码定位绘制函数 → 再在函数入口按固定顺序试数据偏移。
+            # 先把可能拖慢游戏的用户码摘掉，再开始试码（见 _hooksearch_clean_session）
+            previous_code = self._hooksearch_clean_session()
             seeded = self._hooksearch_seed_pass(game_id, pid, hwnd, target)
+            self._hooksearch_restore_session(previous_code, seeded)
             if seeded:
                 return self._set_hooksearch(
                     phase="done", code=seeded,
@@ -368,6 +371,7 @@ class HookSearchService:
             config.log("hooksearch: 签名播种没找到候选函数")
             return ""
         tried = 0
+        fallback = ""                      # 只「偶尔」吐过台词的码，全试完再兜底
         stop_overlay = self._hooksearch_overlay_off()
         try:
             for row in seats:
@@ -396,14 +400,19 @@ class HookSearchService:
                         phase="verifying", steps=tried,
                         message=f"试第 {tried} 个候选：{module}+{address - base:#X} "
                                 f"偏移 {offset:#x}（{code}）")
+                    config.log(f"hooksearch: 试第 {tried} 个候选 {code}")
                     if self._hooksearch_try(game_id, hwnd, code, target,
-                                            clicks=1, wait=3.0):
-                        return code
+                                            clicks=2, wait=3.0):
+                        if self._hooksearch_confirm(game_id, hwnd, code, target):
+                            return code
+                        if not fallback:
+                            fallback = code      # 偶尔能用也先记着，全试完再兜底
                 # UTF-16 引擎的兜底：同一条函数只再试最像的几个偏移
                 for offset in offsets[:4]:
                     if self._hooksearch_stop.is_set():
                         return ""
                     if time.time() - started > self.SEED_BUDGET:
+                        config.log("hooksearch: 签名播种超时（UTF-16 阶段），转老路子")
                         return ""
                     try:
                         code = hookfinder.build_code(
@@ -415,11 +424,18 @@ class HookSearchService:
                     self._set_hooksearch(
                         phase="verifying", steps=tried,
                         message=f"试第 {tried} 个候选（UTF-16）：{code}")
+                    config.log(f"hooksearch: 试第 {tried} 个候选(UTF-16) {code}")
                     if self._hooksearch_try(game_id, hwnd, code, target,
                                             clicks=1, wait=3.0):
-                        return code
+                        if self._hooksearch_confirm(game_id, hwnd, code, target):
+                            return code
+                        if not fallback:
+                            fallback = code
         finally:
             self._hooksearch_overlay_restore(stop_overlay)
+        if fallback:
+            config.log(f"hooksearch: 没有稳定命中的，退回偶尔能用的 {fallback}")
+            return fallback
         config.log(f"hooksearch: 签名播种试了 {tried} 条候选码，都没吐出台词")
         return ""
 
@@ -454,6 +470,49 @@ class HookSearchService:
         try:
             self._overlay.set_click_through(bool(previous), persist=False)
             config.log("hooksearch: 悬浮窗穿透设置已还原")
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------ #
+    # 干净会话：找钩子前把「用户/实测带出的码」摘掉
+    # ------------------------------------------------------------------ #
+    def _hooksearch_clean_session(self) -> str:
+        """找钩子期间把引擎切到「不带任何用户码」的会话，返回原来的码（没有返回 ""）。
+
+        真机教训（アマカノ３，20:47 那次全失败）：库里那条 `HS65001#20@38A78`
+        挂在**绘制热函数**上（每帧被调上千次），Textractor 每次调用都要走一遍
+        Send —— 游戏被拖慢十几倍，我们的「代点一次 + 等 3 秒」根本等不到新台词渲染，
+        12 个偏移全被误判成失败。先把码摘掉，进程恢复原速，验证才准。
+
+        找不到游戏 exe / 引擎没在跑就什么都不做（返回 ""）。
+        """
+        state = self._vn_engine.status()
+        previous = str(state.get("hook_code") or "")
+        if not previous or not state.get("running"):
+            return ""
+        game_id = str(state.get("game_id") or "")
+        pid = int(state.get("pid") or 0)
+        game = self._library.get(game_id) if game_id else None
+        exe = str((game or {}).get("exe") or "")
+        if not pid or not exe:
+            return ""
+        try:
+            self._vn_engine.stop()
+            time.sleep(0.6)
+            self._vn_engine.start(game_id, pid, mode="hook", exe=exe, hook_code="")
+            config.log(f"hooksearch: 已切到干净会话（临时摘掉 {previous}）")
+        except Exception as exc:
+            config.log(f"hooksearch: 干净会话切换失败 {exc}")
+            return ""
+        return previous
+
+    def _hooksearch_restore_session(self, previous: str, found: str) -> None:
+        """没找到新码就把原来那条还回去（找到了的话 `_hooksearch_try` 已经写进去了）。"""
+        if not previous or found:
+            return
+        try:
+            self._vn_engine.set_hook_code(previous)
+            config.log(f"hooksearch: 没找到新码，已还原 {previous}")
         except Exception:
             pass
 
@@ -508,6 +567,7 @@ class HookSearchService:
         before = self._hooksearch_sample(code)
         if not self._vn_engine.send_hook(code).get("ok"):
             return False
+        seen = ""
         for _ in range(max(1, int(clicks))):
             if self._hooksearch_stop.is_set():
                 return False
@@ -517,24 +577,56 @@ class HookSearchService:
                 time.sleep(0.4)
                 sample = self._hooksearch_sample(code)
                 if sample and sample != before:
-                    if vntext.looks_like_dialogue(sample) or \
+                    if len(sample) > len(seen):
+                        seen = sample
+                    if vntext.looks_like_dialogue(sample) \
+                            or hook_candidate_score(sample) >= 0.5 or \
                             difflib.SequenceMatcher(None, target, sample).ratio() >= 0.6:
+                        config.log(f"hooksearch: 命中 {code} → {sample[:40]!r}")
                         self._library.update(game_id, vntext_hook=code)
                         self._vn_engine.set_hook_code(code)
                         return True
+        # 失败也留一行现场：知道它到底吐了什么，才能判断是偏移不对还是读到了垃圾
+        config.log(f"hooksearch: 候选没通过 {code} → {seen[:40]!r}" if seen
+                   else f"hooksearch: 候选没吐出东西 {code}")
         return False
+
+    def _hooksearch_confirm(self, game_id: str, hwnd: int, code: str, target: str) -> bool:
+        """候选已经吐过一句，再点两下确认它**稳定**出文本。
+
+        真机教训（アマカノ３）：同一个绘制函数被不同调用路径调用时，文本指针待的
+        寄存器不一样（这条场景走 RDX，主story 走 R12）。只看一次命中就落库，可能
+        存下「只有某些场景能用」的码；再过一轮能显著提高存下来的码的覆盖面。
+        """
+        hits = 0
+        before = self._hooksearch_sample(code)
+        for _ in range(2):
+            if self._hooksearch_stop.is_set():
+                break
+            self._hooksearch_advance(hwnd, game_id)
+            deadline = time.time() + 3.5
+            while time.time() < deadline and not self._hooksearch_stop.is_set():
+                time.sleep(0.4)
+                sample = self._hooksearch_sample(code)
+                if sample and sample != before:
+                    before = sample
+                    if vntext.looks_like_dialogue(sample) \
+                            or hook_candidate_score(sample) >= 0.5 or \
+                            difflib.SequenceMatcher(None, target, sample).ratio() >= 0.6:
+                        hits += 1
+                    break
+        config.log(f"hooksearch: 确认轮 {code} → 命中 {hits}/2")
+        return hits >= 1
 
     def _hooksearch_sample(self, code: str) -> str:
         """取「我们这条钩子码」的线程样例。
 
-        跳过 Textractor 的伪线程（剪贴板/控制台/默认）—— 它们会把剪贴板内容
-        （真机实测：用户复制的链接）当成台词吐出来，跟着一起判定就会误报。
+        走引擎的 `hook_sample_for`：它扫**全量**线程表。之前这里翻的是
+        `status()["threads"]`（只留前 12 条的界面投影），游戏里一旦有别的钩子在
+        刷屏，候选线程就被挤出前 12，验证必然失败（アマカノ３ 真机踩过）。
+        伪线程（剪贴板/控制台/默认）由引擎侧过滤。
         """
-        status = self._vn_engine.status()
-        for row in status.get("threads") or []:
-            name = str(row.get("name") or "")
-            if name in self.PSEUDO_THREADS:
-                continue
-            if vntext.hook_code_matches(code, f"{row.get('name','')}:{row.get('code','')}"):
-                return str(row.get("sample") or "")
-        return ""
+        reader = getattr(self._vn_engine, "hook_sample_for", None)
+        if callable(reader):
+            return str(reader(code) or "")
+        return ""            # 老引擎没有这个接口（理论上不会走到）

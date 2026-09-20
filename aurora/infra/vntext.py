@@ -419,6 +419,48 @@ class VnTextEngine:
         except Exception as exc:
             config.log(f"vntext status callback failed: {exc}")
 
+    #: Textractor 的伪线程：剪贴板/控制台里的内容不是游戏文本
+    PSEUDO_THREAD_NAMES = ("剪贴板", "控制台", "默认")
+
+    def hook_sample_for(self, code: str) -> str:
+        """取「指定钩子码」那条线程当前的样例文本（找钩子验证专用）。
+
+        为什么不能直接翻 `status()["threads"]`：那是**给界面看的投影，只留前 12 条**
+        （按行数排序）。实测教训：游戏里挂着一条每帧吐乱码的坏码时，`_seen` 会堆出
+        几百条垃圾线程，候选线程行数只有 1，永远挤不进前 12 —— 于是每个候选码都被
+        判成「没吐出文本」，找钩子整体失败（アマカノ３ 真机，20:47 那次）。
+
+        这里扫的是**全量** `_seen`；样例优先用清洗后的 `sample`，没有就用原始文本
+        `raw`（候选码吐的东西可能过不了清洗，但验证方自己会判断像不像台词）。
+
+        注意取的是**最新**的那条（`last_seen` 最大），不是最长的：Textractor 每翻
+        一页会换一个线程句柄（实测 `[2:670C]` → `[3:670C]` → …），同一个钩子码下面
+        会挂着好几条线程；按长度取会一直返回旧的那句，验证方就会以为「文本没变」
+        （确认轮因此判过 0/2）。
+        """
+        want = " ".join(str(code or "").split())
+        if not want:
+            return ""
+        best_sample = ""
+        best_stamp = -1.0
+        with self._lock:
+            rows = list(self._seen.items())
+        for _key, row in rows:
+            name = str(row.get("name") or "")
+            if name in self.PSEUDO_THREAD_NAMES:
+                continue
+            if not hook_code_matches(want, f"{name}:{row.get('code', '')}"):
+                continue
+            sample = str(row.get("sample") or "").strip()
+            if not sample:
+                sample = str(row.get("raw") or "").strip()
+            if not sample:
+                continue
+            stamp = float(row.get("last_seen") or 0.0)
+            if stamp >= best_stamp:
+                best_stamp, best_sample = stamp, sample
+        return best_sample
+
     def _active_kkey_placeholder(self) -> str:
         return ""
 
@@ -888,6 +930,14 @@ class VnTextEngine:
         text = " ".join(str(row["text"]).split())
         if not text:
             return
+        # 原始文本先记一份：找钩子验证时要用「没被清洗/过滤过的原样」，否则
+        # 候选码吐出来的怪文本会被当成噪声丢掉，验证就会误判成失败
+        with self._lock:
+            seen = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
+                                               "sample": "", "dialogue": 0,
+                                               "last_seen": time.time()})
+            seen["raw"] = text[:160]
+            seen["last_seen"] = time.time()
         if self._on_raw:
             try:
                 self._on_raw({"text": text, "thread": key,
