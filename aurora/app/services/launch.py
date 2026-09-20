@@ -20,11 +20,12 @@ HEARTBEAT_SECONDS = 30      # 与 Api.HEARTBEAT_SECONDS 保持一致（心跳写
 class LaunchService:
     """启动与结束游戏、会话记账、崩溃恢复、下载目录扫描。"""
 
-    def __init__(self, library, pm, tasks, *, start_vntext=None, stop_vntext=None,
-                 downloads_getter=None) -> None:
+    def __init__(self, library, pm, tasks, *, engine=None, start_vntext=None,
+                 stop_vntext=None, downloads_getter=None) -> None:
         self._library = library
         self._pm = pm
         self._tasks = tasks
+        self._vn_engine = engine
         self._start_vntext = start_vntext
         self._stop_vntext = stop_vntext
         self._downloads_getter = downloads_getter

@@ -323,21 +323,32 @@ class HookSearchService:
             module, base = hookfinder.module_of(pid, int(row.get("rip") or 0))
             if not module:
                 continue
-            try:
-                code = hookfinder.build_code(
-                    module=module, module_base=base, rip=int(row["rip"]),
-                    offset=int(row["offset"]), padding=int(row.get("padding") or 0),
-                    encoding=str(row.get("encoding") or "utf-16"))
-            except hookfinder.HookFinderError:
+            # 实测教训（アマカノ３ / Artemis-Emote）：这类引擎的自绘文字是 UTF-8，
+            # 只按 UTF-16 建码会读到乱码 → 候选全判失败。同一地址两种编码都试一遍。
+            encodings = [str(row.get("encoding") or "utf-16")]
+            for alt in ("utf-8", "utf-16"):
+                if alt not in encodings:
+                    encodings.append(alt)
+            codes = []
+            for enc in encodings:
+                try:
+                    codes.append(hookfinder.build_code(
+                        module=module, module_base=base, rip=int(row["rip"]),
+                        offset=int(row["offset"]), padding=int(row.get("padding") or 0),
+                        encoding=enc))
+                except hookfinder.HookFinderError:
+                    continue
+            if not codes:
                 continue
             tried += 1
             if tried > 8:
                 break
             self._set_hooksearch(
-                message=f"验证第 {tried} 个候选：{code}"
+                message=f"验证第 {tried} 个候选：{codes[0]}"
                         f"（采样到：{str(row.get('text') or '')[:20]}）")
-            if self._hooksearch_try(game_id, hwnd, code, target):
-                return code
+            for code in codes:          # 先 utf-8 再 utf-16，命中即返回
+                if self._hooksearch_try(game_id, hwnd, code, target):
+                    return code
         return ""
 
     def _hooksearch_fail(self, reason: str, message: str) -> None:

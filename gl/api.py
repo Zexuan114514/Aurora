@@ -90,7 +90,7 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
             status_fn=None,          # P3.7：状态改走事件总线
         )
         self._downloads.start()
-        self._launch = LaunchService(self._library, self._pm, self._tasks,
+        self._launch = LaunchService(self._library, self._pm, self._tasks, engine=self._vn_engine,
                                      start_vntext=self.start_vntext, stop_vntext=self.stop_vntext,
                                      downloads_getter=lambda: self._downloads)
         # 网络：让 gl.sources.net 知道当前用哪条代理路线
