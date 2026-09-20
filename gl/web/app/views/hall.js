@@ -61,6 +61,50 @@ export function ringGeometryOf({ viewportWidth, viewportHeight, geometry = RING_
   };
 }
 
+/**
+ * 把一张封面放到环上的第 r 格（r = 相对当前位置的**浮点**格数）。
+ *
+ * 纯「输入 → 样式」映射：读 `ring`（常量）与 `size`（这一帧的尺寸），写节点样式。
+ * 帧循环本身仍在主模块 —— 这里只负责单张卡片的几何与明暗，方便单独验证。
+ */
+export function placeRingTile(node, r, { ring, size }) {
+  const a = Math.abs(r);
+  if (a > ring.span) {
+    if (node.dataset.ringHidden !== "1") {
+      node.dataset.ringHidden = "1";
+      node.style.visibility = "hidden";
+      node.style.opacity = "0";
+      node.style.pointerEvents = "none";
+      node.style.willChange = "";
+    }
+    return;
+  }
+  if (node.dataset.ringHidden === "1") {
+    node.dataset.ringHidden = "0";
+    node.style.visibility = "";
+    node.style.pointerEvents = "";
+    node.style.willChange = "transform, opacity";
+  }
+  const deg = r * ring.step;
+  const rad = deg * Math.PI / 180;
+  const z = Math.cos(rad) * size.rz;
+  // 近大远小由父级的 perspective 负责（translateZ 已经带出透视），
+  // 这里只补一点额外收缩，让离焦点越远的封面明显更小
+  const scale = 1 / (1 + ring.shrink * a);
+  const x = Math.sin(rad) * size.rx;
+  const y = ring.y - 12 * Math.max(0, 1 - a) + 14 * (1 - Math.cos(rad));
+  const opacity = a <= 2 ? 1 : Math.max(0.14, 1 - (a - 2) * 0.34);
+  const veil = a < 0.5 ? a * 0.5 : Math.min(0.62, 0.25 + (a - 0.5) * 0.08);
+  const blur = Math.max(0, a - 3) * 0.45;
+  node.style.transform =
+    `translate(-50%,-50%) translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px) ` +
+    `rotateY(${deg.toFixed(2)}deg) scale(${scale.toFixed(4)})`;
+  node.style.opacity = opacity.toFixed(3);
+  node.style.zIndex = String(200 - Math.round(a * 20));
+  node.style.filter = blur > 0.02 ? `blur(${blur.toFixed(2)}px)` : "";
+  node.style.setProperty("--veil", veil.toFixed(3));
+}
+
 /** 当前主页布局 + 平铺布局下每张封面的实际位置（全部是读 DOM）。 */
 export function layoutReadout({ row, viewport, layoutName, flatClass }) {
   return {

@@ -5,7 +5,8 @@ import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
 import { ringReadout, layoutReadout } from "./app/views/hall.js";
-import { RING_GEOMETRY, RING_BASE, ringGeometryOf } from "./app/views/hall.js";
+import { RING_GEOMETRY, RING_BASE, ringGeometryOf,
+         placeRingTile } from "./app/views/hall.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -362,43 +363,8 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   }
 
   /* 把一张封面放到环上的第 r 格（r 为相对当前位置的浮点格数） */
-  function ringPlace(node, r) {
-    const a = Math.abs(r);
-    if (a > RING.span) {
-      if (node.dataset.ringHidden !== "1") {
-        node.dataset.ringHidden = "1";
-        node.style.visibility = "hidden";
-        node.style.opacity = "0";
-        node.style.pointerEvents = "none";
-        node.style.willChange = "";
-      }
-      return;
-    }
-    if (node.dataset.ringHidden === "1") {
-      node.dataset.ringHidden = "0";
-      node.style.visibility = "";
-      node.style.pointerEvents = "";
-      node.style.willChange = "transform, opacity";
-    }
-    const deg = r * RING.step;
-    const rad = deg * Math.PI / 180;
-    const z = Math.cos(rad) * ringSize.rz;
-    // 近大远小由父级的 perspective 负责（translateZ 已经带出透视），
-    // 这里只补一点额外收缩，让离焦点越远的封面明显更小
-    const scale = 1 / (1 + RING.shrink * a);
-    const x = Math.sin(rad) * ringSize.rx;
-    const y = RING.y - 12 * Math.max(0, 1 - a) + 14 * (1 - Math.cos(rad));
-    const opacity = a <= 2 ? 1 : Math.max(0.14, 1 - (a - 2) * 0.34);
-    const veil = a < 0.5 ? a * 0.5 : Math.min(0.62, 0.25 + (a - 0.5) * 0.08);
-    const blur = Math.max(0, a - 3) * 0.45;
-    node.style.transform =
-      `translate(-50%,-50%) translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,${z.toFixed(1)}px) ` +
-      `rotateY(${deg.toFixed(2)}deg) scale(${scale.toFixed(4)})`;
-    node.style.opacity = opacity.toFixed(3);
-    node.style.zIndex = String(200 - Math.round(a * 20));
-    node.style.filter = blur > 0.02 ? `blur(${blur.toFixed(2)}px)` : "";
-    node.style.setProperty("--veil", veil.toFixed(3));
-  }
+  /* P4.3-f：单张封面的环变换搬进 ./app/views/hall.js（纯「输入→样式」映射） */
+  const ringPlace = (node, r) => placeRingTile(node, r, { ring: RING, size: ringSize });
 
   function ringFrame(ts) {
     const n = RING.items.length;

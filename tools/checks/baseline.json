@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3682
+      "lines": 3648
     },
     {
       "path": "gl/web/index.html",
@@ -399,7 +399,7 @@
     },
     {
       "path": "gl/web/app/views/hall.js",
-      "lines": 84
+      "lines": 128
     }
   ],
   "threads": [
@@ -1380,6 +1380,17 @@
         {
           "from": "app.js: RING 几何常量 + ringGeometry() 的算法",
           "to": "gl/web/app/views/hall.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-f",
+      "date": "2026-09-21",
+      "note": "ringPlace 搬成 views/hall.js 的 placeRingTile（纯输入→样式映射）；visual ring 判据数值与改前逐字相同",
+      "moves": [
+        {
+          "from": "app.js: ringPlace(node, r)",
+          "to": "gl/web/app/views/hall.js: placeRingTile"
         }
       ]
     }

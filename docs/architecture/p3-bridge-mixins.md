@@ -451,3 +451,23 @@ closeAll: (...a) => closeAll(...a),
 
 验收：`run_all` 8/8、`e2e` **90/90**、`visual` `errors=[]` 且 ring 判据（`ring_check`）仍在。
 
+### P4.3-f 单张封面变换进 hall 模块（2026-09-21 01:40）
+
+环本体第三步：把 `ringPlace(node, r)` —— 「第 r 格该是什么样式」这段纯映射 ——
+搬成 `views/hall.js` 的 `placeRingTile(node, r, {ring, size})`，主模块里只留一行包装：
+
+```js
+const ringPlace = (node, r) => placeRingTile(node, r, { ring: RING, size: ringSize });
+```
+
+**验证方式（这一刀特意用数值比对）**：`visual.py` 的 `ring_check` 会读出每张封面在环上的
+角度与投影位置。改动前后两次结果逐字相同（`["437e6a", 0, 347.0]`、`["db1d36", 16, 283.2]`
+…），说明几何与明暗的数值一个都没变 —— 比只看「e2e 通过」更有说服力。
+
+验收：`run_all` 8/8、`e2e` **90/90**、`visual` `errors=[]` 且 `ring_check` 数值不变。
+
+**剩下的环本体（P4.3-g）**：帧循环（`ringFrame`/`ringRun`）、测量（`ringMeasure`）、
+同步（`ringSync`/`clearRingStyles`）与拖拽/键盘。这几块要在 60fps 里频繁写 `RING.float/target`
+与 DOM，建议用 `createRing({ el, ring, state, onFocus })` 交出 `{measure, sync, step, run, stop}`
+的接口一次性搬完，仍以 `ring_check` + e2e 双验收。
+
