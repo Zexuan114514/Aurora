@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3695
+      "lines": 3682
     },
     {
       "path": "gl/web/index.html",
@@ -399,7 +399,7 @@
     },
     {
       "path": "gl/web/app/views/hall.js",
-      "lines": 42
+      "lines": 84
     }
   ],
   "threads": [
@@ -1368,6 +1368,17 @@
       "moves": [
         {
           "from": "app.js: window.__aurora.ring/layout 的取数",
+          "to": "gl/web/app/views/hall.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-e",
+      "date": "2026-09-21",
+      "note": "环几何（RING_GEOMETRY/RING_BASE/ringGeometryOf）搬进 app/views/hall.js，RING 只留运行期字段；e2e 90/90、visual errors=[]",
+      "moves": [
+        {
+          "from": "app.js: RING 几何常量 + ringGeometry() 的算法",
           "to": "gl/web/app/views/hall.js"
         }
       ]

@@ -436,3 +436,18 @@ closeAll: (...a) => closeAll(...a),
 **下一刀（P4.3-e）**：搬环本体（`RING` 配置与几何计算 → `views/hall.js`，动画/拖拽的写入方
 留在主模块，通过 `ringHandle` 之类的接口交互），仍是每刀一跑 e2e/visual。
 
+### P4.3-e 环几何进 `views/hall.js`（2026-09-21 01:10）
+
+环本体第二步：把**几何**搬进 hall 模块，运行期状态与动画写入方仍留在主模块。
+
+| 改动 | 内容 |
+| --- | --- |
+| `views/hall.js` 新增 | `RING_GEOMETRY`（step/rx/rz/depth/span/shrink/y/tau/dragPx 九个常量）、`RING_BASE`（180×270）、`ringGeometryOf({viewportWidth, viewportHeight, geometry, base, clamp})` —— 纯函数，视口尺寸与 clamp 都由调用方给 |
+| `app.js` | `RING` 改成 `{ ...RING_GEOMETRY, items, nodes, keysSig, float, target, raf, last, ready, flatReady, dragActive }`（只留运行期字段）；`ringGeometry()` 变成三行调用（传 `RING` 而不是常量对象，语义与改前逐字一致） |
+
+**为什么这样切**：几何是纯计算（可单测、无副作用），而动画/拖拽要在 60fps 里频繁写
+`RING.float/target` 与 DOM 样式——两者混在一起反而是最难动的地方。先搬常量与几何，
+下一刀再考虑把「帧循环」也搬过去（届时用 `createRing({...})` 之类接口交接）。
+
+验收：`run_all` 8/8、`e2e` **90/90**、`visual` `errors=[]` 且 ring 判据（`ring_check`）仍在。
+

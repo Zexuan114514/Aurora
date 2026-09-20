@@ -5,6 +5,7 @@ import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
 import { ringReadout, layoutReadout } from "./app/views/hall.js";
+import { RING_GEOMETRY, RING_BASE, ringGeometryOf } from "./app/views/hall.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -321,15 +322,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
      从最后一张继续往前，会绕回第一张（末尾的「＋ 导入游戏」同样在环上）。
      位置每帧由 JS 计算（ringFrame），所以拖动可以跟手、松手再吸附。 */
   const RING = {
-    step: 16,        // 相邻两张封面绕竖轴的角度（度）
-    rx: 580,         // 水平半径（基准窗口下的像素）
-    rz: 260,         // 纵深半径
-    depth: 1100,     // 透视距离
-    span: 4.6,       // 可见的半边张数，再远就藏起来（绕到背面）
-    shrink: 0.24,    // 每远一格额外缩小的比例（透视之外再补一点）
-    y: 36,           // 整圈封面的重心（相对舞台中心下移，避开顶部工具条）
-    tau: 0.13,       // 回弹时间常数（秒），越小越干脆
-    dragPx: 112,     // 横向拖动多少像素换一张
+    ...RING_GEOMETRY, // 几何常量在 ./app/views/hall.js（P4.3-e）
     items: [],       // [{key, node, sig, index}]，index 就是环上的位置
     nodes: new Map(),// key -> item，重建列表时复用节点，动画不中断
     keysSig: "",
@@ -356,15 +349,9 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     const vp = el.hallViewport;
     const vw = (vp && vp.clientWidth) || window.innerWidth || 1380;
     const vh = (vp && vp.clientHeight) || Math.max(420, (window.innerHeight || 880) - 170);
-    const unit = ringClamp(Math.min(vw / 1380, vh / 690), 0.6, 1.3);
-    return {
-      unit,
-      w: Math.round(180 * unit),
-      h: Math.round(270 * unit),
-      rx: RING.rx * unit,
-      rz: RING.rz * unit,
-      depth: RING.depth * unit,
-    };
+    // 几何计算本体在 ./app/views/hall.js（纯函数，视口与 clamp 由这里给）
+    return ringGeometryOf({ viewportWidth: vw, viewportHeight: vh,
+                            geometry: RING, base: RING_BASE, clamp: ringClamp });
   }
 
   function ringMeasure() {

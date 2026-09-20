@@ -19,6 +19,48 @@ export function ringReadout({ RING, state }) {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * 环的几何：角度/半径/透视这些**常量**，以及「按视口算尺寸」的纯计算。
+ * 运行期状态（float/target/items/nodes…）留在主模块，动画与拖拽照旧由它写。
+ * ------------------------------------------------------------------ */
+
+/** 环的几何常量（基准窗口 1380×690 下的像素值）。 */
+export const RING_GEOMETRY = {
+  step: 16,        // 相邻两张封面绕竖轴的角度（度）
+  rx: 580,         // 水平半径（基准窗口下的像素）
+  rz: 260,         // 纵深半径
+  depth: 1100,     // 透视距离
+  span: 4.6,       // 可见的半边张数，再远就藏起来（绕到背面）
+  shrink: 0.24,    // 每远一格额外缩小的比例（透视之外再补一点）
+  y: 36,           // 整圈封面的重心（相对舞台中心下移，避开顶部工具条）
+  tau: 0.13,       // 回弹时间常数（秒），越小越干脆
+  dragPx: 112,     // 横向拖动多少像素换一张
+};
+
+/** 基准封面尺寸（unit=1 时）。 */
+export const RING_BASE = { w: 180, h: 270 };
+
+/**
+ * 按视口算这一帧的环尺寸：窗口越窄，半径与封面一起收，
+ * 保证一圈封面仍是同样的构图。
+ *
+ * 纯函数：视口尺寸与 clamp 都由调用方给，方便单独验证。
+ */
+export function ringGeometryOf({ viewportWidth, viewportHeight, geometry = RING_GEOMETRY,
+                                 base = RING_BASE, clamp }) {
+  const vw = viewportWidth || 1380;
+  const vh = viewportHeight || 690;
+  const unit = clamp(Math.min(vw / 1380, vh / 690), 0.6, 1.3);
+  return {
+    unit,
+    w: Math.round(base.w * unit),
+    h: Math.round(base.h * unit),
+    rx: geometry.rx * unit,
+    rz: geometry.rz * unit,
+    depth: geometry.depth * unit,
+  };
+}
+
 /** 当前主页布局 + 平铺布局下每张封面的实际位置（全部是读 DOM）。 */
 export function layoutReadout({ row, viewport, layoutName, flatClass }) {
   return {
