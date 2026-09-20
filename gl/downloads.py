@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from aurora.app.events import default_bus
+
 from aurora.infra.tasks import default_runner
 
 import os
@@ -317,6 +319,9 @@ class DownloadWatcher:
 
     def _emit(self, payload: dict) -> None:
         try:
-            self._status(payload)
+            if self._status:
+                self._status(payload)
+            else:
+                default_bus().publish("engine.downloads_status", payload)
         except Exception:
             pass

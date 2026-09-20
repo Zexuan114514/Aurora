@@ -7,6 +7,8 @@ TextractorCLI 的契约（读它的 host/CLI/main.cpp 得出）：
 """
 from __future__ import annotations
 
+from aurora.app.events import default_bus
+
 from aurora.infra.tasks import default_runner
 
 import difflib
@@ -410,10 +412,12 @@ class VnTextEngine:
             }
 
     def _push_status(self) -> None:
+        state = self.status()
         if not self._on_status:
+            default_bus().publish("engine.vntext_status", state)
             return
         try:
-            self._on_status(self.status())
+            self._on_status(state)
         except Exception as exc:
             config.log(f"vntext status callback failed: {exc}")
 
@@ -1309,8 +1313,12 @@ class VnTextEngine:
         self._last_line = body
         self._last_norm = norm
         self._lines += 1
+        line = {"text": body, "source": source, "game_id": self._game_id}
         try:
-            self._on_line({"text": body, "source": source, "game_id": self._game_id})
+            if self._on_line:
+                self._on_line(line)
+            else:
+                default_bus().publish("engine.vntext_line", line)
         except Exception as exc:
             config.log(f"vntext line callback failed: {exc}")
         self._push_status()

@@ -23,7 +23,7 @@
     },
     {
       "path": "aurora/app/events.py",
-      "lines": 66
+      "lines": 77
     },
     {
       "path": "aurora/app/ports.py",
@@ -135,7 +135,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 177
+      "lines": 188
     },
     {
       "path": "gl/config.py",
@@ -147,7 +147,7 @@
     },
     {
       "path": "gl/downloads.py",
-      "lines": 322
+      "lines": 327
     },
     {
       "path": "gl/gameinput.py",
@@ -163,7 +163,7 @@
     },
     {
       "path": "gl/linetrans.py",
-      "lines": 312
+      "lines": 317
     },
     {
       "path": "gl/locale.py",
@@ -191,7 +191,7 @@
     },
     {
       "path": "gl/process.py",
-      "lines": 400
+      "lines": 408
     },
     {
       "path": "gl/proctree.py",
@@ -251,7 +251,7 @@
     },
     {
       "path": "gl/vntext.py",
-      "lines": 1358
+      "lines": 1366
     },
     {
       "path": "gl/web/app.css",
@@ -721,6 +721,43 @@
         "main.py": [
           348,
           349
+        ]
+      }
+    },
+    {
+      "phase": "P3.7-d",
+      "date": "2026-09-20",
+      "note": "回调改事件：linetrans/vntext/process/downloads 在无回调时向 default_bus 发布内部事件（engine.*），Api 改为订阅；overlay 的 on_action 是请求-响应语义，保留回调",
+      "moves": [
+        {
+          "from": "Api 直接传回调（on_event/on_line/on_status/on_found/on_exit/status_fn）",
+          "to": "EventBus 内部主题 engine.* + Api 订阅"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          177,
+          188
+        ],
+        "gl/linetrans.py": [
+          312,
+          317
+        ],
+        "gl/vntext.py": [
+          1358,
+          1366
+        ],
+        "gl/process.py": [
+          400,
+          408
+        ],
+        "gl/downloads.py": [
+          322,
+          327
+        ],
+        "aurora/app/events.py": [
+          66,
+          77
         ]
       }
     }

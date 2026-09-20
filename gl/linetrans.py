@@ -7,6 +7,8 @@
 """
 from __future__ import annotations
 
+from aurora.app.events import default_bus
+
 from aurora.infra.tasks import default_runner
 
 import hashlib
@@ -123,7 +125,10 @@ class LineTranslator:
     # ------------------------------------------------------------------ #
     def _emit(self, kind: str, payload: dict) -> None:
         try:
-            self._on_event(kind, payload)
+            if self._on_event:
+                self._on_event(kind, payload)
+            else:      # P3.7：没有回调时走事件总线（Api 用订阅接）
+                default_bus().publish("engine.translate", {"kind": kind, **payload})
         except Exception as exc:
             config.log(f"linetrans callback failed: {exc}")
 

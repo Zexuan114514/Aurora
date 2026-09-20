@@ -64,3 +64,14 @@ class EventBus:
             self._subs.clear()
             self._recent.clear()
             self._seq = 0
+
+
+_DEFAULT_BUS: EventBus | None = None
+
+
+def default_bus() -> EventBus:
+    """进程级默认总线：核心模块（翻译/文本源/会话/下载）没有回调时向它发布内部事件。"""
+    global _DEFAULT_BUS
+    if _DEFAULT_BUS is None:
+        _DEFAULT_BUS = EventBus()
+    return _DEFAULT_BUS

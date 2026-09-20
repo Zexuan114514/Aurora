@@ -1,6 +1,8 @@
 """启动可执行文件并跟踪运行状态。"""
 from __future__ import annotations
 
+from aurora.app.events import default_bus
+
 from aurora.infra.tasks import default_runner
 
 import ctypes
@@ -201,6 +203,9 @@ class ProcessManager:
                 self._on_exit(game_id, seconds)
             except Exception as exc:
                 config.log(f"session exit callback failed: {exc}")
+        else:
+            default_bus().publish("engine.session_exit", {
+                "game_id": game_id, "seconds": seconds})
 
     def running_ids(self) -> list[str]:
         with self._lock:
@@ -322,6 +327,9 @@ class ProcessManager:
                         self._on_found(entry.get("game_id"), sorted(candidates)[0])
                     except Exception as exc:
                         config.log(f"session found callback failed: {exc}")
+                else:
+                    default_bus().publish("engine.session_found", {
+                        "game_id": entry.get("game_id"), "pid": sorted(candidates)[0]})
                 return False
             return (now - float(entry.get("started_at") or now)) > STARTUP_GRACE
 

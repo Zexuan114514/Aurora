@@ -19,7 +19,7 @@ from . import (config, detect, downloads, gameinput, hookfinder, hotkey, linetra
 from .sources import SourceManager
 from .store import Library
 
-from aurora.app.events import EventBus
+from aurora.app.events import EventBus, default_bus
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
 
@@ -54,6 +54,18 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         #: P3.7：事件先进 EventBus（信封见 contracts/events.md），再由唯一出口推给前端
         self._events = EventBus()
         self._events.subscribe("*", self._dispatch_event)
+        # P3.7：核心模块（翻译 / 文本源 / 会话 / 下载）没有回调时向默认总线发内部事件，这里订阅接上
+        bus = default_bus()
+        bus.subscribe("engine.translate",
+                      lambda env: self._on_translate_event(
+                          str(env["payload"].get("kind") or ""), env["payload"]))
+        bus.subscribe("engine.vntext_line", lambda env: self._on_vntext_line(env["payload"]))
+        bus.subscribe("engine.vntext_status", lambda env: self._emit("vntext:status", env["payload"]))
+        bus.subscribe("engine.session_found", lambda env: self._on_game_found(
+            env["payload"].get("game_id"), env["payload"].get("pid")))
+        bus.subscribe("engine.session_exit", lambda env: self._on_game_exit(
+            env["payload"].get("game_id"), env["payload"].get("seconds") or 0.0))
+        bus.subscribe("engine.downloads_status", lambda env: self._emit("downloads:status", env["payload"]))
         self._batching = False
         # 简介翻译：单条常驻队列线程串行处理，避免批量导入时线程爆炸
         self._translating: set[str] = set()
@@ -65,20 +77,19 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
             settings_getter=lambda: self._library.settings,
             save_setting=self._library.set_setting,
             import_fn=lambda paths: len(self.import_dropped(paths).get("games") or []),
-            status_fn=lambda payload: self._emit("downloads:status", payload),
+            status_fn=None,          # P3.7：状态改走事件总线
         )
         self._downloads.start()
         # 网络：让 gl.sources.net 知道当前用哪条代理路线
         netproxy.set_settings_provider(lambda: self._library.settings)
-        self._pm.set_callbacks(on_found=self._on_game_found, on_exit=self._on_game_exit)
+        self._pm.set_callbacks()      # P3.7：会话事件改走总线
         # 游戏内翻译：文本源 / 逐句翻译 / 悬浮窗 / 全局热键
         self._vn_engine = vntext.VnTextEngine(
             settings_getter=lambda: self._library.settings,
-            on_line=self._on_vntext_line,
-            on_status=lambda state: self._emit("vntext:status", state))
+            on_line=None, on_status=None)   # P3.7：文本/状态改走总线
         self._translator = linetrans.LineTranslator(
             settings_getter=lambda: self._library.settings,
-            on_event=self._on_translate_event)
+            on_event=None)                # P3.7：译文事件改走总线
         self._overlay = overlay.Overlay(
             get_settings=lambda: self._library.settings,
             set_option=self._library.set_setting,
