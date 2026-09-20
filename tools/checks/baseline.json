@@ -30,8 +30,16 @@
       "lines": 63
     },
     {
+      "path": "aurora/app/projection.py",
+      "lines": 81
+    },
+    {
       "path": "aurora/app/services/__init__.py",
       "lines": 1
+    },
+    {
+      "path": "aurora/app/services/library.py",
+      "lines": 155
     },
     {
       "path": "aurora/app/services/settings.py",
@@ -107,7 +115,7 @@
     },
     {
       "path": "aurora/ui/bridge/library.py",
-      "lines": 490
+      "lines": 418
     },
     {
       "path": "aurora/ui/bridge/metadata.py",
@@ -123,7 +131,7 @@
     },
     {
       "path": "aurora/ui/bridge/shared.py",
-      "lines": 98
+      "lines": 28
     },
     {
       "path": "aurora/ui/bridge/shell.py",
@@ -143,7 +151,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 190
+      "lines": 192
     },
     {
       "path": "gl/config.py",
@@ -789,6 +797,35 @@
           190
         ]
       }
+    },
+    {
+      "phase": "P3.8-b",
+      "date": "2026-09-20",
+      "note": "LibraryService（22 个数据方法）下沉，_public 投影上移到 app/projection.py；Api 改用进程级总线，服务发布 game:updated 经通配订阅直推前端",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/library.py（22 个数据方法）",
+          "to": "aurora/app/services/library.py"
+        },
+        {
+          "from": "aurora/ui/bridge/shared.py::_public",
+          "to": "aurora/app/projection.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/library.py": [
+          490,
+          418
+        ],
+        "gl/api.py": [
+          190,
+          192
+        ],
+        "aurora/ui/bridge/shared.py": [
+          98,
+          28
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -830,5 +867,9 @@
   "modules_added_in_p3_8": [
     "aurora/app/services/__init__.py",
     "aurora/app/services/settings.py"
+  ],
+  "modules_added_in_p3_8b": [
+    "aurora/app/projection.py",
+    "aurora/app/services/library.py"
   ]
 }

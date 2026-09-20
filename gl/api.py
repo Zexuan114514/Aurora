@@ -20,6 +20,7 @@ from .sources import SourceManager
 from .store import Library
 
 from aurora.app.events import EventBus, default_bus
+from aurora.app.services.library import LibraryService
 from aurora.app.services.settings import SettingsService
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
@@ -46,6 +47,7 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._pm = process.ProcessManager()
         self._sources = SourceManager(self._library)
         self._settings = SettingsService(self._library, self._sources)
+        self._library_service = LibraryService(self._library, self._pm)
         self._window: webview.Window | None = None
         self._drag: dict | None = None
         self._busy: set[str] = set()
@@ -54,7 +56,7 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._tasks = TaskRunner(max_workers=8, name_prefix="aurora-task")
         self._heartbeat = None
         #: P3.7：事件先进 EventBus（信封见 contracts/events.md），再由唯一出口推给前端
-        self._events = EventBus()
+        self._events = default_bus()      # P3.8：与核心模块/服务共用进程级总线
         self._events.subscribe("*", self._dispatch_event)
         # P3.7：核心模块（翻译 / 文本源 / 会话 / 下载）没有回调时向默认总线发内部事件，这里订阅接上
         bus = default_bus()
