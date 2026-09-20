@@ -319,9 +319,11 @@ v4.1/
 ├─ 打包 Aurora.bat        一键打包成 Aurora.exe（自动准备依赖 + PyInstaller）
 ├─ main.py                入口：创建窗口、应用 DWM 效果、启动内核
 ├─ docs/images/           README 里的界面截图（hall.png 大厅 / game-page.png 游戏页）
+├─ aurora/                分层后的骨架（见 docs/architecture/05-layers-and-rules.md）
+│  └─ domain/             纯逻辑：文本规则 / 匹配打分 / 引擎规格 / 数据契约 / 会话结算
 ├─ gl/
 │  ├─ config.py           路径 / 默认设置 / JSON 读写 / 日志
-│  ├─ detect.py           从 exe 路径推断关键词 + 相似度打分
+│  ├─ detect.py           转发 shim → aurora/domain/matching.py（P1 搬家）
 │  ├─ translate.py        简介翻译：语言检测 + LLM 接口 + 免费接口兜底
 │  ├─ downloads.py        获取游戏：下载目录监听 + 自动解压（zip / rar / 7z）+ 自动导入
 │  ├─ locale.py           转区启动：探测本机 Locale Emulator、读 LEConfig.xml、拼 LE 启动命令
@@ -352,6 +354,14 @@ v4.1/
 
 ---
 
+## 架构设计
+
+分层规则、组件边界、集成契约、运行时/部署视图、容量热点、可用性与风险登记都在
+[`docs/architecture/`](docs/architecture/README.md)；架构决策记录（ADR）在 [`docs/adr/`](docs/adr/README.md)，
+分阶段落地路线见 [`docs/architecture/13-roadmap.md`](docs/architecture/13-roadmap.md)。
+
+---
+
 ## 自检脚本
 
 ```powershell
@@ -364,6 +374,9 @@ python tools\visual.py            # 界面渲染自检：封面/缩略图是否�
 python tools\visual_summary.py    # 汇总 visual.py 的结果
 python tools\meta_offline.py      # 用本地缓存校验元数据解析（断网时也能跑）
 python tools\check_bridge.py      # 前端调用的方法与后端实现是否一一对应
+python tools\check_library.py     # 检查现有游戏库文件是否完好（字段缺失 / 类型异常）
+python tools\checks\run_all.py    # 离线检查全家桶：契约快照 / 依赖白名单 / 去敏夹具 / 探针清单 / 基线漂移 / 分层守卫
+python -m pytest                  # 同一批离线检查 + domain 金样本回归（82 个用例）
 python tools\translate_probe.py   # 简介翻译自检：语言检测 + 接口链路 + 缓存
 python tools\download_probe.py    # 获取游戏自检：资源站增删 / 跳转链接 + 下载目录监听 / 自动解压 / 自动导入
 python tools\locale_probe.py      # 转区启动自检：LE 探测 / 四件套校验 / LEConfig 解析 / 启动命令 / PE 位数
@@ -375,6 +388,9 @@ python tools\vntext_live.py       # 真机自测：自己启动游戏（含转�
                                   #   --game 少女之剑 / --no-launch（游戏已在跑）/ --advance 16（自动翻页次数）
 python tools\vntext_rawdump.py    # 把 TextractorCLI 的原始输出逐行摊开（查「哪条线程才是完整文本 / 为什么缺字」）
 python tools\vntext_hookprobe.py  # 逐个试 Textractor 钩子名，看引擎专用钩子在目标游戏上能不能出干净文本
+python tools\hooksearch_probe.py  # 钩子查找器自检：H-code 生成 + 合成目标进程的调试器链路
+python tools\probe_sources.py     # 调研用：VNDB / Bangumi / TouchGal 资料源接口可行性
+python tools\probe_kungal.py      # 调研用：TouchGal / Kungal 是否提供可用接口
 python tools\make_icon.py         # 重新生成图标（7 种尺寸的 .ico）
 python tools\build_exe.py         # 重新打包成根目录的 Aurora.exe
 python tools\make_bat.py          # 重新生成启动脚本（GBK + CRLF，见下方说明）
@@ -404,6 +420,8 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 | `vntext_live.py`（少女之剑，专用 hook 码） | **全部通过**（WillPlus/AdvHD：`HQ-4@A22E:AdvHD_crack.exe` 由指纹记录自动带上 → 5 句台词全部完整（`姉さんの家は剣術道場をやっていて…` 这种长句不再缺字）、GDI 缺字版全部并掉（`merged=9`）、原始行审计「半截碎片 12 / 漏掉 0」） |
 | `vntext_probe.py`（白色相簿2 场景） | 乱码/菜单/视频窗口标题/文件名四种杂讯线程全部挡掉，只发射真台词三句，活动线程正确指向 `7:3EBC:4`；用 `data/aurora.log` 里的真实会话（28 条钩子行）离线重放，领跑线程自动选为 `7:3EBC:4` |
 | `theme_probe.py` | **全部通过**（4 预设 × 深色/浅色/跟随系统，强调色与 data-theme 正确；深色面板为白色低透明度、文字亮色；浅色面板为白色高透明度、文字深色） |
+| `checks\run_all.py` | **6/6 通过**（契约快照 105+4 方法 / 14 事件、运行时依赖白名单、去敏夹具 24 游戏 / 63 字段 / 123 会话、探针清单 29 个脚本、架构基线漂移、分层守卫） |
+| `pytest` | **15 passed**（6 项离线检查 + 82 个 domain 金样本用例 + 转发/接线断言） |
 - `analyze.py` 的区域与文字行检测已按环形大厅重排（工具条 / 两侧远封面 / 左邻封面 / 焦点封面 / 右邻封面 / 底部信息带）。
 
 > ⚠️ 两个 `.bat` 必须是 **GBK 编码 + CRLF 换行**：`cmd.exe` 按系统 ANSI 代码页（简体中文为 936）解析批处理，UTF-8 或 LF 换行会把中文注释拆成乱码并切断命令行。改动脚本后请用 `python tools\make_bat.py` 重新生成，不要用普通编辑器直接保存。
