@@ -90,7 +90,7 @@ class LineTranslator:
             if self._worker is None or not self._worker.is_alive():
                 self._worker = default_runner().spawn("linetrans.queue", self._loop,
                                                       thread_name="aurora-linetrans")
-        self._emit("queued", {"text": text, "source": source})
+        self._fire("queued", {"text": text, "source": source})
 
     def retranslate_last(self) -> dict:
         with self._lock:
@@ -120,7 +120,7 @@ class LineTranslator:
             return list(self._history[-limit:])
 
     # ------------------------------------------------------------------ #
-    def _emit(self, kind: str, payload: dict) -> None:
+    def _fire(self, kind: str, payload: dict) -> None:
         try:
             if self._on_event:
                 self._on_event(kind, payload)
@@ -142,7 +142,7 @@ class LineTranslator:
                 self._run(job)
             except Exception as exc:
                 config.log(f"linetrans run failed: {exc}")
-                self._emit("error", {"text": job["text"], "error": str(exc)})
+                self._fire("error", {"text": job["text"], "error": str(exc)})
 
     def _run(self, job: dict) -> None:
         cfg = self._get_settings() or {}
@@ -158,14 +158,14 @@ class LineTranslator:
             self._finish(job, cached, provider="cache")
             return
 
-        self._emit("start", {"text": text, "source": job.get("source", "")})
+        self._fire("start", {"text": text, "source": job.get("source", "")})
         collected: list[str] = []
 
         def on_delta(chunk: str) -> bool:
             # 排队之后不再「有新台词就掐掉这句」：掐掉就永远没有译文了
             # （实测表现为「一句有一句没有」）。流式内容照常吐，前端按原文对上号。
             collected.append(chunk)
-            self._emit("delta", {"text": text, "delta": chunk,
+            self._fire("delta", {"text": text, "delta": chunk,
                                  "so_far": "".join(collected)})
             return True
 
@@ -183,7 +183,7 @@ class LineTranslator:
             provider = "llm" if key else "free"
             out = self._fallback(text, cfg, target) or ""
         if not out:
-            self._emit("error", {"text": text, "error": "translate-failed"})
+            self._fire("error", {"text": text, "error": "translate-failed"})
             return
         self._cache_put(text, cfg, terms, target, out)
         self._finish(job, out, provider=provider)
@@ -199,7 +199,7 @@ class LineTranslator:
                                   "at": int(time.time())})
             del self._history[:-MAX_HISTORY]
         # 每条都要发出去：排队后「过期」只意味着它比最新台词旧，不代表不用给译文
-        self._emit("done", {"text": text, "translation": out, "provider": provider,
+        self._fire("done", {"text": text, "translation": out, "provider": provider,
                             "source": job.get("source", "")})
 
     def _fallback(self, text: str, cfg: dict, target: str) -> str | None:
