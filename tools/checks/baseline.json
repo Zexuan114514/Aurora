@@ -94,6 +94,10 @@
       "lines": 1
     },
     {
+      "path": "aurora/infra/config.py",
+      "lines": 231
+    },
+    {
       "path": "aurora/infra/downloads.py",
       "lines": 326
     },
@@ -210,6 +214,10 @@
       "lines": 136
     },
     {
+      "path": "aurora/ui/overlay.py",
+      "lines": 373
+    },
+    {
       "path": "gl/__init__.py",
       "lines": 5
     },
@@ -219,7 +227,7 @@
     },
     {
       "path": "gl/config.py",
-      "lines": 231
+      "lines": 8
     },
     {
       "path": "gl/detect.py",
@@ -267,7 +275,7 @@
     },
     {
       "path": "gl/overlay.py",
-      "lines": 377
+      "lines": 8
     },
     {
       "path": "gl/process.py",
@@ -1179,6 +1187,31 @@
           8
         ]
       }
+    },
+    {
+      "phase": "P3.9-g",
+      "date": "2026-09-20",
+      "note": "overlay 搬进 aurora/ui，config 搬进 aurora/infra（均透明别名）；契约守卫的悬浮窗路径改为自动定位",
+      "moves": [
+        {
+          "from": "gl/overlay.py",
+          "to": "aurora/ui/overlay.py"
+        },
+        {
+          "from": "gl/config.py",
+          "to": "aurora/infra/config.py"
+        }
+      ],
+      "drift": {
+        "gl/overlay.py": [
+          377,
+          8
+        ],
+        "gl/config.py": [
+          231,
+          8
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1260,5 +1293,9 @@
   "modules_added_in_p3_9e": [
     "aurora/infra/vntext.py"
   ],
-  "modules_added_in_p3_9f": []
+  "modules_added_in_p3_9f": [],
+  "modules_added_in_p3_9g": [
+    "aurora/infra/config.py",
+    "aurora/ui/overlay.py"
+  ]
 }

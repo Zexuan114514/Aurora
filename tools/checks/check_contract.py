@@ -12,6 +12,17 @@ OVERLAY = "gl/overlay.py"
 APP_JS = "gl/web/app.js"
 
 
+def _overlay_source() -> str:
+    """自动定位定义 OverlayBridge 的文件（P3.9-g 起它搬到了 aurora/ui/overlay.py）。"""
+    for candidate in ("gl/overlay.py", "aurora/ui/overlay.py"):
+        try:
+            if "class OverlayBridge" in (ROOT / candidate).read_text(encoding="utf-8"):
+                return candidate
+        except Exception:
+            continue
+    return OVERLAY
+
+
 def emit_sources() -> list[str]:
     """`_emit` 与悬浮窗动作现在分散在桥接 mixin 里，扫描要覆盖整个桥接层。"""
     sources = [API, "gl/downloads.py", "gl/overlay.py"]
@@ -67,7 +78,7 @@ def check() -> Result:
         result.fail(f"前端调用了后端不存在的方法：{', '.join(unknown)}")
     result.note(f"前端调用点 {len(calls)} 个，全部有后端实现")
 
-    live_overlay = class_methods(OVERLAY, "OverlayBridge")
+    live_overlay = class_methods(_overlay_source(), "OverlayBridge")
     snap_overlay = {m["name"] for m in channels["overlay"]["methods"]}
     excluded_overlay = set(channels["overlay"].get("excluded_members") or [])
     if snap_overlay != set(live_overlay) - excluded_overlay:

@@ -26,6 +26,17 @@ OVERLAY = "gl/overlay.py"
 APP_JS = "gl/web/app.js"
 
 
+def _overlay_source() -> str:
+    """自动定位定义 OverlayBridge 的文件（P3.9-g 起它搬到了 aurora/ui/overlay.py）。"""
+    for candidate in ("gl/overlay.py", "aurora/ui/overlay.py"):
+        try:
+            if "class OverlayBridge" in (ROOT / candidate).read_text(encoding="utf-8"):
+                return candidate
+        except Exception:
+            continue
+    return OVERLAY
+
+
 def classify(name: str) -> str:
     """按前缀粗分类（仅供阅读，不是契约）。"""
     if name.startswith("_"):
@@ -58,7 +69,7 @@ def build() -> dict:
         })
 
     overlay_methods = []
-    for name, fn in sorted(class_methods(OVERLAY, "OverlayBridge").items()):
+    for name, fn in sorted(class_methods(_overlay_source(), "OverlayBridge").items()):
         if name.startswith("__"):
             continue
         sig = function_signature(fn)
