@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+
 import json
 import queue
 import shutil
@@ -207,11 +208,9 @@ class VnTextBridgeMixin:
         self._hooksearch_stop.clear()
         self._set_hooksearch(phase="starting", message="准备中…", target=str(text or ""),
                              candidates=[], code="", error="", reason="", steps=0)
-        self._hooksearch_thread = threading.Thread(
-            target=self._hooksearch_worker, args=(game_id, pid, int(window["hwnd"]),
-                                                  str(text or "")),
-            daemon=True, name="aurora-hooksearch")
-        self._hooksearch_thread.start()
+        self._hooksearch_thread = self._tasks.spawn(
+            "vntext.hooksearch", self._hooksearch_worker, game_id, pid,
+            int(window["hwnd"]), str(text or ""), thread_name="aurora-hooksearch")
         return {"ok": True, **self._hooksearch_state()}
 
 
@@ -254,9 +253,8 @@ class VnTextBridgeMixin:
                             break
                         self._hooksearch_advance(hwnd)
 
-                clicker = threading.Thread(target=click_loop, daemon=True,
-                                           name="aurora-hooksearch-advance")
-                clicker.start()
+                clicker = self._tasks.spawn("vntext.hooksearch_advance", click_loop,
+                                                 thread_name="aurora-hooksearch-advance")
                 try:
                     collected = hookfinder.harvest(
                         pid, seconds=12.0, stop_event=self._hooksearch_stop,
@@ -335,9 +333,8 @@ class VnTextBridgeMixin:
                         break
                     self._hooksearch_advance(hwnd)
 
-            clicker = threading.Thread(target=click_loop, daemon=True,
-                                       name="aurora-hooksearch-advance")
-            clicker.start()
+            clicker = self._tasks.spawn("vntext.hooksearch_advance", click_loop,
+                                             thread_name="aurora-hooksearch-advance")
             found: dict = {"ok": False, "hits": [], "reason": "no-break"}
             try:
                 # 每轮：先按「当前这句」重新定位一次（缓冲区可能换地址），再挂断点；

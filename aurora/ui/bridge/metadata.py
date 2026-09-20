@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+
 import json
 import queue
 import shutil
@@ -35,8 +36,8 @@ class MetadataBridgeMixin:
         ids = [g["id"] for g in self._library.all()]
         if not ids:
             return {"ok": False, "error": "empty"}
-        threading.Thread(target=self._refresh_all_worker, args=(ids,),
-                         daemon=True, name="aurora-refresh-all").start()
+        self._tasks.spawn("metadata.refresh_all", self._refresh_all_worker, ids,
+                               thread_name="aurora-refresh-all")
         return {"ok": True, "total": len(ids)}
 
 
@@ -75,8 +76,8 @@ class MetadataBridgeMixin:
         items = [row for row in (items or []) if isinstance(row, dict) and row.get("exe")]
         if not items:
             return {"ok": False, "error": "empty"}
-        threading.Thread(target=self._steam_worker, args=(items,),
-                         daemon=True, name="aurora-steam-import").start()
+        self._tasks.spawn("metadata.steam_import", self._steam_worker, items,
+                               thread_name="aurora-steam-import")
         return {"ok": True, "total": len(items)}
 
 
@@ -116,7 +117,8 @@ class MetadataBridgeMixin:
     # 元数据搜索
     # ------------------------------------------------------------------ #
     def _auto_search_async(self, game_id: str) -> None:
-        threading.Thread(target=self._auto_search, args=(game_id,), daemon=True).start()
+        self._tasks.spawn("metadata.auto_search", self._auto_search, game_id,
+                               thread_name="aurora-auto-search")
 
 
     def _auto_search(self, game_id: str) -> None:
@@ -320,8 +322,8 @@ class MetadataBridgeMixin:
             return
         if not self._trans_worker_started:
             self._trans_worker_started = True
-            threading.Thread(target=self._translate_queue_loop, daemon=True,
-                             name="aurora-translate-q").start()
+            self._tasks.spawn("metadata.translate_q", self._translate_queue_loop,
+                                   thread_name="aurora-translate-q")
         self._trans_queue.put((game_id, bool(force)))
 
 
@@ -392,8 +394,8 @@ class MetadataBridgeMixin:
                if (g.get("description") or g.get("description_original"))]
         if not ids:
             return {"ok": False, "error": "empty"}
-        threading.Thread(target=self._translate_all_worker, args=(ids,),
-                         daemon=True, name="aurora-translate-all").start()
+        self._tasks.spawn("metadata.translate_all", self._translate_all_worker, ids,
+                               thread_name="aurora-translate-all")
         return {"ok": True, "total": len(ids)}
 
 

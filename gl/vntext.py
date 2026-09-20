@@ -703,19 +703,17 @@ class VnTextEngine:
             config.log(f"textractor attach failed: {exc}")
             self._mode = ""
             return False
-        thread = threading.Thread(target=self._hook_loop, args=(proc,), daemon=True,
-                                  name="aurora-vntext-hook")
+        thread = default_runner().spawn("vntext.hook", self._hook_loop, proc,
+                                       thread_name="aurora-vntext-hook")
         self._threads.append(thread)
-        thread.start()
         # 专用用户钩子（如 WillPlus 的 `HQ-4@A22E:AdvHD_crack.exe`）：Textractor 自带的
         # WillPlus 钩子在这类 exe 上会挂错模块，必须自己给地址。**要等 attach 生效再发** ——
         # 跟着 attach 同一批写进去会把 CLI 顶掉（实测：进程直接退出，一行文本都收不到）。
         if self._hook_code:
-            sender = threading.Thread(target=self._send_hook_code_later,
-                                      args=(proc, list(pids)), daemon=True,
-                                      name="aurora-vntext-hookcode")
+            sender = default_runner().spawn("vntext.hookcode", self._send_hook_code_later,
+                                           proc, list(pids),
+                                           thread_name="aurora-vntext-hookcode")
             self._threads.append(sender)
-            sender.start()
         config.log(f"vntext hook attached pid={self._pid} cli={self._cli}")
         return True
 
@@ -1234,10 +1232,9 @@ class VnTextEngine:
             winapi.raise_window(int(window.get("hwnd") or 0))
         except Exception:
             pass
-        thread = threading.Thread(target=self._ocr_loop, args=(window,), daemon=True,
-                                  name="aurora-vntext-ocr")
+        thread = default_runner().spawn("vntext.ocr", self._ocr_loop, window,
+                                       thread_name="aurora-vntext-ocr")
         self._threads.append(thread)
-        thread.start()
         config.log(f"vntext ocr started pid={self._pid} region={self._region}")
         return True
 

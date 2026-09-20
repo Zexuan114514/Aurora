@@ -103,7 +103,7 @@
     },
     {
       "path": "aurora/ui/bridge/metadata.py",
-      "lines": 432
+      "lines": 434
     },
     {
       "path": "aurora/ui/bridge/session.py",
@@ -123,7 +123,7 @@
     },
     {
       "path": "aurora/ui/bridge/vntext.py",
-      "lines": 660
+      "lines": 657
     },
     {
       "path": "aurora/ui/bridge/window.py",
@@ -251,7 +251,7 @@
     },
     {
       "path": "gl/vntext.py",
-      "lines": 1361
+      "lines": 1358
     },
     {
       "path": "gl/web/app.css",
@@ -275,10 +275,15 @@
     },
     {
       "path": "main.py",
-      "lines": 348
+      "lines": 349
     }
   ],
   "threads": [
+    {
+      "name": "aurora-auto-search",
+      "file": "aurora/ui/bridge/metadata.py",
+      "line": 121
+    },
     {
       "name": "aurora-downloads",
       "file": "gl/downloads.py",
@@ -297,7 +302,7 @@
     {
       "name": "aurora-hooksearch-advance",
       "file": "aurora/ui/bridge/vntext.py",
-      "line": 258
+      "line": 257
     },
     {
       "name": "aurora-hotkeys",
@@ -317,7 +322,7 @@
     {
       "name": "aurora-refresh-all",
       "file": "aurora/ui/bridge/metadata.py",
-      "line": 39
+      "line": 40
     },
     {
       "name": "aurora-session-{game_id[:6]}",
@@ -332,17 +337,17 @@
     {
       "name": "aurora-steam-import",
       "file": "aurora/ui/bridge/metadata.py",
-      "line": 79
+      "line": 80
     },
     {
       "name": "aurora-translate-all",
       "file": "aurora/ui/bridge/metadata.py",
-      "line": 396
+      "line": 398
     },
     {
       "name": "aurora-translate-q",
       "file": "aurora/ui/bridge/metadata.py",
-      "line": 324
+      "line": 326
     },
     {
       "name": "aurora-tray",
@@ -367,12 +372,12 @@
     {
       "name": "aurora-vntext-hookcode",
       "file": "gl/vntext.py",
-      "line": 716
+      "line": 715
     },
     {
       "name": "aurora-vntext-ocr",
       "file": "gl/vntext.py",
-      "line": 1238
+      "line": 1236
     }
   ],
   "data": {
@@ -687,6 +692,35 @@
         "main.py": [
           346,
           348
+        ]
+      }
+    },
+    {
+      "phase": "P3.7-c",
+      "date": "2026-09-20",
+      "note": "剩余 8 处线程收编：vntext 的 hook/hookcode/ocr、metadata 的 5 个批量任务、vntext mixin 的 hooksearch 与翻页点击；桥接层改用注入的 self._tasks（不再 import infra）；main 退出时关停 default_runner",
+      "moves": [
+        {
+          "from": "裸 threading.Thread（8 处，含 3 处在 mixin）",
+          "to": "TaskRunner.spawn / self._tasks.spawn"
+        }
+      ],
+      "drift": {
+        "gl/vntext.py": [
+          1361,
+          1358
+        ],
+        "aurora/ui/bridge/metadata.py": [
+          432,
+          434
+        ],
+        "aurora/ui/bridge/vntext.py": [
+          660,
+          657
+        ],
+        "main.py": [
+          348,
+          349
         ]
       }
     }

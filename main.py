@@ -306,6 +306,7 @@ def main() -> int:
             api.close_overlay()
         finally:
             api.shutdown()
+            default_runner().shutdown()   # 叶子模块（下载监听 / 托盘 / 热键 / 文本会话）的服务线程
 
     window.events.closed += on_closed
 
