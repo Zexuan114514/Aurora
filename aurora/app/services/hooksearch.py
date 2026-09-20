@@ -57,14 +57,40 @@ class HookSearchService:
         how = self._hooksearch_advance(int(window["hwnd"]))
         return {"ok": bool(how), "how": how, "error": "" if how else "not-focused"}
 
-    def _hooksearch_advance(self, hwnd: int) -> str:
-        """先确保游戏在前台再点（否则 advance 会拒绝发送，游戏永远不会推进）。"""
+    def _hooksearch_advance(self, hwnd: int, game_id: str = "") -> str:
+        """先确保游戏在前台再点（窗口失效时先重新解析，避免点进已销毁的句柄）。"""
+        if game_id:
+            fresh = self._game_window(game_id)
+            if fresh and int(fresh["hwnd"]) != int(hwnd or 0):
+                config.log(f"hooksearch: window changed {hwnd} -> {fresh['hwnd']}")
+                hwnd = int(fresh["hwnd"])
         try:
             winapi.focus_window(int(hwnd))
             time.sleep(0.25)
         except Exception:
             pass
-        return gameinput.advance(int(hwnd))
+        sent = gameinput.advance(int(hwnd))
+        if not sent and game_id:
+            fresh = self._game_window(game_id)
+            if fresh and int(fresh["hwnd"]) != int(hwnd or 0):
+                winapi.focus_window(int(fresh["hwnd"]))
+                time.sleep(0.25)
+                sent = gameinput.advance(int(fresh["hwnd"]))
+        return sent
+
+    def _game_window(self, game_id: str) -> dict | None:
+        """按游戏进程重新解析主窗口。
+
+        实测教训（アマカノ３）：会话开始时拿到的 hwnd 可能在游戏换模式/重启后失效，
+        继续用它点击＝点进已销毁的窗口，台词不推进 → 硬件断点永远不触发。
+        """
+        pid = int(self._vn_engine.status().get("pid") or self._pm.game_pid(game_id) or 0)
+        if not pid:
+            return None
+        try:
+            return screencap.main_window(pid)
+        except Exception:
+            return None
 
     def start_hook_search(self, game_id: str, text: str = "") -> dict:
         """开始一次查找（用户点按钮触发；同一时间只允许一个会话）。"""
@@ -103,7 +129,9 @@ class HookSearchService:
         try:
             if not target:
                 self._set_hooksearch(phase="ocr", message="正在识别画面上的当前台词…")
-                shot = screencap.capture({"hwnd": hwnd}, self._vn_engine.status().get("region"))
+                fresh = self._game_window(game_id)
+                use_hwnd = int(fresh["hwnd"]) if fresh else hwnd
+                shot = screencap.capture({"hwnd": use_hwnd}, self._vn_engine.status().get("region"))
                 if shot.get("ok"):
                     result = ocr.recognize_bgr(shot["bgr"], shot["width"], shot["height"])
                     if result.get("ok"):
@@ -125,7 +153,7 @@ class HookSearchService:
                         time.sleep(3.0)
                         if clicking.is_set():
                             break
-                        self._hooksearch_advance(hwnd)
+                        self._hooksearch_advance(hwnd, game_id)
 
                 clicker = self._tasks.spawn("vntext.hooksearch_advance", click_loop,
                                                  thread_name="aurora-hooksearch-advance")
@@ -183,7 +211,7 @@ class HookSearchService:
                 for attempt in range(3):
                     if self._hooksearch_stop.is_set():
                         return self._set_hooksearch(phase="idle", message="已中止")
-                    self._hooksearch_advance(hwnd)
+                    self._hooksearch_advance(hwnd, game_id)
                     self._set_hooksearch(
                         message=f"第 {attempt + 1} 次翻页后，正在比对内存变化…")
                     time.sleep(2.0)
@@ -205,7 +233,7 @@ class HookSearchService:
                     time.sleep(2.5)
                     if clicking.is_set():
                         break
-                    self._hooksearch_advance(hwnd)
+                    self._hooksearch_advance(hwnd, game_id)
 
             clicker = self._tasks.spawn("vntext.hooksearch_advance", click_loop,
                                              thread_name="aurora-hooksearch-advance")
@@ -224,7 +252,7 @@ class HookSearchService:
                     if found.get("ok"):
                         break
                     before = hookfinder.snapshot(pid)
-                    self._hooksearch_advance(hwnd)
+                    self._hooksearch_advance(hwnd, game_id)
                     time.sleep(1.5)
                     fresh = hookfinder.changed_dialogues(pid, before)
                     if fresh:
@@ -324,7 +352,7 @@ class HookSearchService:
         for _ in range(3):
             if self._hooksearch_stop.is_set():
                 return False
-            self._hooksearch_advance(hwnd)
+            self._hooksearch_advance(hwnd, game_id)
             deadline = time.time() + 5.0
             while time.time() < deadline and not self._hooksearch_stop.is_set():
                 time.sleep(0.4)
