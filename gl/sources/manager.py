@@ -4,6 +4,9 @@ from __future__ import annotations
 import time
 
 from .. import config
+from aurora.domain.matching import (  # noqa: F401  (P1: 打分判定搬到 domain)
+    MANUAL_MIN_SCORE, SECONDARY_WORDS, _acceptable, _score, _secondary_penalty,
+)
 from ..detect import score_candidate
 from . import net
 from .base import Candidate, Metadata, Source
@@ -26,69 +29,14 @@ DEFAULT_CONFIG = {
 }
 
 # 非“本体”内容，命中时降权（除非查询词里本来就有）
-SECONDARY_WORDS = (
-    "soundtrack", "sound track", "ost", "dlc", "expansion", "season pass", "upgrade",
-    "demo", "beta", "benchmark", "artbook", "art book", "wallpaper", "editor", "sdk",
-    "mod kit", "creation kit", "tool", "bonus", "add-on", "addon", "extra pack",
-    "digital deluxe", "premium bundle", "supporter pack", "starter pack", "fan disc",
-)
 
 # 手动挑候选时，低于这个分数的条目不列（基本是搜索接口的模糊噪声，显示出来只会干扰）
-MANUAL_MIN_SCORE = 0.2
 
 
-def _secondary_penalty(name: str, queries: list[str]) -> float:
-    lowered = (name or "").lower()
-    if not lowered:
-        return 1.0
-    for word in SECONDARY_WORDS:
-        if word in lowered and not any(word in (q or "").lower() for q in queries):
-            return 0.85
-    return 1.0
 
 
-def _score(candidate: Candidate, queries: list[str],
-           primary: list[str]) -> tuple[float, float, bool, bool]:
-    """返回 (总分, 主关键词分, 是否命中主关键词, 是否归一化后完全一致)。"""
-    from ..detect import norm
-
-    names = candidate.names or [candidate.name]
-    best = 0.0
-    best_primary = 0.0
-    best_index = 0
-    exact = False
-    penalty = 1.0
-    for name in names:
-        key = norm(name)
-        for index, query in enumerate(queries):
-            value = score_candidate([query], name)
-            if value > best or (index == 0 and value == best and best_index != 0):
-                best = value
-                best_index = index
-            if key and key == norm(query):
-                exact = True
-        best_primary = max(best_primary, score_candidate(primary, name))
-        penalty = min(penalty, _secondary_penalty(name, queries))
-    return (round(best * penalty, 4), round(best_primary * penalty, 4),
-            best_index == 0, exact)
 
 
-def _acceptable(score: float, primary: float, threshold: float, relaxed: bool,
-                exact: bool = False) -> bool:
-    """打分是否足以自动采纳。
-
-    - 归一化后完全一致（exact）：直接接受
-    - 主关键词高度匹配：接受
-    - 只命中了备选关键词（例如目录名叫 sandbox）：要求总分达标且主关键词也有一定相似度，
-      否则很容易误配到名字毫不相干的游戏
-    """
-    if exact or primary >= 0.93:
-        return True
-    if score >= 0.93 and relaxed:
-        return True
-    if score >= threshold and primary >= 0.35:
-        return True
-    return relaxed and score >= threshold
 
 
 class SourceManager:

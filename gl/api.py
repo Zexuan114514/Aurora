@@ -19,6 +19,8 @@ from . import (config, detect, downloads, gameinput, hookfinder, hotkey, linetra
 from .sources import SourceManager
 from .store import Library
 
+from aurora.domain import session_rules
+
 IMAGE_EXTS = (".jpg", ".jpeg", ".png", ".webp", ".bmp", ".gif")
 #: 可以直接启动的文件类型（.bat/.cmd 会经 cmd.exe 拉起，见 gl/process.py）
 LAUNCHABLE_EXTS = (".exe", ".bat", ".cmd")
@@ -2228,11 +2230,11 @@ class Api:
                 config.log(f"reattached running game {game['id']} pid={game.get('play_pid')}")
                 self._start_heartbeat()
                 continue
-            beat = int(game.get("play_heartbeat") or 0) or started
-            seconds = max(0, min(beat, now) - started)
+            seconds = session_rules.recovered_seconds(
+                started_at=started, heartbeat=game.get("play_heartbeat") or 0, now=now)
             self._library.update(game["id"], play_started_at=0, play_pid=0,
                                  play_launcher_pid=0, play_heartbeat=0)
-            if seconds >= self.HEARTBEAT_SECONDS:
+            if session_rules.is_countable(seconds, self.HEARTBEAT_SECONDS):
                 self._library.touch_played(game["id"], seconds)
                 config.log(f"recovered {seconds}s playtime for {game['id']}")
 

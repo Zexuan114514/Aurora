@@ -8,6 +8,8 @@ import threading
 import time
 from pathlib import Path
 
+from aurora.domain import session_rules
+
 from . import config
 
 CREATE_NEW_PROCESS_GROUP = 0x00000200
@@ -185,9 +187,13 @@ class ProcessManager:
                 return
             entry["finished"] = True
             entry["ended_at"] = time.time()
-        # 以「本体真正消失的时刻」结算，别把退出宽限期算进玩家时长
-        ended = float(entry.get("gone_at") or entry.get("ended_at") or time.time())
-        seconds = max(0.0, ended - float(entry.get("started_at") or ended))
+        # 以「本体真正消失的时刻」结算，别把退出宽限期算进玩家时长（公式见 domain/session_rules）
+        seconds = session_rules.session_seconds(
+            started_at=entry.get("started_at") or 0.0,
+            gone_at=entry.get("gone_at") or 0.0,
+            ended_at=entry.get("ended_at") or 0.0,
+            now=time.time(),
+        )
         if self._on_exit:
             try:
                 self._on_exit(game_id, seconds)
