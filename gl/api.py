@@ -66,6 +66,9 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._translator = linetrans.LineTranslator(
             settings_getter=lambda: self._library.settings,
             on_event=None)                # P3.7：译文事件改走总线
+        self._vn_engine = vntext.VnTextEngine(
+            settings_getter=lambda: self._library.settings,
+            on_line=None, on_status=None)   # P3.7：文本/状态改走总线
         self._translation = TranslationService(self._library, self._pm, self._translator, self._tasks)
         self._metadata = MetadataService(self._library, self._pm, self._sources, self._tasks,
                                          translation=self._translation, import_one=self._import_one)
@@ -97,9 +100,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         netproxy.set_settings_provider(lambda: self._library.settings)
         self._pm.set_callbacks()      # P3.7：会话事件改走总线
         # 游戏内翻译：文本源 / 逐句翻译 / 悬浮窗 / 全局热键
-        self._vn_engine = vntext.VnTextEngine(
-            settings_getter=lambda: self._library.settings,
-            on_line=None, on_status=None)   # P3.7：文本/状态改走总线
         self._overlay = overlay.Overlay(
             get_settings=lambda: self._library.settings,
             set_option=self._library.set_setting,

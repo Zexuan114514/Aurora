@@ -23,6 +23,7 @@ CHECKS = (
     "check_tools_manifest",
     "check_architecture_baseline",
     "check_layers",
+    "check_startup",
 )
 
 

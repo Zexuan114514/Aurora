@@ -26,4 +26,5 @@ def test_offline_checks_survive_non_utf8_console() -> None:
         "离线检查在非 UTF-8 控制台下失败了（CI 就是这种环境）：\n"
         f"--- stdout ---\n{proc.stdout[-2000:]}\n--- stderr ---\n{proc.stderr[-2000:]}"
     )
-    assert "合计 6 项检查" in proc.stdout
+    # 断言与检查项数量无关（新增检查不应该让这个用例失败）
+    assert "失败 0" in proc.stdout and "通过 " in proc.stdout
