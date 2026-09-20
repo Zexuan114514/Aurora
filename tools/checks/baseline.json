@@ -42,6 +42,10 @@
       "lines": 155
     },
     {
+      "path": "aurora/app/services/metadata.py",
+      "lines": 293
+    },
+    {
       "path": "aurora/app/services/settings.py",
       "lines": 89
     },
@@ -123,7 +127,7 @@
     },
     {
       "path": "aurora/ui/bridge/metadata.py",
-      "lines": 341
+      "lines": 110
     },
     {
       "path": "aurora/ui/bridge/session.py",
@@ -155,7 +159,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 190
+      "lines": 191
     },
     {
       "path": "gl/config.py",
@@ -851,6 +855,27 @@
           190
         ]
       }
+    },
+    {
+      "phase": "P3.8-d",
+      "date": "2026-09-20",
+      "note": "MetadataService（11 个方法：多源搜索匹配/跨源采纳/批量重抓/Steam 导入/导入后自动匹配）下沉；_busy 与 _batching 随服务走；注入 TranslationService 与 import_one 协作者",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/metadata.py（11 个方法）",
+          "to": "aurora/app/services/metadata.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/metadata.py": [
+          341,
+          110
+        ],
+        "gl/api.py": [
+          190,
+          191
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -899,5 +924,8 @@
   ],
   "modules_added_in_p3_8c": [
     "aurora/app/services/translation.py"
+  ],
+  "modules_added_in_p3_8d": [
+    "aurora/app/services/metadata.py"
   ]
 }

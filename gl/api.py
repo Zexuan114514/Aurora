@@ -21,6 +21,7 @@ from .store import Library
 
 from aurora.app.events import EventBus, default_bus
 from aurora.app.services.library import LibraryService
+from aurora.app.services.metadata import MetadataService
 from aurora.app.services.translation import TranslationService
 from aurora.app.services.settings import SettingsService
 from aurora.domain import session_rules
@@ -51,7 +52,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._library_service = LibraryService(self._library, self._pm)
         self._window: webview.Window | None = None
         self._drag: dict | None = None
-        self._busy: set[str] = set()
         self._lock = threading.RLock()
         #: P3.7：后台任务统一走 TaskRunner（心跳先收编，其余逐个搬）
         self._tasks = TaskRunner(max_workers=8, name_prefix="aurora-task")
@@ -59,6 +59,12 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         #: P3.7：事件先进 EventBus（信封见 contracts/events.md），再由唯一出口推给前端
         self._events = default_bus()      # P3.8：与核心模块/服务共用进程级总线
         self._events.subscribe("*", self._dispatch_event)
+        self._translator = linetrans.LineTranslator(
+            settings_getter=lambda: self._library.settings,
+            on_event=None)                # P3.7：译文事件改走总线
+        self._translation = TranslationService(self._library, self._pm, self._translator, self._tasks)
+        self._metadata = MetadataService(self._library, self._pm, self._sources, self._tasks,
+                                         translation=self._translation, import_one=self._import_one)
         # P3.7：核心模块（翻译 / 文本源 / 会话 / 下载）没有回调时向默认总线发内部事件，这里订阅接上
         bus = default_bus()
         bus.subscribe("engine.translate",
@@ -71,7 +77,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         bus.subscribe("engine.session_exit", lambda env: self._on_game_exit(
             env["payload"].get("game_id"), env["payload"].get("seconds") or 0.0))
         bus.subscribe("engine.downloads_status", lambda env: self._emit("downloads:status", env["payload"]))
-        self._batching = False
         self._tray = None          # 由 main.py 注入托盘控制器（可选）
         # 获取游戏：盯着下载目录，出现新游戏就自动导入
         self._downloads = downloads.DownloadWatcher(
@@ -88,10 +93,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._vn_engine = vntext.VnTextEngine(
             settings_getter=lambda: self._library.settings,
             on_line=None, on_status=None)   # P3.7：文本/状态改走总线
-        self._translator = linetrans.LineTranslator(
-            settings_getter=lambda: self._library.settings,
-            on_event=None)                # P3.7：译文事件改走总线
-        self._translation = TranslationService(self._library, self._pm, self._translator, self._tasks)
         self._overlay = overlay.Overlay(
             get_settings=lambda: self._library.settings,
             set_option=self._library.set_setting,
