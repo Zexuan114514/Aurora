@@ -1,0 +1,281 @@
+{
+  "schema": "aurora.golden/1",
+  "module": "aurora.domain.matching",
+  "shim": "gl.detect",
+  "captured_at": "2026-09-20",
+  "captured_from": "gl/detect.py + gl/sources/manager.py 的打分纯函数",
+  "cases": [
+    {
+      "id": "describe_path_jp",
+      "fn": "describe_path",
+      "args": [
+        {
+          "__path__": "C:\\Games\\サノバウィッチ\\sabbat.exe"
+        }
+      ],
+      "expected": {
+        "exe_stem": "sabbat",
+        "exe_name": "sabbat.exe",
+        "dir_name": "サノバウィッチ",
+        "candidates": [
+          "sabbat",
+          "サノバウィッチ"
+        ],
+        "queries": [
+          "sabbat",
+          "サノバウィッチ"
+        ],
+        "strong_queries": [
+          "sabbat",
+          "サノバウィッチ"
+        ]
+      },
+      "shim": "gl.detect"
+    },
+    {
+      "id": "describe_path_dracu",
+      "fn": "describe_path",
+      "args": [
+        {
+          "__path__": "D:\\Games\\DRACU-RIOT!\\DRACU-RIOT!.exe"
+        }
+      ],
+      "expected": {
+        "exe_stem": "DRACU-RIOT!",
+        "exe_name": "DRACU-RIOT!.exe",
+        "dir_name": "DRACU-RIOT!",
+        "candidates": [
+          "DRACU-RIOT!"
+        ],
+        "queries": [
+          "DRACU-RIOT!"
+        ],
+        "strong_queries": [
+          "DRACU-RIOT!"
+        ]
+      },
+      "shim": "gl.detect"
+    },
+    {
+      "id": "describe_path_elden",
+      "fn": "describe_path",
+      "args": [
+        {
+          "__path__": "E:\\Games\\ELDEN RING\\Game\\eldenring.exe"
+        }
+      ],
+      "expected": {
+        "exe_stem": "eldenring",
+        "exe_name": "eldenring.exe",
+        "dir_name": "Game",
+        "candidates": [
+          "ELDEN RING"
+        ],
+        "queries": [
+          "ELDEN RING"
+        ],
+        "strong_queries": [
+          "ELDEN RING"
+        ]
+      },
+      "shim": "gl.detect"
+    },
+    {
+      "id": "norm_jp",
+      "fn": "norm",
+      "args": [
+        "サノバウィッチ"
+      ],
+      "expected": "サノバウィッチ",
+      "shim": "gl.detect"
+    },
+    {
+      "id": "tokens_dracu",
+      "fn": "tokens",
+      "args": [
+        "DRACU-RIOT!"
+      ],
+      "expected": {
+        "__set__": [
+          "dracu",
+          "riot"
+        ]
+      },
+      "shim": "gl.detect"
+    },
+    {
+      "id": "similarity_pair",
+      "fn": "similarity",
+      "args": [
+        "サノバウィッチ",
+        "魔女的夜宴"
+      ],
+      "expected": 0.0,
+      "shim": "gl.detect"
+    },
+    {
+      "id": "score_candidate_exact",
+      "fn": "score_candidate",
+      "args": [
+        [
+          "サノバウィッチ"
+        ],
+        "サノバウィッチ"
+      ],
+      "expected": 1.0,
+      "shim": "gl.detect"
+    },
+    {
+      "id": "score_candidate_other",
+      "fn": "score_candidate",
+      "args": [
+        [
+          "サノバウィッチ"
+        ],
+        "Summer Pockets"
+      ],
+      "expected": 0.0,
+      "shim": "gl.detect"
+    },
+    {
+      "id": "has_cjk_yes",
+      "fn": "has_cjk",
+      "args": [
+        "魔女的夜宴"
+      ],
+      "expected": true,
+      "shim": "gl.detect"
+    },
+    {
+      "id": "has_cjk_no",
+      "fn": "has_cjk",
+      "args": [
+        "eldenring"
+      ],
+      "expected": false,
+      "shim": "gl.detect"
+    },
+    {
+      "id": "manager_score_exact",
+      "fn": "_score",
+      "args": [
+        {
+          "__dataclass__": "Candidate",
+          "fields": {
+            "source": "bangumi",
+            "source_id": "200763",
+            "name": "夏日口袋",
+            "names": [
+              "夏日口袋",
+              "サマーポケッツ",
+              "Summer Pockets"
+            ],
+            "score": 0.0,
+            "thumb": "",
+            "cover": "",
+            "extra": {}
+          }
+        },
+        [
+          "サノバウィッチ",
+          "Summer Pockets"
+        ],
+        [
+          "サノバウィッチ"
+        ]
+      ],
+      "expected": [
+        1.0,
+        0.2857,
+        false,
+        true
+      ],
+      "shim": "gl.sources.manager"
+    },
+    {
+      "id": "manager_score_secondary",
+      "fn": "_score",
+      "args": [
+        {
+          "__dataclass__": "Candidate",
+          "fields": {
+            "source": "vndb",
+            "source_id": "v1",
+            "name": "Soundtrack Collection",
+            "names": [
+              "Soundtrack Collection"
+            ],
+            "score": 0.0,
+            "thumb": "",
+            "cover": "",
+            "extra": {}
+          }
+        },
+        [
+          "Summer Pockets"
+        ],
+        [
+          "Summer Pockets"
+        ]
+      ],
+      "expected": [
+        0.3606,
+        0.3606,
+        true,
+        false
+      ],
+      "shim": "gl.sources.manager"
+    },
+    {
+      "id": "acceptable_exact",
+      "fn": "_acceptable",
+      "args": [
+        0.5,
+        0.5,
+        0.6,
+        false
+      ],
+      "kwargs": {
+        "exact": true
+      },
+      "expected": true,
+      "shim": "gl.sources.manager"
+    },
+    {
+      "id": "acceptable_low",
+      "fn": "_acceptable",
+      "args": [
+        0.4,
+        0.1,
+        0.6,
+        false
+      ],
+      "expected": false,
+      "shim": "gl.sources.manager"
+    },
+    {
+      "id": "acceptable_relaxed",
+      "fn": "_acceptable",
+      "args": [
+        0.94,
+        0.1,
+        0.6,
+        true
+      ],
+      "expected": true,
+      "shim": "gl.sources.manager"
+    },
+    {
+      "id": "secondary_penalty_soundtrack",
+      "fn": "_secondary_penalty",
+      "args": [
+        "Soundtrack Collection",
+        [
+          "Summer Pockets"
+        ]
+      ],
+      "expected": 0.85,
+      "shim": "gl.sources.manager"
+    }
+  ]
+}

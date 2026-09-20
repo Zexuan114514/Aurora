@@ -1,0 +1,145 @@
+{
+  "schema": "aurora.golden/1",
+  "module": "aurora.domain.session_rules",
+  "shim": "gl.process",
+  "captured_at": "2026-09-20",
+  "captured_from": "gl/process.py::ProcessManager._finalize（实跑）+ gl/api.py::_recover_sessions（内联公式）",
+  "cases": [
+    {
+      "id": "normal_exit",
+      "fn": "session_seconds",
+      "kwargs": {
+        "started_at": 1000.0,
+        "gone_at": 1900.0,
+        "ended_at": 1910.0,
+        "now": 9999.0
+      },
+      "expected": 900.0,
+      "source": "ProcessManager._finalize 实跑捕获"
+    },
+    {
+      "id": "gone_at_wins_over_ended",
+      "fn": "session_seconds",
+      "kwargs": {
+        "started_at": 1000.0,
+        "gone_at": 1500.0,
+        "ended_at": 1900.0,
+        "now": 9999.0
+      },
+      "expected": 500.0,
+      "source": "ProcessManager._finalize 实跑捕获"
+    },
+    {
+      "id": "missing_started_at",
+      "fn": "session_seconds",
+      "kwargs": {
+        "started_at": 0.0,
+        "gone_at": 1000.0,
+        "ended_at": 1500.0,
+        "now": 9999.0
+      },
+      "expected": 0.0,
+      "source": "实跑捕获：起始缺失时口径为 0"
+    },
+    {
+      "id": "ended_at_fallback",
+      "fn": "session_seconds",
+      "kwargs": {
+        "started_at": 1000.0,
+        "gone_at": 0.0,
+        "ended_at": 1600.0,
+        "now": 9999.0
+      },
+      "expected": 600.0,
+      "source": "现有公式：gone_at 缺省时用 ended_at（_finalize 会把 ended_at 覆写成当前时刻，故按纯公式给期望）"
+    },
+    {
+      "id": "now_fallback",
+      "fn": "session_seconds",
+      "kwargs": {
+        "started_at": 1000.0,
+        "gone_at": 0.0,
+        "ended_at": 0.0,
+        "now": 1700.0
+      },
+      "expected": 700.0,
+      "source": "现有公式：两者都缺省时用当前时刻"
+    },
+    {
+      "id": "negative_clamped",
+      "fn": "session_seconds",
+      "kwargs": {
+        "started_at": 5000.0,
+        "gone_at": 1000.0,
+        "ended_at": 0.0,
+        "now": 9999.0
+      },
+      "expected": 0.0,
+      "source": "现有公式：负数夹到 0"
+    },
+    {
+      "id": "recovery_formula",
+      "fn": "recovered_seconds",
+      "kwargs": {
+        "started_at": 1000,
+        "heartbeat": 1200,
+        "now": 5000
+      },
+      "expected": 200,
+      "source": "gl/api.py::_recover_sessions 现有内联公式"
+    },
+    {
+      "id": "recovery_clamped_by_now",
+      "fn": "recovered_seconds",
+      "kwargs": {
+        "started_at": 1000,
+        "heartbeat": 9000,
+        "now": 5000
+      },
+      "expected": 4000,
+      "source": "心跳晚于 now 时按 now 截断"
+    },
+    {
+      "id": "recovery_negative",
+      "fn": "recovered_seconds",
+      "kwargs": {
+        "started_at": 5000,
+        "heartbeat": 1000,
+        "now": 4000
+      },
+      "expected": 0,
+      "source": "负数夹到 0"
+    },
+    {
+      "id": "recovery_no_heartbeat",
+      "fn": "recovered_seconds",
+      "kwargs": {
+        "started_at": 1000,
+        "heartbeat": 0,
+        "now": 5000
+      },
+      "expected": 0,
+      "source": "心跳缺失时回退成起始时间"
+    },
+    {
+      "id": "countable_threshold",
+      "fn": "is_countable",
+      "kwargs": {
+        "seconds": 30,
+        "threshold": 30
+      },
+      "expected": true,
+      "source": "api.py 里 seconds >= HEARTBEAT_SECONDS 的判定"
+    },
+    {
+      "id": "countable_below",
+      "fn": "is_countable",
+      "kwargs": {
+        "seconds": 29,
+        "threshold": 30
+      },
+      "expected": false,
+      "source": "同上"
+    }
+  ]
+}

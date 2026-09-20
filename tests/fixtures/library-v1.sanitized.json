@@ -1,0 +1,3174 @@
+{
+  "version": 1,
+  "games": [
+    {
+      "id": "d0b3a9fbff53",
+      "exe": "C:\\Games\\Sample20\\game.exe",
+      "name": "Sample Game 20",
+      "exe_stem": "game",
+      "dir_name": "Sample20",
+      "queries": [
+        "sample query 20"
+      ],
+      "strong_queries": [
+        "sample query 20"
+      ],
+      "added_at": 1788870155,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/20/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100140,
+      "steam_name": "Sample Game 20",
+      "description": "Description sample text 20. Description sample text 20. ",
+      "about": "Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Description sample text 20. Descript",
+      "developers": [
+        "Studio 20-1",
+        "Studio 20-2"
+      ],
+      "publishers": [
+        "Publisher 20-1",
+        "Publisher 20-2"
+      ],
+      "genres": [
+        "Genre 20-1",
+        "Genre 20-2"
+      ],
+      "categories": [
+        "Category 20-1",
+        "Category 20-2",
+        "Category 20-3"
+      ],
+      "release_date": "2022 年 1 月 21 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/20/asset.jpg",
+      "store_url": "https://example.invalid/store_url/20/asset.jpg",
+      "cover": "https://example.invalid/cover/20/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/20/asset.png",
+      "header_image": "https://example.invalid/header_image/20/asset.jpg",
+      "background_kind": "screenshot",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 20",
+      "launch_args": "",
+      "play_time": 0,
+      "last_played": 0,
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 20.34,
+      "bg_y": -12.254999999999999,
+      "data_source": "",
+      "source_id": "",
+      "source_url": "",
+      "name_cn": "",
+      "name_original": "",
+      "rating": "",
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "description_original": "Original description sample text 20. Original descriptio",
+      "description_translated": "",
+      "description_lang": "zh",
+      "play_launcher_pid": 0,
+      "play_count": 0,
+      "sessions": [],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      }
+    },
+    {
+      "id": "a9b31791e6f9",
+      "exe": "C:\\Games\\Sample06\\game.exe",
+      "name": "Sample Game 06",
+      "exe_stem": "game",
+      "dir_name": "Sample06",
+      "queries": [
+        "sample query 06"
+      ],
+      "strong_queries": [
+        "sample query 06"
+      ],
+      "added_at": 1788870196,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/06/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100042,
+      "steam_name": "Sample Game 06",
+      "description": "Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. D",
+      "about": "Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Description sample text 06. Descript",
+      "developers": [
+        "Studio 06-1"
+      ],
+      "publishers": [
+        "Publisher 06-1"
+      ],
+      "genres": [
+        "Genre 06-1"
+      ],
+      "categories": [
+        "Category 06-1",
+        "Category 06-2",
+        "Category 06-3"
+      ],
+      "release_date": "2023 年 6 月 23 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/06/asset.com",
+      "store_url": "https://example.invalid/store_url/06/asset.jpg",
+      "cover": "https://example.invalid/cover/06/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/06/asset.png",
+      "header_image": "https://example.invalid/header_image/06/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 06",
+      "launch_args": "",
+      "play_time": 0,
+      "last_played": 0,
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "data_source": "",
+      "source_id": "",
+      "source_url": "",
+      "name_cn": "",
+      "name_original": "",
+      "rating": "",
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "description_original": "Original description sample text 06. Original description sample text 06. Original description sample text 06. Original description sample te",
+      "description_translated": "",
+      "description_lang": "zh",
+      "play_launcher_pid": 0,
+      "play_count": 0,
+      "sessions": [],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      }
+    },
+    {
+      "id": "c74198eae881",
+      "exe": "C:\\Games\\Sample11\\game.exe",
+      "name": "Sample Game 11",
+      "exe_stem": "game",
+      "dir_name": "Sample11",
+      "queries": [
+        "sample query 11"
+      ],
+      "strong_queries": [
+        "sample query 11"
+      ],
+      "added_at": 1788876783,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/11/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100077,
+      "steam_name": "Sample Game 11",
+      "description": "Description sample text 11. Description sample text 11. Description sample text 11. Descriptio",
+      "about": "Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Description sample text 11. Descript",
+      "developers": [
+        "Studio 11-1",
+        "Studio 11-2"
+      ],
+      "publishers": [
+        "Publisher 11-1",
+        "Publisher 11-2"
+      ],
+      "genres": [
+        "Genre 11-1",
+        "Genre 11-2",
+        "Genre 11-3"
+      ],
+      "categories": [
+        "Category 11-1",
+        "Category 11-2",
+        "Category 11-3",
+        "Category 11-4",
+        "Category 11-5",
+        "Category 11-6"
+      ],
+      "release_date": "2025 年 7 月 18 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/11/asset.com",
+      "store_url": "https://example.invalid/store_url/11/asset.jpg",
+      "cover": "https://example.invalid/cover/11/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/11/asset.png",
+      "header_image": "https://example.invalid/header_image/11/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 11",
+      "bg_scale": 1.0,
+      "bg_x": 20.34,
+      "bg_y": 12.254999999999999,
+      "launch_args": "",
+      "play_time": 0,
+      "last_played": 0,
+      "favorite": false,
+      "custom_icon": "",
+      "data_source": "",
+      "source_id": "",
+      "source_url": "",
+      "name_cn": "",
+      "name_original": "",
+      "rating": "",
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "description_original": "Original description sample text 11. Original description sample text 11. Original description",
+      "description_translated": "",
+      "description_lang": "zh",
+      "play_launcher_pid": 0,
+      "play_count": 0,
+      "sessions": [],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      }
+    },
+    {
+      "id": "f9615aef23e9",
+      "exe": "C:\\Games\\Sample22\\game.exe",
+      "name": "Sample Game 22",
+      "exe_stem": "game",
+      "dir_name": "Sample22",
+      "queries": [
+        "sample query 22"
+      ],
+      "strong_queries": [
+        "sample query 22"
+      ],
+      "added_at": 1788881805,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/22/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100154,
+      "data_source": "sample-source",
+      "source_id": "100022",
+      "source_url": "https://example.invalid/source_url/22/asset.jpg",
+      "steam_name": "Sample Game 22",
+      "name_cn": "示例游戏 22",
+      "name_original": "",
+      "rating": "",
+      "description": "Description sample text 22. Description sample text 22. Description sample text 22. Description sample text 22. Description sample text 22. Descri",
+      "about": "Description sample text 22. Description sample text 22. Description sample text 22. Description sample text 22. Description sample text 22. Description sample text 22. Description sample text 22. Description sample ",
+      "developers": [
+        "Studio 22-1"
+      ],
+      "publishers": [
+        "Publisher 22-1"
+      ],
+      "genres": [
+        "Genre 22-1",
+        "Genre 22-2",
+        "Genre 22-3",
+        "Genre 22-4",
+        "Genre 22-5",
+        "Genre 22-6"
+      ],
+      "categories": [],
+      "release_date": "2022 年 6 月 17 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/22/asset.jpg",
+      "store_url": "https://example.invalid/store_url/22/asset.jpg",
+      "cover": "https://example.invalid/cover/22/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/22/asset.png",
+      "header_image": "https://example.invalid/header_image/22/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 22",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "launch_args": "",
+      "play_time": 0,
+      "last_played": 1789059260,
+      "favorite": false,
+      "custom_icon": "",
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "description_original": "Original description sample text 22. Original description sample text 22. Original description sample text 22. Original description sample text 22",
+      "description_translated": "",
+      "description_lang": "zh",
+      "play_launcher_pid": 0,
+      "play_count": 0,
+      "sessions": [],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      }
+    },
+    {
+      "id": "480962008d2f",
+      "exe": "C:\\Games\\Sample15\\game.exe",
+      "name": "Sample Game 15",
+      "exe_stem": "game",
+      "dir_name": "Sample15",
+      "queries": [
+        "sample query 15"
+      ],
+      "strong_queries": [
+        "sample query 15"
+      ],
+      "added_at": 1788882361,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/15/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100015",
+      "source_url": "https://example.invalid/source_url/15/asset.jpg",
+      "steam_name": "Sample Game 15",
+      "name_cn": "示例游戏 15",
+      "name_original": "示例游戏 15",
+      "rating": "VNDB 8.3",
+      "description": "Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sa",
+      "about": "Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Description sample text 15. Descript",
+      "developers": [
+        "Studio 15-1"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 15-1",
+        "Genre 15-2",
+        "Genre 15-3",
+        "Genre 15-4",
+        "Genre 15-5",
+        "Genre 15-6"
+      ],
+      "categories": [],
+      "release_date": "2011-02-25",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/15/asset.jpg",
+      "cover": "https://example.invalid/cover/15/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 15",
+      "launch_args": "",
+      "play_time": 10,
+      "last_played": 1789484129,
+      "favorite": false,
+      "custom_icon": "",
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "description_original": "Original description sample text 15. Original description sample text 15. Original description sample text 15. Original description sample text 15. Original description sample text 15. Original description sample text 15. Original description sample text 15. Original description sample text 15. Orig",
+      "description_translated": "示例译文 15。",
+      "description_lang": "en",
+      "play_launcher_pid": 0,
+      "play_count": 1,
+      "sessions": [
+        {
+          "started_at": 1789484115,
+          "ended_at": 1789484129,
+          "seconds": 10
+        }
+      ],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      }
+    },
+    {
+      "id": "f5496f6d0935",
+      "exe": "C:\\Games\\Sample10\\game.exe",
+      "name": "Sample Game 10",
+      "exe_stem": "game",
+      "dir_name": "Sample10",
+      "queries": [
+        "sample query 10"
+      ],
+      "strong_queries": [
+        "sample query 10"
+      ],
+      "added_at": 1789058988,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/10/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100010",
+      "source_url": "https://example.invalid/source_url/10/asset.jpg",
+      "steam_name": "Sample Game 10",
+      "name_cn": "示例游戏 10",
+      "name_original": "示例游戏 10",
+      "rating": "VNDB 7.3",
+      "description": "Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. De",
+      "about": "Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Description sample text 10. Descript",
+      "developers": [
+        "Studio 10-1"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 10-1",
+        "Genre 10-2",
+        "Genre 10-3",
+        "Genre 10-4",
+        "Genre 10-5",
+        "Genre 10-6"
+      ],
+      "categories": [],
+      "release_date": "2023-04-28",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/10/asset.jpg",
+      "cover": "https://example.invalid/cover/10/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 10",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "launch_args": "",
+      "play_time": 0,
+      "last_played": 0,
+      "favorite": false,
+      "custom_icon": "",
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "description_original": "Original description sample text 10. Original description sample text 10. Original description sample text 10. Original description sample text 10. Original description sample text 10. Original description sample text 10. Original description sample text 10. Original description sample text 10. Orig",
+      "description_translated": "示例译文 10。",
+      "description_lang": "en",
+      "play_launcher_pid": 0,
+      "play_count": 0,
+      "sessions": [],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      }
+    },
+    {
+      "id": "0f678c4ada16",
+      "exe": "C:\\Games\\Sample01\\game.exe",
+      "name": "Sample Game 01",
+      "exe_stem": "game",
+      "dir_name": "Sample01",
+      "queries": [
+        "sample query 01"
+      ],
+      "strong_queries": [
+        "sample query 01"
+      ],
+      "added_at": 1789542271,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/01/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "candidates": [],
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100001",
+      "source_url": "https://example.invalid/source_url/01/asset.jpg",
+      "steam_name": "Sample Game 01",
+      "name_cn": "示例游戏 01",
+      "name_original": "示例游戏 01",
+      "rating": "VNDB 7.8",
+      "description": "Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Descript",
+      "description_original": "",
+      "description_translated": "",
+      "description_lang": "",
+      "about": "Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Description sample text 01. Descript",
+      "developers": [
+        "Studio 01-1"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 01-1",
+        "Genre 01-2",
+        "Genre 01-3",
+        "Genre 01-4",
+        "Genre 01-5",
+        "Genre 01-6"
+      ],
+      "categories": [],
+      "release_date": "2016-07-29",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/01/asset.jpg",
+      "cover": "https://example.invalid/cover/01/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 01",
+      "last_played": 1789620730,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 16,
+      "sessions": [
+        {
+          "started_at": 1789542306,
+          "ended_at": 1789542463,
+          "seconds": 151
+        },
+        {
+          "started_at": 1789542624,
+          "ended_at": 1789542954,
+          "seconds": 325
+        },
+        {
+          "started_at": 1789543247,
+          "ended_at": 1789543274,
+          "seconds": 22
+        },
+        {
+          "started_at": 1789543862,
+          "ended_at": 1789544046,
+          "seconds": 178
+        },
+        {
+          "started_at": 1789544373,
+          "ended_at": 1789544627,
+          "seconds": 249
+        },
+        {
+          "started_at": 1789545781,
+          "ended_at": 1789545909,
+          "seconds": 122
+        },
+        {
+          "started_at": 1789546349,
+          "ended_at": 1789546596,
+          "seconds": 243
+        },
+        {
+          "started_at": 1789548149,
+          "ended_at": 1789548159,
+          "seconds": 5
+        },
+        {
+          "started_at": 1789548167,
+          "ended_at": 1789548414,
+          "seconds": 243
+        },
+        {
+          "started_at": 1789620524,
+          "ended_at": 1789620538,
+          "seconds": 10
+        },
+        {
+          "started_at": 1789620579,
+          "ended_at": 1789620730,
+          "seconds": 148
+        }
+      ],
+      "play_time": 2686,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "locale_enabled": true,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "43f46a8a4cfe",
+      "exe": "C:\\Games\\Sample04\\game.exe",
+      "name": "Sample Game 04",
+      "exe_stem": "game",
+      "dir_name": "Sample04",
+      "queries": [
+        "sample query 04"
+      ],
+      "strong_queries": [
+        "sample query 04"
+      ],
+      "added_at": 1789546648,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/04/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100004",
+      "source_url": "https://example.invalid/source_url/04/asset.jpg",
+      "steam_name": "Sample Game 04",
+      "name_cn": "示例游戏 04",
+      "name_original": "示例游戏 04",
+      "rating": "VNDB 8.0",
+      "description": "Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sam",
+      "description_original": "Original description sample text 04. Original description sample text 04. Original description sample text 04. Original description sample text 04. Original description sample text 04. Original description sample text 04. Original description sample text 04. Original description sample text 04. Orig",
+      "description_translated": "示例译文 04。",
+      "description_lang": "en",
+      "about": "Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Description sample text 04. Descript",
+      "developers": [
+        "Studio 04-1"
+      ],
+      "publishers": [
+        "Publisher 04-1"
+      ],
+      "genres": [
+        "Genre 04-1",
+        "Genre 04-2",
+        "Genre 04-3",
+        "Genre 04-4",
+        "Genre 04-5",
+        "Genre 04-6"
+      ],
+      "categories": [],
+      "release_date": "2012-02-24",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/04/asset.jpg",
+      "cover": "https://example.invalid/cover/04/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 0.9667,
+      "query_used": "sample query 04",
+      "last_played": 1789576987,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 7,
+      "sessions": [
+        {
+          "started_at": 1789546685,
+          "ended_at": 1789546867,
+          "seconds": 178
+        },
+        {
+          "started_at": 1789547297,
+          "ended_at": 1789547598,
+          "seconds": 297
+        },
+        {
+          "started_at": 1789547671,
+          "ended_at": 1789547733,
+          "seconds": 58
+        },
+        {
+          "started_at": 1789547896,
+          "ended_at": 1789548145,
+          "seconds": 244
+        },
+        {
+          "started_at": 1789548415,
+          "ended_at": 1789548573,
+          "seconds": 154
+        },
+        {
+          "started_at": 1789576005,
+          "ended_at": 1789576479,
+          "seconds": 470
+        },
+        {
+          "started_at": 1789576967,
+          "ended_at": 1789576987,
+          "seconds": 16
+        }
+      ],
+      "play_time": 1417,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "locale_enabled": true,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "641f53a9cfe0",
+      "exe": "C:\\Games\\Sample02\\game.exe",
+      "name": "Sample Game 02",
+      "exe_stem": "game",
+      "dir_name": "Sample02",
+      "queries": [
+        "sample query 02"
+      ],
+      "strong_queries": [
+        "sample query 02"
+      ],
+      "added_at": 1789576560,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/02/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100002",
+      "source_url": "https://example.invalid/source_url/02/asset.jpg",
+      "steam_name": "Sample Game 02",
+      "name_cn": "示例游戏 02",
+      "name_original": "示例游戏 02",
+      "rating": "VNDB 7.4",
+      "description": "Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02",
+      "description_original": "Original description sample text 02. Original description sample text 02. Original description sample text 02. Original description sample text 02. Original description sample text 02. Original description sample text 02. Original description sample text 02. Original description sample text 02. Orig",
+      "description_translated": "示例译文 02。",
+      "description_lang": "en",
+      "about": "Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Description sample text 02. Descript",
+      "developers": [
+        "Studio 02-1"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 02-1",
+        "Genre 02-2",
+        "Genre 02-3",
+        "Genre 02-4",
+        "Genre 02-5",
+        "Genre 02-6"
+      ],
+      "categories": [],
+      "release_date": "2023-07-28",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/02/asset.jpg",
+      "cover": "https://example.invalid/cover/02/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 02",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789793331,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 35,
+      "sessions": [
+        {
+          "started_at": 1789576589,
+          "ended_at": 1789576606,
+          "seconds": 13
+        },
+        {
+          "started_at": 1789576610,
+          "ended_at": 1789576633,
+          "seconds": 19
+        },
+        {
+          "started_at": 1789576636,
+          "ended_at": 1789576659,
+          "seconds": 19
+        },
+        {
+          "started_at": 1789576665,
+          "ended_at": 1789576672,
+          "seconds": 3
+        },
+        {
+          "started_at": 1789576674,
+          "ended_at": 1789576705,
+          "seconds": 27
+        },
+        {
+          "started_at": 1789576777,
+          "ended_at": 1789576847,
+          "seconds": 65
+        },
+        {
+          "started_at": 1789576890,
+          "ended_at": 1789576963,
+          "seconds": 69
+        },
+        {
+          "started_at": 1789577000,
+          "ended_at": 1789577126,
+          "seconds": 122
+        },
+        {
+          "started_at": 1789618977,
+          "ended_at": 1789619182,
+          "seconds": 201
+        },
+        {
+          "started_at": 1789619754,
+          "ended_at": 1789619953,
+          "seconds": 195
+        },
+        {
+          "started_at": 1789620733,
+          "ended_at": 1789620984,
+          "seconds": 248
+        },
+        {
+          "started_at": 1789621537,
+          "ended_at": 1789621646,
+          "seconds": 104
+        },
+        {
+          "started_at": 1789621889,
+          "ended_at": 1789622031,
+          "seconds": 138
+        },
+        {
+          "started_at": 1789626526,
+          "ended_at": 1789626650,
+          "seconds": 119
+        },
+        {
+          "started_at": 1789627538,
+          "ended_at": 1789627655,
+          "seconds": 112
+        },
+        {
+          "started_at": 1789627658,
+          "ended_at": 1789627728,
+          "seconds": 65
+        },
+        {
+          "started_at": 1789627801,
+          "ended_at": 1789627946,
+          "seconds": 141
+        },
+        {
+          "started_at": 1789629621,
+          "ended_at": 1789630203,
+          "seconds": 576
+        },
+        {
+          "started_at": 1789635983,
+          "ended_at": 1789636410,
+          "seconds": 422
+        },
+        {
+          "started_at": 1789657953,
+          "ended_at": 1789657991,
+          "seconds": 34
+        },
+        {
+          "started_at": 1789657996,
+          "ended_at": 1789658010,
+          "seconds": 10
+        },
+        {
+          "started_at": 1789658010,
+          "ended_at": 1789658038,
+          "seconds": 23
+        },
+        {
+          "started_at": 1789660471,
+          "ended_at": 1789660567,
+          "seconds": 91
+        },
+        {
+          "started_at": 1789661048,
+          "ended_at": 1789661411,
+          "seconds": 358
+        },
+        {
+          "started_at": 1789743404,
+          "ended_at": 1789743449,
+          "seconds": 44
+        },
+        {
+          "started_at": 1789743451,
+          "ended_at": 1789743509,
+          "seconds": 53
+        },
+        {
+          "started_at": 1789743556,
+          "ended_at": 1789743651,
+          "seconds": 91
+        },
+        {
+          "started_at": 1789749119,
+          "ended_at": 1789749360,
+          "seconds": 236
+        },
+        {
+          "started_at": 1789792722,
+          "ended_at": 1789792746,
+          "seconds": 20
+        },
+        {
+          "started_at": 1789792795,
+          "ended_at": 1789792992,
+          "seconds": 192
+        },
+        {
+          "started_at": 1789793007,
+          "ended_at": 1789793025,
+          "seconds": 14
+        },
+        {
+          "started_at": 1789793026,
+          "ended_at": 1789793331,
+          "seconds": 301
+        }
+      ],
+      "play_time": 4190,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "a84238de119f",
+      "exe": "C:\\Games\\Sample16\\game.exe",
+      "name": "Sample Game 16",
+      "exe_stem": "game",
+      "dir_name": "Sample16",
+      "queries": [
+        "sample query 16"
+      ],
+      "strong_queries": [
+        "sample query 16"
+      ],
+      "added_at": 1789620274,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/16/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100112,
+      "data_source": "sample-source",
+      "source_id": "100016",
+      "source_url": "https://example.invalid/source_url/16/asset.jpg",
+      "steam_name": "Sample Game 16",
+      "name_cn": "示例游戏 16",
+      "name_original": "",
+      "rating": "VNDB 7.7",
+      "description": "Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text",
+      "description_original": "Original description sample text 16. Original description sample text 16. Original description sample text 16. Original description sam",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample text 16. Description sample tex",
+      "developers": [
+        "Studio 16-1"
+      ],
+      "publishers": [
+        "Publisher 16-1",
+        "Publisher 16-2"
+      ],
+      "genres": [
+        "Genre 16-1"
+      ],
+      "categories": [
+        "Category 16-1",
+        "Category 16-2",
+        "Category 16-3",
+        "Category 16-4",
+        "Category 16-5"
+      ],
+      "release_date": "2026 年 2 月 27 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/16/asset.com",
+      "store_url": "https://example.invalid/store_url/16/asset.jpg",
+      "cover": "https://example.invalid/cover/16/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/16/asset.png",
+      "header_image": "https://example.invalid/header_image/16/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 16",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789792792,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 26,
+      "sessions": [
+        {
+          "started_at": 1789620296,
+          "ended_at": 1789620321,
+          "seconds": 20
+        },
+        {
+          "started_at": 1789620365,
+          "ended_at": 1789620380,
+          "seconds": 11
+        },
+        {
+          "started_at": 1789620402,
+          "ended_at": 1789620423,
+          "seconds": 17
+        },
+        {
+          "started_at": 1789620424,
+          "ended_at": 1789620455,
+          "seconds": 26
+        },
+        {
+          "started_at": 1789620988,
+          "ended_at": 1789621158,
+          "seconds": 166
+        },
+        {
+          "started_at": 1789621648,
+          "ended_at": 1789621884,
+          "seconds": 232
+        },
+        {
+          "started_at": 1789627345,
+          "ended_at": 1789627535,
+          "seconds": 186
+        },
+        {
+          "started_at": 1789629025,
+          "ended_at": 1789629237,
+          "seconds": 208
+        },
+        {
+          "started_at": 1789630847,
+          "ended_at": 1789630929,
+          "seconds": 77
+        },
+        {
+          "started_at": 1789636461,
+          "ended_at": 1789636675,
+          "seconds": 209
+        },
+        {
+          "started_at": 1789636677,
+          "ended_at": 1789636697,
+          "seconds": 16
+        },
+        {
+          "started_at": 1789636753,
+          "ended_at": 1789636909,
+          "seconds": 151
+        },
+        {
+          "started_at": 1789638855,
+          "ended_at": 1789638908,
+          "seconds": 47
+        },
+        {
+          "started_at": 1789648884,
+          "ended_at": 1789649079,
+          "seconds": 191
+        },
+        {
+          "started_at": 1789649080,
+          "ended_at": 1789649099,
+          "seconds": 14
+        },
+        {
+          "started_at": 1789649222,
+          "ended_at": 1789649406,
+          "seconds": 179
+        },
+        {
+          "started_at": 1789649950,
+          "ended_at": 1789650814,
+          "seconds": 860
+        },
+        {
+          "started_at": 1789652164,
+          "ended_at": 1789653492,
+          "seconds": 1325
+        },
+        {
+          "started_at": 1789653495,
+          "ended_at": 1789653701,
+          "seconds": 202
+        },
+        {
+          "started_at": 1789654110,
+          "ended_at": 1789654121,
+          "seconds": 6
+        },
+        {
+          "started_at": 1789654858,
+          "ended_at": 1789655311,
+          "seconds": 449
+        },
+        {
+          "started_at": 1789657723,
+          "ended_at": 1789657849,
+          "seconds": 122
+        },
+        {
+          "started_at": 1789792752,
+          "ended_at": 1789792772,
+          "seconds": 16
+        },
+        {
+          "started_at": 1789792772,
+          "ended_at": 1789792792,
+          "seconds": 17
+        }
+      ],
+      "play_time": 4747,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "66cc11ce1219",
+      "exe": "C:\\Games\\Sample24\\game.exe",
+      "name": "Sample Game 24",
+      "exe_stem": "game",
+      "dir_name": "Sample24",
+      "queries": [
+        "sample query 24"
+      ],
+      "strong_queries": [
+        "sample query 24"
+      ],
+      "added_at": 1789628502,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/24/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100168,
+      "data_source": "sample-source",
+      "source_id": "100024",
+      "source_url": "https://example.invalid/source_url/24/asset.jpg",
+      "steam_name": "Sample Game 24",
+      "name_cn": "示例游戏 24",
+      "name_original": "",
+      "rating": "VNDB 7.2",
+      "description": "Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 2",
+      "description_original": "Original description sample text 24. Original description sample text 24. Original description sample text 24. Original description ",
+      "description_translated": "示例译文 24。",
+      "description_lang": "ja",
+      "about": "Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Description sample text 24. Descript",
+      "developers": [
+        "Studio 24-1"
+      ],
+      "publishers": [
+        "Publisher 24-1",
+        "Publisher 24-2"
+      ],
+      "genres": [
+        "Genre 24-1",
+        "Genre 24-2"
+      ],
+      "categories": [
+        "Category 24-1",
+        "Category 24-2",
+        "Category 24-3",
+        "Category 24-4",
+        "Category 24-5",
+        "Category 24-6",
+        "Category 24-7",
+        "Category 24-8"
+      ],
+      "release_date": "2023 年 10 月 25 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/24/asset.jp",
+      "store_url": "https://example.invalid/store_url/24/asset.jpg",
+      "cover": "https://example.invalid/cover/24/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/24/asset.png",
+      "header_image": "https://example.invalid/header_image/24/asset.jpg",
+      "background_kind": "art",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 24",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789629019,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 2,
+      "sessions": [
+        {
+          "started_at": 1789628510,
+          "ended_at": 1789628622,
+          "seconds": 108
+        },
+        {
+          "started_at": 1789628625,
+          "ended_at": 1789629019,
+          "seconds": 389
+        }
+      ],
+      "play_time": 497,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": "",
+      "custom_cover": ""
+    },
+    {
+      "id": "75b89c4ff7f2",
+      "exe": "C:\\Games\\Sample03\\game.exe",
+      "name": "Sample Game 03",
+      "exe_stem": "game",
+      "dir_name": "Sample03",
+      "queries": [
+        "sample query 03"
+      ],
+      "strong_queries": [
+        "sample query 03"
+      ],
+      "added_at": 1789666150,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/03/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100021,
+      "data_source": "sample-source",
+      "source_id": "100003",
+      "source_url": "https://example.invalid/source_url/03/asset.jpg",
+      "steam_name": "Sample Game 03",
+      "name_cn": "示例游戏 03",
+      "name_original": "",
+      "rating": "VNDB 7.5",
+      "description": "Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Descript",
+      "description_original": "Original description sample text 03. Original description sample text 03. Original description sample text 03. Original description sample text 03. ",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Description sample text 03. Descript",
+      "developers": [
+        "Studio 03-1"
+      ],
+      "publishers": [
+        "Publisher 03-1",
+        "Publisher 03-2"
+      ],
+      "genres": [
+        "Genre 03-1",
+        "Genre 03-2"
+      ],
+      "categories": [
+        "Category 03-1",
+        "Category 03-2",
+        "Category 03-3",
+        "Category 03-4",
+        "Category 03-5",
+        "Category 03-6",
+        "Category 03-7",
+        "Category 03-8"
+      ],
+      "release_date": "2020 年 12 月 18 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/03/asset.com",
+      "store_url": "https://example.invalid/store_url/03/asset.jpg",
+      "cover": "https://example.invalid/cover/03/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/03/asset.png",
+      "header_image": "https://example.invalid/header_image/03/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 03",
+      "launch_args": "",
+      "play_time": 473,
+      "last_played": 1789705868,
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "play_launcher_pid": 0,
+      "play_count": 6,
+      "sessions": [
+        {
+          "started_at": 1789701025,
+          "ended_at": 1789701074,
+          "seconds": 45
+        },
+        {
+          "started_at": 1789701099,
+          "ended_at": 1789701178,
+          "seconds": 73
+        },
+        {
+          "started_at": 1789701178,
+          "ended_at": 1789701205,
+          "seconds": 22
+        },
+        {
+          "started_at": 1789701206,
+          "ended_at": 1789701390,
+          "seconds": 179
+        },
+        {
+          "started_at": 1789702312,
+          "ended_at": 1789702363,
+          "seconds": 46
+        },
+        {
+          "started_at": 1789705755,
+          "ended_at": 1789705868,
+          "seconds": 108
+        }
+      ],
+      "locale_enabled": true,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "8f08a46418b3",
+      "exe": "C:\\Games\\Sample21\\game.exe",
+      "name": "Sample Game 21",
+      "exe_stem": "game",
+      "dir_name": "Sample21",
+      "queries": [
+        "sample query 21"
+      ],
+      "strong_queries": [
+        "sample query 21"
+      ],
+      "added_at": 1789698299,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/21/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100021",
+      "source_url": "https://example.invalid/source_url/21/asset.jpg",
+      "steam_name": "Sample Game 21",
+      "name_cn": "",
+      "name_original": "示例游戏 21",
+      "rating": "VNDB 7.5",
+      "description": "Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. De",
+      "description_original": "Original description sample text 21. Original description sample text 21. Original description sample text 21. Original description sample text 21. Original description sample text 21. Original description sample text 21. Original description sample text 21. Original description sample text 21. Orig",
+      "description_translated": "示例译文 21。",
+      "description_lang": "en",
+      "about": "Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Description sample text 21. Descript",
+      "developers": [
+        "Studio 21-1"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 21-1",
+        "Genre 21-2",
+        "Genre 21-3",
+        "Genre 21-4",
+        "Genre 21-5",
+        "Genre 21-6"
+      ],
+      "categories": [],
+      "release_date": "2024-09-27",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/21/asset.jpg",
+      "cover": "https://example.invalid/cover/21/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "manual",
+      "match_score": null,
+      "query_used": "",
+      "launch_args": "",
+      "play_time": 409,
+      "last_played": 1789712423,
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "play_launcher_pid": 0,
+      "play_count": 3,
+      "sessions": [
+        {
+          "started_at": 1789700548,
+          "ended_at": 1789700702,
+          "seconds": 147
+        },
+        {
+          "started_at": 1789706210,
+          "ended_at": 1789706410,
+          "seconds": 196
+        },
+        {
+          "started_at": 1789712352,
+          "ended_at": 1789712423,
+          "seconds": 66
+        }
+      ],
+      "locale_enabled": true,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "de889268d8ac",
+      "exe": "C:\\Games\\Sample23\\game.exe",
+      "name": "Sample Game 23",
+      "exe_stem": "game",
+      "dir_name": "Sample23",
+      "queries": [
+        "sample query 23"
+      ],
+      "strong_queries": [
+        "sample query 23"
+      ],
+      "added_at": 1789705903,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/23/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100161,
+      "data_source": "sample-source",
+      "source_id": "100023",
+      "source_url": "https://example.invalid/source_url/23/asset.jpg",
+      "steam_name": "Sample Game 23",
+      "name_cn": "示例游戏 23",
+      "name_original": "",
+      "rating": "VNDB 7.5",
+      "description": "Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Descript",
+      "description_original": "Original description sample text 23. Original description sample text 23. Original description sample text 23. Original description sample text 23. ",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description sample text 23. Description",
+      "developers": [
+        "Studio 23-1"
+      ],
+      "publishers": [
+        "Publisher 23-1",
+        "Publisher 23-2"
+      ],
+      "genres": [
+        "Genre 23-1",
+        "Genre 23-2"
+      ],
+      "categories": [
+        "Category 23-1",
+        "Category 23-2",
+        "Category 23-3",
+        "Category 23-4"
+      ],
+      "release_date": "2022 年 3 月 25 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/23/asset.jpg",
+      "store_url": "https://example.invalid/store_url/23/asset.jpg",
+      "cover": "https://example.invalid/cover/23/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/23/asset.png",
+      "header_image": "https://example.invalid/header_image/23/asset.jpg",
+      "background_kind": "art",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 23",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789706203,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 2,
+      "sessions": [
+        {
+          "started_at": 1789705922,
+          "ended_at": 1789706001,
+          "seconds": 75
+        },
+        {
+          "started_at": 1789706004,
+          "ended_at": 1789706203,
+          "seconds": 194
+        }
+      ],
+      "play_time": 269,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "841c077bcfc8",
+      "exe": "C:\\Games\\Sample19\\game.exe",
+      "name": "Sample Game 19",
+      "exe_stem": "game",
+      "dir_name": "Sample19",
+      "queries": [
+        "sample query 19"
+      ],
+      "strong_queries": [
+        "sample query 19"
+      ],
+      "added_at": 1789712483,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/19/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100133,
+      "data_source": "sample-source",
+      "source_id": "100019",
+      "source_url": "https://example.invalid/source_url/19/asset.jpg",
+      "steam_name": "Sample Game 19",
+      "name_cn": "示例游戏 19",
+      "name_original": "",
+      "rating": "VNDB 7.5",
+      "description": "Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Des",
+      "description_original": "Original description sample text 19. Original description sample text 19. Original description sample text 19. Orig",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Description sample text 19. Descript",
+      "developers": [
+        "Studio 19-1"
+      ],
+      "publishers": [
+        "Publisher 19-1"
+      ],
+      "genres": [
+        "Genre 19-1"
+      ],
+      "categories": [
+        "Category 19-1",
+        "Category 19-2",
+        "Category 19-3"
+      ],
+      "release_date": "2022 年 12 月 22 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/19/asset.com",
+      "store_url": "https://example.invalid/store_url/19/asset.jpg",
+      "cover": "https://example.invalid/cover/19/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/19/asset.png",
+      "header_image": "https://example.invalid/header_image/19/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 19",
+      "launch_args": "",
+      "play_time": 0,
+      "last_played": 0,
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "play_launcher_pid": 0,
+      "play_count": 0,
+      "sessions": [],
+      "locale_enabled": false,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "8c81b3e3e2b8",
+      "exe": "C:\\Games\\Sample17\\game.exe",
+      "name": "Sample Game 17",
+      "exe_stem": "game",
+      "dir_name": "Sample17",
+      "queries": [
+        "sample query 17"
+      ],
+      "strong_queries": [
+        "sample query 17"
+      ],
+      "added_at": 1789712590,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/17/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100017",
+      "source_url": "https://example.invalid/source_url/17/asset.jpg",
+      "steam_name": "Sample Game 17",
+      "name_cn": "示例游戏 17",
+      "name_original": "示例游戏 17",
+      "rating": "VNDB 9.0",
+      "description": "Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sampl",
+      "description_original": "Original description sample text 17. Original description sample text 17. Original description sample text 17. Original description sample text 17. Original description sample text 17. Original description sample text 17. Original description sample text 17. Original description sample text 17. Orig",
+      "description_translated": "示例译文 17。",
+      "description_lang": "en",
+      "about": "Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Description sample text 17. Descript",
+      "developers": [
+        "Studio 17-1",
+        "Studio 17-2",
+        "Studio 17-3"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 17-1",
+        "Genre 17-2",
+        "Genre 17-3",
+        "Genre 17-4",
+        "Genre 17-5",
+        "Genre 17-6"
+      ],
+      "categories": [],
+      "release_date": "2010-03-26",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/17/asset.jpg",
+      "cover": "https://example.invalid/cover/17/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 17",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789715788,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 5,
+      "sessions": [
+        {
+          "started_at": 1789712613,
+          "ended_at": 1789712692,
+          "seconds": 74
+        },
+        {
+          "started_at": 1789712718,
+          "ended_at": 1789712973,
+          "seconds": 249
+        },
+        {
+          "started_at": 1789713548,
+          "ended_at": 1789713776,
+          "seconds": 223
+        },
+        {
+          "started_at": 1789715730,
+          "ended_at": 1789715788,
+          "seconds": 52
+        }
+      ],
+      "play_time": 1550,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "88b0f337d4d6",
+      "exe": "C:\\Games\\Sample14\\game.exe",
+      "name": "Sample Game 14",
+      "exe_stem": "game",
+      "dir_name": "Sample14",
+      "queries": [
+        "sample query 14"
+      ],
+      "strong_queries": [
+        "sample query 14"
+      ],
+      "added_at": 1789723999,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/14/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100014",
+      "source_url": "https://example.invalid/source_url/14/asset.jpg",
+      "steam_name": "Sample Game 14",
+      "name_cn": "示例游戏 14",
+      "name_original": "示例游戏 14",
+      "rating": "VNDB 8.5",
+      "description": "Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Descripti",
+      "description_original": "Original description sample text 14. Original description sample text 14. Original description sample text 14. Original description sample text 14. Original description sample text 14. Original description sample text 14. Original description sample text 14. Original description sample text 14. Orig",
+      "description_translated": "示例译文 14。",
+      "description_lang": "en",
+      "about": "Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Description sample text 14. Descript",
+      "developers": [
+        "Studio 14-1"
+      ],
+      "publishers": [
+        "Publisher 14-1"
+      ],
+      "genres": [
+        "Genre 14-1",
+        "Genre 14-2",
+        "Genre 14-3",
+        "Genre 14-4",
+        "Genre 14-5",
+        "Genre 14-6"
+      ],
+      "categories": [],
+      "release_date": "2011-04-28",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/14/asset.jpg",
+      "cover": "https://example.invalid/cover/14/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 14",
+      "launch_args": "",
+      "play_time": 360,
+      "last_played": 1789743335,
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_heartbeat": 0,
+      "play_launcher_pid": 0,
+      "play_count": 7,
+      "sessions": [
+        {
+          "started_at": 1789729668,
+          "ended_at": 1789729678,
+          "seconds": 9
+        },
+        {
+          "started_at": 1789729684,
+          "ended_at": 1789729694,
+          "seconds": 7
+        },
+        {
+          "started_at": 1789739815,
+          "ended_at": 1789739885,
+          "seconds": 66
+        },
+        {
+          "started_at": 1789739943,
+          "ended_at": 1789740007,
+          "seconds": 60
+        },
+        {
+          "started_at": 1789740009,
+          "ended_at": 1789740139,
+          "seconds": 126
+        },
+        {
+          "started_at": 1789740181,
+          "ended_at": 1789740216,
+          "seconds": 31
+        },
+        {
+          "started_at": 1789743270,
+          "ended_at": 1789743335,
+          "seconds": 61
+        }
+      ],
+      "locale_enabled": true,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "50a96166a0df",
+      "exe": "C:\\Games\\Sample18\\game.exe",
+      "name": "Sample Game 18",
+      "exe_stem": "game",
+      "dir_name": "Sample18",
+      "queries": [
+        "sample query 18"
+      ],
+      "strong_queries": [
+        "sample query 18"
+      ],
+      "added_at": 1789724341,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/18/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "candidates": [
+        {
+          "source": "bangumi",
+          "source_id": "100001",
+          "name": "Sample Candidate 01",
+          "thumb": "https://example.invalid/candidates/01/asset.jpg",
+          "cover": "https://example.invalid/candidates/01/asset.jpg",
+          "score": 0.24
+        }
+      ],
+      "appid": 100126,
+      "data_source": "sample-source",
+      "source_id": "100018",
+      "source_url": "https://example.invalid/source_url/18/asset.jpg",
+      "steam_name": "Sample Game 18",
+      "name_cn": "示例游戏 18",
+      "name_original": "",
+      "rating": "Bangumi 8.4",
+      "description": "Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Descri",
+      "description_original": "Original description sample text 18. Original description sample text 18. Original description sample text 18. Origina",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Description sample text 18. Descript",
+      "developers": [
+        "Studio 18-1"
+      ],
+      "publishers": [
+        "Publisher 18-1"
+      ],
+      "genres": [
+        "Genre 18-1",
+        "Genre 18-2"
+      ],
+      "categories": [
+        "Category 18-1",
+        "Category 18-2",
+        "Category 18-3",
+        "Category 18-4",
+        "Category 18-5",
+        "Category 18-6",
+        "Category 18-7",
+        "Category 18-8"
+      ],
+      "release_date": "2025 年 6 月 27 日",
+      "metacritic": null,
+      "website": "https://example.invalid/website/18/asset.html",
+      "store_url": "https://example.invalid/store_url/18/asset.jpg",
+      "cover": "https://example.invalid/cover/18/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "https://example.invalid/header_image/18/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "manual",
+      "match_score": null,
+      "query_used": "",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789743262,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 3,
+      "sessions": [
+        {
+          "started_at": 1789724430,
+          "ended_at": 1789724547,
+          "seconds": 113
+        },
+        {
+          "started_at": 1789724549,
+          "ended_at": 1789724772,
+          "seconds": 219
+        },
+        {
+          "started_at": 1789743125,
+          "ended_at": 1789743262,
+          "seconds": 133
+        }
+      ],
+      "play_time": 465,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "a3febac59816",
+      "exe": "C:\\Games\\Sample07\\game.exe",
+      "name": "Sample Game 07",
+      "exe_stem": "game",
+      "dir_name": "Sample07",
+      "queries": [
+        "sample query 07"
+      ],
+      "strong_queries": [
+        "sample query 07"
+      ],
+      "added_at": 1789744039,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/07/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100007",
+      "source_url": "https://example.invalid/source_url/07/asset.jpg",
+      "steam_name": "Sample Game 07",
+      "name_cn": "示例游戏 07",
+      "name_original": "示例游戏 07",
+      "rating": "VNDB 7.4",
+      "description": "Description sample text 07. Description sample ",
+      "description_original": "Original description sample text 07. Original description sample text 07. Original description sample text 07. Original description sample text 07. Original d",
+      "description_translated": "示例译文 07。",
+      "description_lang": "en",
+      "about": "Description sample text 07. Description sample text 07. Description sample text 07. Description sample text 07. Description sample text 07. Description sample",
+      "developers": [
+        "Studio 07-1"
+      ],
+      "publishers": [
+        "Publisher 07-1"
+      ],
+      "genres": [
+        "Genre 07-1",
+        "Genre 07-2",
+        "Genre 07-3",
+        "Genre 07-4",
+        "Genre 07-5",
+        "Genre 07-6"
+      ],
+      "categories": [
+        "Category 07-1",
+        "Category 07-2",
+        "Category 07-3",
+        "Category 07-4",
+        "Category 07-5"
+      ],
+      "release_date": "2017-05-26",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/07/asset.jpg",
+      "cover": "https://example.invalid/cover/07/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/07/asset.png",
+      "header_image": "https://example.invalid/header_image/07/asset.jpg",
+      "background_kind": "cover",
+      "match_source": "manual",
+      "match_score": null,
+      "query_used": "",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789744345,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 2,
+      "sessions": [
+        {
+          "started_at": 1789744080,
+          "ended_at": 1789744180,
+          "seconds": 95
+        },
+        {
+          "started_at": 1789744180,
+          "ended_at": 1789744344,
+          "seconds": 160
+        }
+      ],
+      "play_time": 255,
+      "custom_cover": "https://example.invalid/custom_cover/07/asset.jpg",
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "74c83242d7e7",
+      "exe": "C:\\Games\\Sample12\\game.exe",
+      "name": "Sample Game 12",
+      "exe_stem": "game",
+      "dir_name": "Sample12",
+      "queries": [
+        "sample query 12"
+      ],
+      "strong_queries": [
+        "sample query 12"
+      ],
+      "added_at": 1789744429,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/12/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "screenshot",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100012",
+      "source_url": "https://example.invalid/source_url/12/asset.jpg",
+      "steam_name": "Sample Game 12",
+      "name_cn": "示例游戏 12",
+      "name_original": "示例游戏 12",
+      "rating": "VNDB 7.6",
+      "description": "Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample tex",
+      "description_original": "Original description sample text 12. Original description sample text 12. Original description sample text 12. Original description sample text 12. Original description sample text 12. Original description sample text 12. Original description sample text 12. Original description sample text 12. Orig",
+      "description_translated": "示例译文 12。",
+      "description_lang": "en",
+      "about": "Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Description sample text 12. Descript",
+      "developers": [
+        "Studio 12-1"
+      ],
+      "publishers": [
+        "Publisher 12-1"
+      ],
+      "genres": [
+        "Genre 12-1",
+        "Genre 12-2",
+        "Genre 12-3",
+        "Genre 12-4",
+        "Genre 12-5",
+        "Genre 12-6"
+      ],
+      "categories": [
+        "Category 12-1",
+        "Category 12-2",
+        "Category 12-3",
+        "Category 12-4",
+        "Category 12-5"
+      ],
+      "release_date": "2014-12-19",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/12/asset.jpg",
+      "cover": "https://example.invalid/cover/12/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/12/asset.png",
+      "header_image": "https://example.invalid/header_image/12/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "manual",
+      "match_score": null,
+      "query_used": "",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789744548,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 1,
+      "sessions": [
+        {
+          "started_at": 1789744521,
+          "ended_at": 1789744548,
+          "seconds": 23
+        }
+      ],
+      "play_time": 23,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "19e0fd8f86dd",
+      "exe": "C:\\Games\\Sample13\\game.exe",
+      "name": "Sample Game 13",
+      "exe_stem": "game",
+      "dir_name": "Sample13",
+      "queries": [
+        "sample query 13"
+      ],
+      "strong_queries": [
+        "sample query 13"
+      ],
+      "added_at": 1789745098,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/13/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "hero",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100091,
+      "data_source": "sample-source",
+      "source_id": "100013",
+      "source_url": "https://example.invalid/source_url/13/asset.jpg",
+      "steam_name": "Sample Game 13",
+      "name_cn": "示例游戏 13",
+      "name_original": "",
+      "rating": "VNDB 7.2",
+      "description": "Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description samp",
+      "description_original": "Original description sample text 13. Original description sample text 13. Original description sample text 13. Original description sample text 13. Original description sample text 13. Original description sample text 13. Original description sample text 13. Original description sample text 13. ",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Description sample text 13. Descript",
+      "developers": [
+        "Studio 13-1"
+      ],
+      "publishers": [
+        "Publisher 13-1"
+      ],
+      "genres": [
+        "Genre 13-1",
+        "Genre 13-2"
+      ],
+      "categories": [
+        "Category 13-1",
+        "Category 13-2"
+      ],
+      "release_date": "2022 年 11 月 4 日",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/13/asset.jpg",
+      "cover": "https://example.invalid/cover/13/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "https://example.invalid/logo/13/asset.png",
+      "header_image": "https://example.invalid/header_image/13/asset.jpg",
+      "background_kind": "hero",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 13",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789794015,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 4,
+      "sessions": [
+        {
+          "started_at": 1789745120,
+          "ended_at": 1789745176,
+          "seconds": 52
+        },
+        {
+          "started_at": 1789745286,
+          "ended_at": 1789745342,
+          "seconds": 52
+        },
+        {
+          "started_at": 1789793931,
+          "ended_at": 1789793962,
+          "seconds": 27
+        },
+        {
+          "started_at": 1789793963,
+          "ended_at": 1789794015,
+          "seconds": 48
+        }
+      ],
+      "play_time": 179,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "e37cc70307cf",
+      "exe": "C:\\Games\\Sample09\\game.exe",
+      "name": "Sample Game 09",
+      "exe_stem": "game",
+      "dir_name": "Sample09",
+      "queries": [
+        "sample query 09"
+      ],
+      "strong_queries": [
+        "sample query 09"
+      ],
+      "added_at": 1789746079,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/09/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "candidates": [
+        {
+          "source": "bangumi",
+          "source_id": "100001",
+          "name": "Sample Candidate 01",
+          "thumb": "https://example.invalid/candidates/01/asset.jpg",
+          "cover": "https://example.invalid/candidates/01/asset.jpg",
+          "score": 0.725
+        },
+        {
+          "source": "bangumi",
+          "source_id": "100002",
+          "name": "Sample Candidate 02",
+          "thumb": "https://example.invalid/candidates/02/asset.jpg",
+          "cover": "https://example.invalid/candidates/02/asset.jpg",
+          "score": 0.2963
+        }
+      ],
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100009",
+      "source_url": "https://example.invalid/source_url/09/asset.jpg",
+      "steam_name": "Sample Game 09",
+      "name_cn": "示例游戏 09",
+      "name_original": "示例游戏 09",
+      "rating": "VNDB 8.2",
+      "description": "Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Descrip",
+      "description_original": "Original description sample text 09. Original description sample text 09. Original description sample text 09. Original description sample text 09. Original description sample text 09. Original description sample text 09. Original description sample text 09. Original description sample text 09. Orig",
+      "description_translated": "示例译文 09。",
+      "description_lang": "en",
+      "about": "Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Description sample text 09. Descript",
+      "developers": [
+        "Studio 09-1"
+      ],
+      "publishers": [],
+      "genres": [
+        "Genre 09-1",
+        "Genre 09-2",
+        "Genre 09-3",
+        "Genre 09-4",
+        "Genre 09-5",
+        "Genre 09-6"
+      ],
+      "categories": [],
+      "release_date": "2020-04-24",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/09/asset.jpg",
+      "cover": "https://example.invalid/cover/09/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "manual",
+      "match_score": null,
+      "query_used": "",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789746181,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 1,
+      "sessions": [
+        {
+          "started_at": 1789746162,
+          "ended_at": 1789746181,
+          "seconds": 14
+        }
+      ],
+      "play_time": 14,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    },
+    {
+      "id": "7b83f46ef86b",
+      "exe": "C:\\Games\\Sample08\\game.exe",
+      "name": "Sample Game 08",
+      "exe_stem": "game",
+      "dir_name": "Sample08",
+      "queries": [
+        "sample query 08"
+      ],
+      "strong_queries": [
+        "sample query 08"
+      ],
+      "added_at": 1789791933,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/08/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "art",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        },
+        {
+          "url": "https://example.invalid/images/02/asset.jpg",
+          "kind": "art",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/02/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "appid": 100056,
+      "data_source": "sample-source",
+      "source_id": "100008",
+      "source_url": "https://example.invalid/source_url/08/asset.jpg",
+      "steam_name": "Sample Game 08",
+      "name_cn": "示例游戏 08",
+      "name_original": "",
+      "rating": "VNDB 8.2",
+      "description": "Description sample text 08. Description sample tex",
+      "description_original": "Original description sample text 08. Original desc",
+      "description_translated": "",
+      "description_lang": "zh",
+      "about": "Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Description sample text 08. Descript",
+      "developers": [
+        "Studio 08-1"
+      ],
+      "publishers": [
+        "Publisher 08-1"
+      ],
+      "genres": [
+        "Genre 08-1",
+        "Genre 08-2",
+        "Genre 08-3"
+      ],
+      "categories": [
+        "Category 08-1",
+        "Category 08-2",
+        "Category 08-3",
+        "Category 08-4",
+        "Category 08-5",
+        "Category 08-6",
+        "Category 08-7",
+        "Category 08-8"
+      ],
+      "release_date": "即将宣布",
+      "metacritic": null,
+      "website": "https://example.invalid/website/08/asset.com",
+      "store_url": "https://example.invalid/store_url/08/asset.jpg",
+      "cover": "https://example.invalid/cover/08/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "https://example.invalid/header_image/08/asset.jpg",
+      "background_kind": "art",
+      "match_source": "auto",
+      "match_score": 1.0,
+      "query_used": "sample query 08",
+      "custom_cover": "https://example.invalid/custom_cover/08/asset.jpg",
+      "locale_enabled": true,
+      "locale_guid": "",
+      "last_played": 1789818357,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 11,
+      "sessions": [
+        {
+          "started_at": 1789792015,
+          "ended_at": 1789792084,
+          "seconds": 64
+        },
+        {
+          "started_at": 1789792084,
+          "ended_at": 1789792093,
+          "seconds": 5
+        },
+        {
+          "started_at": 1789792094,
+          "ended_at": 1789792116,
+          "seconds": 17
+        },
+        {
+          "started_at": 1789792119,
+          "ended_at": 1789792177,
+          "seconds": 52
+        },
+        {
+          "started_at": 1789792186,
+          "ended_at": 1789792441,
+          "seconds": 250
+        },
+        {
+          "started_at": 1789793686,
+          "ended_at": 1789793786,
+          "seconds": 96
+        },
+        {
+          "started_at": 1789804029,
+          "ended_at": 1789804079,
+          "seconds": 45
+        },
+        {
+          "started_at": 1789811244,
+          "ended_at": 1789811253,
+          "seconds": 6
+        },
+        {
+          "started_at": 1789811254,
+          "ended_at": 1789811908,
+          "seconds": 650
+        },
+        {
+          "started_at": 1789817959,
+          "ended_at": 1789817991,
+          "seconds": 28
+        },
+        {
+          "started_at": 1789817995,
+          "ended_at": 1789818357,
+          "seconds": 357
+        }
+      ],
+      "play_time": 1570,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": "",
+      "vntext_hook": "HQ-4@A22E:game.exe"
+    },
+    {
+      "id": "7e280919a381",
+      "exe": "C:\\Games\\Sample05\\game.exe",
+      "name": "Sample Game 05",
+      "exe_stem": "game",
+      "dir_name": "Sample05",
+      "queries": [
+        "sample query 05"
+      ],
+      "strong_queries": [
+        "sample query 05"
+      ],
+      "added_at": 1789792532,
+      "metadata_state": "ok",
+      "background": "https://example.invalid/background/05/asset.jpg",
+      "images": [
+        {
+          "url": "https://example.invalid/images/01/asset.jpg",
+          "kind": "cover",
+          "label": "示例图片",
+          "thumb": "https://example.invalid/images/01/asset.jpg"
+        }
+      ],
+      "metadata_note": "",
+      "candidates": [
+        {
+          "source": "bangumi",
+          "source_id": "100001",
+          "name": "Sample Candidate 01",
+          "thumb": "https://example.invalid/candidates/01/asset.jpg",
+          "cover": "https://example.invalid/candidates/01/asset.jpg",
+          "score": 0.6125
+        },
+        {
+          "source": "steam",
+          "source_id": "100002",
+          "name": "Sample Candidate 02",
+          "thumb": "https://example.invalid/candidates/02/asset.jpg",
+          "cover": "https://example.invalid/candidates/02/asset.bin",
+          "score": 0.59
+        }
+      ],
+      "appid": null,
+      "data_source": "sample-source",
+      "source_id": "100005",
+      "source_url": "https://example.invalid/source_url/05/asset.jpg",
+      "steam_name": "Sample Game 05",
+      "name_cn": "",
+      "name_original": "示例游戏 05",
+      "rating": "Bangumi 6.5",
+      "description": "Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Descriptio",
+      "description_original": "Original description sample text 05. Original description sample text 05. Original description sample text 05. Original description sample text 05. Original description sample text 05. Original description sample text 05. ",
+      "description_translated": "示例译文 05。",
+      "description_lang": "ja",
+      "about": "Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05. Description sample text 05",
+      "developers": [
+        "Studio 05-1"
+      ],
+      "publishers": [
+        "Publisher 05-1"
+      ],
+      "genres": [
+        "Genre 05-1",
+        "Genre 05-2",
+        "Genre 05-3",
+        "Genre 05-4",
+        "Genre 05-5",
+        "Genre 05-6"
+      ],
+      "categories": [],
+      "release_date": "2019-12-20",
+      "metacritic": null,
+      "website": "",
+      "store_url": "https://example.invalid/store_url/05/asset.jpg",
+      "cover": "https://example.invalid/cover/05/asset.jpg",
+      "cover_sources": [
+        "https://example.invalid/covers/01/asset.jpg",
+        "https://example.invalid/covers/02/asset.jpg"
+      ],
+      "logo": "",
+      "header_image": "",
+      "background_kind": "cover",
+      "match_source": "manual",
+      "match_score": null,
+      "query_used": "",
+      "last_played": 1789793408,
+      "play_started_at": 0,
+      "play_pid": 0,
+      "play_launcher_pid": 0,
+      "play_heartbeat": 0,
+      "play_count": 2,
+      "sessions": [
+        {
+          "started_at": 1789792585,
+          "ended_at": 1789792693,
+          "seconds": 104
+        },
+        {
+          "started_at": 1789793341,
+          "ended_at": 1789793408,
+          "seconds": 59
+        }
+      ],
+      "play_time": 163,
+      "launch_args": "",
+      "favorite": false,
+      "custom_icon": "",
+      "bg_scale": 1.0,
+      "bg_x": 0.0,
+      "bg_y": 0.0,
+      "locale_enabled": false,
+      "locale_guid": "",
+      "vntext_ocr_region": {
+        "x": 0.0,
+        "y": 0.62,
+        "w": 1.0,
+        "h": 0.34
+      },
+      "bookshelf_ids": [],
+      "status": ""
+    }
+  ],
+  "bookshelves": [],
+  "settings": {
+    "lang": "schinese",
+    "blur": 10,
+    "saturation": 100,
+    "scrim": 44,
+    "accent": "#f4c2f5",
+    "theme_mode": "dark",
+    "palette": "custom",
+    "hall_layout": "ring",
+    "auto_search": true,
+    "translate_enabled": true,
+    "translate_provider": "auto",
+    "translate_base_url": "https://api.deepseek.com",
+    "translate_api_key": "",
+    "translate_model": "deepseek-flash",
+    "translate_target": "zh-CN",
+    "show_original": true,
+    "ken_burns": true,
+    "show_playtime": true,
+    "close_to_tray": false,
+    "download_dir": "C:\\Aurora\\data\\downloads",
+    "download_watch": false,
+    "download_extract": false,
+    "resource_sites": [
+      {
+        "id": "site-kungal",
+        "name": "kungal",
+        "url": "https://www.kungal.com/galgame"
+      },
+      {
+        "id": "site-dlsite",
+        "name": "DLsite",
+        "url": "https://www.dlsite.com/"
+      },
+      {
+        "id": "site48f33c37",
+        "name": "TouchGal",
+        "url": "https://touchgal.ink"
+      }
+    ],
+    "le_proc_path": "",
+    "locale_default": false,
+    "proxy_mode": "auto",
+    "proxy_url": "",
+    "proxy_fallback": true,
+    "vntext_enabled": false,
+    "vntext_engine": "auto",
+    "vntext_tractor_path": "",
+    "vntext_auto_start": false,
+    "vntext_context_lines": 4,
+    "vntext_max_chars": 1200,
+    "vntext_ocr_interval": 0.9,
+    "vntext_overlay": {
+      "x": 928,
+      "y": 236,
+      "w": 1267,
+      "h": 194,
+      "font": 16,
+      "opacity": 0.56,
+      "mode": "translated",
+      "click_through": false
+    },
+    "sources": {
+      "order": [
+        "steam",
+        "vndb",
+        "bangumi"
+      ],
+      "disabled": [],
+      "merge_images": true,
+      "custom": []
+    },
+    "download_baseline_dir": "C:\\Aurora\\data\\downloads",
+    "download_seen": [
+      "sample-game-01",
+      "sample-game-02",
+      "sample-game-03",
+      "sample-game-04",
+      "sample-game-05",
+      "sample-game-06",
+      "sample-game-07",
+      "sample-game-08",
+      "sample-game-09",
+      "sample-game-10",
+      "sample-game-11",
+      "sample-game-12",
+      "sample-game-13",
+      "sample-game-14",
+      "sample-game-15",
+      "sample-game-16",
+      "sample-game-17",
+      "sample-game-18",
+      "sample-game-19",
+      "sample-game-20",
+      "sample-game-21",
+      "sample-game-22",
+      "sample-game-23",
+      "sample-game-24",
+      "sample-game-25",
+      "sample-game-26",
+      "sample-game-27",
+      "sample-game-28",
+      "sample-game-29",
+      "sample-game-30",
+      "sample-game-31",
+      "sample-game-32",
+      "sample-game-33"
+    ]
+  }
+}

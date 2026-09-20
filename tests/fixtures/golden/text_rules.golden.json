@@ -1,0 +1,339 @@
+{
+  "schema": "aurora.golden/1",
+  "module": "aurora.domain.text_rules",
+  "shim": "gl.vntext",
+  "captured_at": "2026-09-20",
+  "captured_from": "gl/vntext.py 的纯规则段",
+  "cases": [
+    {
+      "id": "collapse_doubling",
+      "fn": "collapse_doubling",
+      "args": [
+        "今今今ににに至至至る"
+      ],
+      "expected": "今今にに至至る"
+    },
+    {
+      "id": "normalize_for_dedupe",
+      "fn": "normalize_for_dedupe",
+      "args": [
+        "今今今ににに至至至るというわけだ。。。今今にに至至るというわけだ。。今に至るというわけだ。"
+      ],
+      "expected": "今に至るというわけだ"
+    },
+    {
+      "id": "collapse_runs",
+      "fn": "collapse_runs",
+      "args": [
+        "！！"
+      ],
+      "expected": "！！"
+    },
+    {
+      "id": "collapse_repeats",
+      "fn": "collapse_repeats",
+      "args": [
+        "nonenonenone"
+      ],
+      "expected": "none"
+    },
+    {
+      "id": "fold_char_runs",
+      "fn": "fold_char_runs",
+      "args": [
+        "いいいい",
+        3
+      ],
+      "expected": "い"
+    },
+    {
+      "id": "fold_doubling_spans",
+      "fn": "fold_doubling_spans",
+      "args": [
+        "今今にに至至る",
+        3
+      ],
+      "expected": "今に至る"
+    },
+    {
+      "id": "longest_repeat",
+      "fn": "longest_repeat",
+      "args": [
+        "abcdefabc"
+      ],
+      "expected": "abc"
+    },
+    {
+      "id": "compare_key",
+      "fn": "compare_key",
+      "args": [
+        "今に至るというわけだ。"
+      ],
+      "expected": "今に至るというわけだ"
+    },
+    {
+      "id": "collapse_quote_forms",
+      "fn": "_collapse_quote_forms",
+      "args": [
+        "今に至る。」「今に至る。"
+      ],
+      "expected": "今に至る。」「今に至る。"
+    },
+    {
+      "id": "collapse_by_coverage",
+      "fn": "_collapse_by_coverage",
+      "args": [
+        "今に至る。今に至る。今に至るというわけだ。"
+      ],
+      "expected": "今に至る。今に至る。今に至るというわけだ。"
+    },
+    {
+      "id": "collapse_duplicated_sentence",
+      "fn": "collapse_duplicated_sentence",
+      "args": [
+        "今今今ににに至至至るというわけだ。。。今今にに至至るというわけだ。。今に至るというわけだ。"
+      ],
+      "expected": "今に至るというわけだ。"
+    },
+    {
+      "id": "fold_written_repeats",
+      "fn": "fold_written_repeats",
+      "args": [
+        "ここ"
+      ],
+      "expected": "ここ"
+    },
+    {
+      "id": "tidy_ocr_text_noise",
+      "fn": "tidy_ocr_text",
+      "args": [
+        "こ - んなの"
+      ],
+      "expected": "こんなの"
+    },
+    {
+      "id": "tidy_ocr_text_real",
+      "fn": "tidy_ocr_text",
+      "args": [
+        "詩夢 / 「よりによって、どうしてわたしが乗った時に……」"
+      ],
+      "expected": "詩夢 / 「よりによって、どうしてわたしが乗った時に……」"
+    },
+    {
+      "id": "tidy_ocr_text_dash",
+      "fn": "tidy_ocr_text",
+      "args": [
+        "- ー - 「…」"
+      ],
+      "expected": "「…」"
+    },
+    {
+      "id": "join_wrapped",
+      "fn": "join_wrapped",
+      "args": [
+        "１０年以上前の、初恋のことを",
+        "話すつもりはなかった。"
+      ],
+      "expected": "１０年以上前の、初恋のことを話すつもりはなかった。"
+    },
+    {
+      "id": "looks_like_speaker_name_yes",
+      "fn": "looks_like_speaker_name",
+      "args": [
+        "アマリリス"
+      ],
+      "expected": true
+    },
+    {
+      "id": "looks_like_speaker_name_menu",
+      "fn": "looks_like_speaker_name",
+      "args": [
+        "ロード"
+      ],
+      "expected": true
+    },
+    {
+      "id": "split_name_prefix",
+      "fn": "split_name_prefix",
+      "args": [
+        "アマリリス「そんなわけないでしょう」"
+      ],
+      "expected": [
+        "",
+        "アマリリス「そんなわけないでしょう」"
+      ]
+    },
+    {
+      "id": "norm_name",
+      "fn": "norm_name",
+      "args": [
+        "【アマリリス】"
+      ],
+      "expected": "【アマリリス】"
+    },
+    {
+      "id": "fold_full_doubling_keep",
+      "fn": "fold_full_doubling",
+      "args": [
+        "ここ"
+      ],
+      "expected": "こ"
+    },
+    {
+      "id": "is_subsequence_true",
+      "fn": "is_subsequence",
+      "args": [
+        "視界黒塞",
+        "視界を黒い何かが塞いだ。"
+      ],
+      "expected": true
+    },
+    {
+      "id": "is_subsequence_false",
+      "fn": "is_subsequence",
+      "args": [
+        "完全に別の文",
+        "視界を黒い何かが塞いだ。"
+      ],
+      "expected": false
+    },
+    {
+      "id": "missing_chars_variant",
+      "fn": "missing_chars_variant",
+      "args": [
+        "視界黒塞",
+        "視界を黒い何かが塞いだ。"
+      ],
+      "expected": true
+    },
+    {
+      "id": "missing_chars_variant_same",
+      "fn": "missing_chars_variant",
+      "args": [
+        "視界を黒い何かが塞いだ。",
+        "視界を黒い何かが塞いだ。"
+      ],
+      "expected": false
+    },
+    {
+      "id": "short_fragment_yes",
+      "fn": "looks_like_short_fragment",
+      "args": [
+        "出会　打明",
+        [
+          {
+            "text": "出会って間もなく打ち明けた。"
+          }
+        ]
+      ],
+      "expected": true
+    },
+    {
+      "id": "system_spam_scene",
+      "fn": "looks_like_system_spam",
+      "args": [
+        "10_プロローグ0725 10_プロローグ0725 10_プロローグ0725 10_プロローグ0725 10_プロローグ0725 10_プロローグ0725 "
+      ],
+      "expected": true
+    },
+    {
+      "id": "system_spam_none",
+      "fn": "looks_like_system_spam",
+      "args": [
+        "俺は彼女と出会った。"
+      ],
+      "expected": false
+    },
+    {
+      "id": "clean_hook_text_status",
+      "fn": "clean_hook_text",
+      "args": [
+        "vnreng: INSERT KiriKiriZ"
+      ],
+      "expected": "vnreng: INSERT KiriKiriZ"
+    },
+    {
+      "id": "clean_hook_text_line",
+      "fn": "clean_hook_text",
+      "args": [
+        "  義大「そうだな」  "
+      ],
+      "expected": "義大「そうだな」"
+    },
+    {
+      "id": "residual_artifacts_none",
+      "fn": "residual_artifacts",
+      "args": [
+        "俺は彼女と出会った。"
+      ],
+      "expected": []
+    },
+    {
+      "id": "garbage_mixed_scripts",
+      "fn": "looks_like_garbage",
+      "args": [
+        "इव孙ؔ䝬׋孙ؔ灐灒灟灹灱炄灰"
+      ],
+      "expected": true
+    },
+    {
+      "id": "garbage_window_title",
+      "fn": "looks_like_garbage",
+      "args": [
+        "ActiveMovie Window"
+      ],
+      "expected": false
+    },
+    {
+      "id": "garbage_short_latin",
+      "fn": "looks_like_garbage",
+      "args": [
+        "mv01"
+      ],
+      "expected": false
+    },
+    {
+      "id": "dialogue_short",
+      "fn": "looks_like_dialogue",
+      "args": [
+        "「あ…」"
+      ],
+      "expected": true
+    },
+    {
+      "id": "dialogue_menu",
+      "fn": "looks_like_dialogue",
+      "args": [
+        "画面設定環境設定システムヘルプ"
+      ],
+      "expected": false
+    },
+    {
+      "id": "noise_menu",
+      "fn": "looks_like_noise",
+      "args": [
+        "ロード"
+      ],
+      "expected": true
+    },
+    {
+      "id": "noise_line",
+      "fn": "looks_like_noise",
+      "args": [
+        "俺は彼女と出会った。"
+      ],
+      "expected": false
+    },
+    {
+      "id": "noise_longmax",
+      "fn": "looks_like_noise",
+      "args": [
+        "ああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああああ"
+      ],
+      "kwargs": {
+        "max_chars": 1200
+      },
+      "expected": true
+    }
+  ]
+}

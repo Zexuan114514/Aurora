@@ -1,0 +1,196 @@
+{
+  "schema": "aurora.golden/1",
+  "module": "aurora.domain.engine_rules",
+  "shim": "gl.vntext",
+  "captured_at": "2026-09-20",
+  "captured_from": "gl/vntext.py 的引擎规格与 H-code 纯函数",
+  "cases": [
+    {
+      "id": "profile_willplus",
+      "fn": "profile_for",
+      "args": [
+        "WillPlus"
+      ],
+      "expected": {
+        "name_prefix": true,
+        "collapse_doubling": true,
+        "dedupe_window": 8.0,
+        "hook_hint": "WillPlus/AdvHD：Textractor 自带的 WillPlus 系钩子对不上这类 exe（实测少女之剑：WillPlus 找不到函数、WillPlusW/A 找不到特征码、WillPlus2 把地址算到 Intel 显卡驱动的 igc32.dll 上 → 乱码），只剩按字形抓的 GDI 钩子，而字形有缓存 → 缺字。Aurora 会用**内存补全**把缺字版配成完整台词（只读扫内存，不需要地址）；如果还想更稳，可以在「翻译」面板里填一条专用钩子码 `HQ-4@<模块内偏移>:<exe文件名>`（Q = UTF-16，S = 字节串，V = UTF-8）。本机实测过的作品 Aurora 会自动带出这条码。"
+      }
+    },
+    {
+      "id": "profile_bgi",
+      "fn": "profile_for",
+      "args": [
+        "BGI/Ethornell"
+      ],
+      "expected": {
+        "name_prefix": true,
+        "collapse_doubling": true,
+        "dedupe_window": 8.0,
+        "variant_settle": 0.6,
+        "hook_hint": "BGI/Ethornell：用 BGI 那条钩子（引擎自己的文本接口）就能拿到完整正文；TextOutA/ExtTextOutW 是按字形抓的 GDI 钩子，会缺字，自动模式已经把它的缺字版并掉了（实测 秽翼のユースティア）。"
+      }
+    },
+    {
+      "id": "profile_kirikiri",
+      "fn": "profile_for",
+      "args": [
+        "TVP/KIRIKIRI"
+      ],
+      "expected": {
+        "name_prefix": true,
+        "collapse_doubling": true,
+        "dedupe_window": 8.0,
+        "hook_hint": "TVP/KIRIKIRI：优先用 GetTextExtentPoint32W:HQ8@0:gdi32.dll 这条钩子，它通常能给出完整正文（实测 DRACU RIOT）。"
+      }
+    },
+    {
+      "id": "profile_unknown",
+      "fn": "profile_for",
+      "args": [
+        "unknown-engine"
+      ],
+      "expected": {
+        "name_prefix": true,
+        "collapse_doubling": true,
+        "dedupe_window": 8.0,
+        "hook_hint": ""
+      }
+    },
+    {
+      "id": "build_hook_willplus",
+      "fn": "build_hook_code",
+      "args": [
+        {
+          "name": "advhd_crack.exe",
+          "size": 1992192,
+          "crc32": 1391091043,
+          "rva": 41518,
+          "offset": -4,
+          "mode": "Q",
+          "game": "少女之剑与秘密的协奏曲",
+          "note": "地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。"
+        },
+        "AdvHD_crack.exe"
+      ],
+      "expected": "HQ-4@A22E:AdvHD_crack.exe"
+    },
+    {
+      "id": "build_hook_artemis",
+      "fn": "build_hook_code",
+      "args": [
+        {
+          "name": "amakano3.exe",
+          "size": 5170176,
+          "crc32": 2717864603,
+          "rva": 1777520,
+          "offset": -108,
+          "mode": "S",
+          "codepage": 65001,
+          "game": "アマカノ３（甜蜜女友 3）",
+          "note": "地址来自 MisakaHookFinder 搜出的 `HS65001#-6C@1401B1F70`；实测能完整提取对话（`明らかに、詩夢の顔が青い。`）。"
+        },
+        "Amakano3.exe"
+      ],
+      "expected": "HS65001#-6C@1B1F70:Amakano3.exe"
+    },
+    {
+      "id": "match_hook_hit",
+      "fn": "match_willplus_hook",
+      "args": [
+        "advhd_crack.exe",
+        1992192,
+        1391091043
+      ],
+      "expected": {
+        "name": "advhd_crack.exe",
+        "size": 1992192,
+        "crc32": 1391091043,
+        "rva": 41518,
+        "offset": -4,
+        "mode": "Q",
+        "game": "少女之剑与秘密的协奏曲",
+        "note": "地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。"
+      }
+    },
+    {
+      "id": "match_hook_miss_size",
+      "fn": "match_willplus_hook",
+      "args": [
+        "advhd_crack.exe",
+        1992193,
+        1391091043
+      ],
+      "expected": null
+    },
+    {
+      "id": "hook_code_matches_normalized",
+      "fn": "hook_code_matches",
+      "args": [
+        "HQ-4@A22E:AdvHD_crack.exe",
+        "HS65001#-4@A22E"
+      ],
+      "expected": true
+    },
+    {
+      "id": "hook_code_matches_other",
+      "fn": "hook_code_matches",
+      "args": [
+        "HQ-4@A22E:AdvHD_crack.exe",
+        "HQ-9@B22E:other.exe"
+      ],
+      "expected": false
+    },
+    {
+      "id": "looks_like_hook_yes",
+      "fn": "looks_like_hook_code",
+      "args": [
+        "HQ-4@A22E:AdvHD_crack.exe"
+      ],
+      "expected": true
+    },
+    {
+      "id": "looks_like_hook_artemis",
+      "fn": "looks_like_hook_code",
+      "args": [
+        "HS65001#-6C@1B1F70:Amakano3.exe"
+      ],
+      "expected": true
+    },
+    {
+      "id": "looks_like_hook_no",
+      "fn": "looks_like_hook_code",
+      "args": [
+        "这是一句普通台词"
+      ],
+      "expected": false
+    },
+    {
+      "id": "parse_hook_line_real",
+      "fn": "parse_hook_line",
+      "args": [
+        "[handle:4460:1B1F70:0:0:thread:HS65001#-6C@1B1F70:Amakano3.exe] 明らかに、詩夢の顔が青い。"
+      ],
+      "expected": {
+        "text": "明らかに、詩夢の顔が青い。",
+        "thread": "handle:4460:1B1F70:0:0",
+        "name": "thread",
+        "code": "HS65001#-6C@1B1F70:Amakano3.exe"
+      }
+    },
+    {
+      "id": "parse_hook_line_noise",
+      "fn": "parse_hook_line",
+      "args": [
+        "vnreng: INSERT KiriKiriZ"
+      ],
+      "expected": {
+        "text": "vnreng: INSERT KiriKiriZ",
+        "thread": "",
+        "name": "",
+        "code": ""
+      }
+    }
+  ]
+}

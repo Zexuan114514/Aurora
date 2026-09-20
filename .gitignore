@@ -33,6 +33,8 @@ tools/*.png
 tools/*.jpg
 tools/*-report.json
 .cache/
+.pytest_cache/
+checks-result.json
 _sandbox/
 
 # ---------- 编辑器 / 系统 ----------

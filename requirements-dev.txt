@@ -1,0 +1,3 @@
+# 仅开发/CI 使用，不进发布包（PyInstaller 打包时显式排除 pytest）
+# 安装： python -m pip install -r requirements-dev.txt
+pytest>=8.0

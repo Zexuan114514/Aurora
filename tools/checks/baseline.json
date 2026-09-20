@@ -1,0 +1,387 @@
+{
+  "schema": "aurora.baseline/1",
+  "captured_at": "2026-09-20",
+  "app_version": "1.0.0",
+  "python": "3.13",
+  "bridge": {
+    "public_methods": 105,
+    "internal_methods": 41,
+    "frontend_call_points": 96,
+    "overlay_methods": 4,
+    "event_topics": 14,
+    "overlay_actions": 8,
+    "contract_file": "docs/architecture/contracts/bridge-contract.json"
+  },
+  "modules": [
+    {
+      "path": "aurora/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/domain/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/domain/contracts.py",
+      "lines": 115
+    },
+    {
+      "path": "aurora/domain/engine_rules.py",
+      "lines": 279
+    },
+    {
+      "path": "aurora/domain/matching.py",
+      "lines": 284
+    },
+    {
+      "path": "aurora/domain/session_rules.py",
+      "lines": 35
+    },
+    {
+      "path": "aurora/domain/text_rules.py",
+      "lines": 682
+    },
+    {
+      "path": "gl/__init__.py",
+      "lines": 5
+    },
+    {
+      "path": "gl/api.py",
+      "lines": 2257
+    },
+    {
+      "path": "gl/config.py",
+      "lines": 220
+    },
+    {
+      "path": "gl/detect.py",
+      "lines": 23
+    },
+    {
+      "path": "gl/downloads.py",
+      "lines": 321
+    },
+    {
+      "path": "gl/gameinput.py",
+      "lines": 90
+    },
+    {
+      "path": "gl/hookfinder.py",
+      "lines": 754
+    },
+    {
+      "path": "gl/hotkey.py",
+      "lines": 85
+    },
+    {
+      "path": "gl/linetrans.py",
+      "lines": 307
+    },
+    {
+      "path": "gl/locale.py",
+      "lines": 151
+    },
+    {
+      "path": "gl/memmatch.py",
+      "lines": 422
+    },
+    {
+      "path": "gl/metadata.py",
+      "lines": 50
+    },
+    {
+      "path": "gl/netproxy.py",
+      "lines": 141
+    },
+    {
+      "path": "gl/ocr.py",
+      "lines": 161
+    },
+    {
+      "path": "gl/overlay.py",
+      "lines": 375
+    },
+    {
+      "path": "gl/process.py",
+      "lines": 398
+    },
+    {
+      "path": "gl/proctree.py",
+      "lines": 131
+    },
+    {
+      "path": "gl/screencap.py",
+      "lines": 285
+    },
+    {
+      "path": "gl/sources/__init__.py",
+      "lines": 6
+    },
+    {
+      "path": "gl/sources/bangumi.py",
+      "lines": 179
+    },
+    {
+      "path": "gl/sources/base.py",
+      "lines": 45
+    },
+    {
+      "path": "gl/sources/custom.py",
+      "lines": 225
+    },
+    {
+      "path": "gl/sources/manager.py",
+      "lines": 378
+    },
+    {
+      "path": "gl/sources/net.py",
+      "lines": 208
+    },
+    {
+      "path": "gl/sources/steam.py",
+      "lines": 226
+    },
+    {
+      "path": "gl/sources/vndb.py",
+      "lines": 181
+    },
+    {
+      "path": "gl/steamlib.py",
+      "lines": 196
+    },
+    {
+      "path": "gl/store.py",
+      "lines": 294
+    },
+    {
+      "path": "gl/translate.py",
+      "lines": 259
+    },
+    {
+      "path": "gl/tray.py",
+      "lines": 310
+    },
+    {
+      "path": "gl/vntext.py",
+      "lines": 1359
+    },
+    {
+      "path": "gl/web/app.css",
+      "lines": 2058
+    },
+    {
+      "path": "gl/web/app.js",
+      "lines": 3917
+    },
+    {
+      "path": "gl/web/index.html",
+      "lines": 896
+    },
+    {
+      "path": "gl/web/overlay.html",
+      "lines": 230
+    },
+    {
+      "path": "gl/winapi.py",
+      "lines": 329
+    },
+    {
+      "path": "main.py",
+      "lines": 318
+    }
+  ],
+  "threads": [
+    {
+      "name": "aurora-hooksearch",
+      "file": "gl/api.py",
+      "line": 694
+    },
+    {
+      "name": "aurora-hooksearch-advance",
+      "file": "gl/api.py",
+      "line": 737
+    },
+    {
+      "name": "aurora-hooksearch-advance",
+      "file": "gl/api.py",
+      "line": 818
+    },
+    {
+      "name": "aurora-refresh-all",
+      "file": "gl/api.py",
+      "line": 1506
+    },
+    {
+      "name": "aurora-library.json",
+      "file": "gl/api.py",
+      "line": 1529
+    },
+    {
+      "name": "aurora-steam-import",
+      "file": "gl/api.py",
+      "line": 1634
+    },
+    {
+      "name": "aurora-translate-q",
+      "file": "gl/api.py",
+      "line": 1882
+    },
+    {
+      "name": "aurora-translate-all",
+      "file": "gl/api.py",
+      "line": 1950
+    },
+    {
+      "name": "aurora-heartbeat",
+      "file": "gl/api.py",
+      "line": 2205
+    },
+    {
+      "name": "aurora-downloads",
+      "file": "gl/downloads.py",
+      "line": 165
+    },
+    {
+      "name": "aurora-hotkeys",
+      "file": "gl/hotkey.py",
+      "line": 42
+    },
+    {
+      "name": "aurora-linetrans",
+      "file": "gl/linetrans.py",
+      "line": 87
+    },
+    {
+      "name": "aurora-overlay-resize",
+      "file": "gl/overlay.py",
+      "line": 139
+    },
+    {
+      "name": "aurora-session-{game_id[:6]}",
+      "file": "gl/process.py",
+      "line": 266
+    },
+    {
+      "name": "aurora-tray",
+      "file": "gl/tray.py",
+      "line": 150
+    },
+    {
+      "name": "aurora-vntext-flush",
+      "file": "gl/vntext.py",
+      "line": 1323
+    },
+    {
+      "name": "aurora-vntext-hook",
+      "file": "gl/vntext.py",
+      "line": 1491
+    },
+    {
+      "name": "aurora-vntext-hookcode",
+      "file": "gl/vntext.py",
+      "line": 1500
+    },
+    {
+      "name": "aurora-vntext-ocr",
+      "file": "gl/vntext.py",
+      "line": 2022
+    },
+    {
+      "name": "aurora-drop-bind",
+      "file": "main.py",
+      "line": 163
+    },
+    {
+      "name": "aurora-tray-supervisor",
+      "file": "main.py",
+      "line": 240
+    }
+  ],
+  "data": {
+    "library_bytes": 296982,
+    "games": 24,
+    "settings_keys": 39,
+    "bookshelves": 0,
+    "session_records": 123,
+    "image_records": 426,
+    "log_bytes": 8880506,
+    "cache_bytes": 2123878,
+    "fixture": "tests/fixtures/library-v1.sanitized.json",
+    "golden_cases": 82
+  },
+  "artifacts": {
+    "aurora_exe_bytes": 25474107,
+    "tools_scripts": 29
+  },
+  "tolerances": {
+    "module_line_drift_pct": 25,
+    "note": "行数漂移只告警；模块被删除（且未在 superseded_by 中声明）才算失败。P1-P3 迁移期模块会搬家，届时在 baseline 里登记。"
+  },
+  "superseded_by": {},
+  "modules_added_in_p1": [
+    "aurora/__init__.py",
+    "aurora/domain/__init__.py",
+    "aurora/domain/contracts.py",
+    "aurora/domain/engine_rules.py",
+    "aurora/domain/matching.py",
+    "aurora/domain/session_rules.py",
+    "aurora/domain/text_rules.py"
+  ],
+  "history": [
+    {
+      "phase": "P1",
+      "date": "2026-09-20",
+      "note": "纯逻辑下沉 aurora/domain；gl 的三个入口改成转发 shim（行数下降是搬运，不是删功能）",
+      "moves": [
+        {
+          "from": "gl/vntext.py（纯规则段）",
+          "to": "aurora/domain/text_rules.py",
+          "lines": 682
+        },
+        {
+          "from": "gl/vntext.py（引擎规格段）",
+          "to": "aurora/domain/engine_rules.py",
+          "lines": 279
+        },
+        {
+          "from": "gl/detect.py",
+          "to": "aurora/domain/matching.py",
+          "lines": 284
+        },
+        {
+          "from": "gl/sources/base.py（Candidate / Metadata）",
+          "to": "aurora/domain/contracts.py",
+          "lines": 115
+        },
+        {
+          "from": "gl/sources/manager.py（打分判定）",
+          "to": "aurora/domain/matching.py",
+          "lines": null
+        },
+        {
+          "from": "gl/process.py + gl/api.py（会话公式）",
+          "to": "aurora/domain/session_rules.py",
+          "lines": 35
+        }
+      ],
+      "drift": {
+        "gl/vntext.py": [
+          2145,
+          1359
+        ],
+        "gl/detect.py": [
+          221,
+          23
+        ],
+        "gl/sources/base.py": [
+          148,
+          45
+        ],
+        "gl/sources/manager.py": [
+          430,
+          378
+        ]
+      }
+    }
+  ]
+}
