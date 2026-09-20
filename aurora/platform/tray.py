@@ -255,7 +255,7 @@ class TrayIcon:
         path = self._icon
         if path.suffix.lower() != ".ico":
             try:
-                from .winapi import _as_ico
+                from gl.winapi import _as_ico
 
                 path = _as_ico(path) or path
             except Exception:

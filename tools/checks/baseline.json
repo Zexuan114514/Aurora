@@ -1154,6 +1154,31 @@
           8
         ]
       }
+    },
+    {
+      "phase": "P3.9-f",
+      "date": "2026-09-20",
+      "note": "tray/hotkey 薄平台件搬进 aurora/platform；tray 内一处相对 import 改成绝对（check_layers 抓到）；gl 留透明别名",
+      "moves": [
+        {
+          "from": "gl/tray.py",
+          "to": "aurora/platform/tray.py"
+        },
+        {
+          "from": "gl/hotkey.py",
+          "to": "aurora/platform/hotkey.py"
+        }
+      ],
+      "drift": {
+        "gl/tray.py": [
+          8,
+          8
+        ],
+        "gl/hotkey.py": [
+          8,
+          8
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1235,8 +1260,5 @@
   "modules_added_in_p3_9e": [
     "aurora/infra/vntext.py"
   ],
-  "modules_added_in_p3_9f": [
-    "aurora/platform/hotkey.py",
-    "aurora/platform/tray.py"
-  ]
+  "modules_added_in_p3_9f": []
 }
