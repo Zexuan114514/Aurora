@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3635
+      "lines": 3633
     },
     {
       "path": "gl/web/index.html",
@@ -399,7 +399,7 @@
     },
     {
       "path": "gl/web/app/views/hall.js",
-      "lines": 152
+      "lines": 170
     }
   ],
   "threads": [
@@ -1401,6 +1401,17 @@
       "moves": [
         {
           "from": "app.js: ringMod/ringSigned/clearRingStyles",
+          "to": "gl/web/app/views/hall.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-h",
+      "date": "2026-09-21",
+      "note": "applyRingSize/hallKeysOf 搬到 views/hall.js；帧循环整块留待 createRing（P4.3-i）",
+      "moves": [
+        {
+          "from": "app.js: ringMeasure 的样式写入 + hallKeys 的键列表",
           "to": "gl/web/app/views/hall.js"
         }
       ]

@@ -7,7 +7,7 @@ import { createSettingsView } from "./app/views/settings.js";
 import { ringReadout, layoutReadout } from "./app/views/hall.js";
 import { RING_GEOMETRY, RING_BASE, ringGeometryOf,
          placeRingTile, ringMod, ringSigned,
-         clearRingStyles } from "./app/views/hall.js";
+         clearRingStyles, applyRingSize, hallKeysOf } from "./app/views/hall.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -313,9 +313,8 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   const currentGame = () => findGame(state.focus) || null;
 
   const hallKeys = () => {
-    const ids = visibleGames().map((g) => g.id);
-    ids.push(ADD_KEY);
-    return ids;
+    /* 键列表算法在 ./app/views/hall.js（P4.3-h）；可见游戏仍由这里筛 */
+    return hallKeysOf(visibleGames().map((g) => g.id), ADD_KEY);
   };
 
   /* ---------- 大厅：绕竖轴的一圈封面（循环队列） ----------
@@ -353,9 +352,8 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
 
   function ringMeasure() {
     ringSize = ringGeometry();
-    el.hallRow.style.setProperty("--gi-w", ringSize.w + "px");
-    el.hallRow.style.setProperty("--gi-h", ringSize.h + "px");
-    el.hallViewport.style.setProperty("--ring-d", Math.round(ringSize.depth) + "px");
+    /* 样式写入在 ./app/views/hall.js（P4.3-h）；ringSize 这个运行期状态仍留这里 */
+    applyRingSize({ row: el.hallRow, viewport: el.hallViewport, size: ringSize });
   }
 
   /* 把一张封面放到环上的第 r 格（r 为相对当前位置的浮点格数） */

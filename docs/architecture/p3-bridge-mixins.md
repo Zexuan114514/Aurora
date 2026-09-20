@@ -491,3 +491,19 @@ const ringPlace = (node, r) => placeRingTile(node, r, { ring: RING, size: ringSi
 `ringMeasure`/`ringSync`/`ringFrame`/`ringRun` 与拖拽、键盘一起搬完；先存 `visual` 基线，
 改完 `e2e` + `visual` 双验收并逐项比对 `ring_check`。
 
+### P4.3-h 环的样式应用与键列表（2026-09-21 02:35）
+
+帧循环整块（`createRing`）要一次搬完，这轮继续把其中**能安全摘离**的两处摘掉：
+
+| 搬到 `views/hall.js` | 说明 |
+| --- | --- |
+| `applyRingSize({row, viewport, size})` | 把这一帧的环尺寸写到 `--gi-w` / `--gi-h` / `--ring-d` 三个样式变量（`ringSize` 这个运行期状态仍留主模块） |
+| `hallKeysOf(visibleIds, addKey)` | 键列表 = 可见游戏 + 末尾「＋ 导入游戏」；可见游戏的筛选/排序仍由主模块决定 |
+
+验收：`run_all` 8/8、`e2e` **90/90**、`visual` `errors=[]` 且 ring 判据数值
+`0/347.0`、`16/283.2` 与前一刀逐字相同。
+
+**P4.3-i（环的最后一刀）**：`createRing({ el, ring, state, onFocusChange, onKeys })` 一次性
+搬完 `ringSync`/`ringFrame`/`ringRun`、`updateRowFlat` 与拖拽/键盘；仍以 `visual` 的
+`ring_check` 数值 + `e2e` 双验收，偏差即回退。
+

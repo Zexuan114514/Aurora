@@ -129,6 +129,24 @@ export function clearRingStyles(node) {
   delete node.dataset.ringHidden;
 }
 
+/** 把这一帧算出的环尺寸写到样式变量上（布局用它给封面定尺寸与透视）。 */
+export function applyRingSize({ row, viewport, size }) {
+  row.style.setProperty("--gi-w", size.w + "px");
+  row.style.setProperty("--gi-h", size.h + "px");
+  viewport.style.setProperty("--ring-d", Math.round(size.depth) + "px");
+}
+
+/**
+ * 大厅里该排的键列表：所有可见游戏 + 末尾的「＋ 导入游戏」。
+ *
+ * 纯函数：可见游戏由调用方按当前筛选/排序算好后传进来，本模块不碰 store。
+ */
+export function hallKeysOf(visibleIds, addKey) {
+  const ids = [...visibleIds];
+  ids.push(addKey);
+  return ids;
+}
+
 /** 当前主页布局 + 平铺布局下每张封面的实际位置（全部是读 DOM）。 */
 export function layoutReadout({ row, viewport, layoutName, flatClass }) {
   return {
