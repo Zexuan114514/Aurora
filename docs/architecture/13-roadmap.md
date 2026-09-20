@@ -76,6 +76,7 @@
 | P3.10-c/d 用户实测修复（找钩子取样 / 设置不保存） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) P3.10-c 与 P3.10-d：真机跑通找钩子；设置改名漏改改回来，新增「桥接转发目标」守卫（`run_all` 8/8） |
 | P4.1 前端 ES 模块化第一步（`app.js` → 模块 + `core/api.js`） | ✅ 已完成（2026-09-20） | 页面本来就走本地 http（pywebview 内置服务器），ES 模块直接可用；`e2e` 90/90、`visual` 无 JS 错误；打包清单新增 `app/` 模块树 |
 | P4.2 状态收编（`core/store.js` + 实体更新 helper） | ✅ 已完成（2026-09-20） | 同上 P4.2 小节：`app.js` 3889 行、实体更新全部走 store；`run_all` 8/8、`e2e` 90/90 |
+| P4.3-a 共享 DOM 层（`core/dom.js`） | ✅ 已完成（2026-09-20） | 同上 P4.3-a 小节：元素表/`$`/`missingIds` 独立成模块，`app.js` 3838 行；`e2e` 90/90 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

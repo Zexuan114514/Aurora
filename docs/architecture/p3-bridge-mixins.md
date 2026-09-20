@@ -353,3 +353,20 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 （每个视图只导出 `mount`/`render`，跨视图状态一律走 store），`window.__aurora.ring()/layout()`
 改成从 `views/hall.js` 取数，测试面签名不变。
 
+### P4.3-a 共享 DOM 层 `core/dom.js`（2026-09-20 23:25）
+
+拆视图之前先把**所有视图都要用的那张元素表**搬出去，否则每个 view 都会反向
+import 主模块，变成循环依赖。
+
+| 改动 | 内容 |
+| --- | --- |
+| `gl/web/app/core/dom.js` | 新增：`missingIds`（HTML/JS 对不上时记一笔，最终进 `window.__auroraErrors`）、`$`、`el`（启动时一次性抓好的元素表，46 个元素） |
+| `gl/web/app.js` | 删掉本地 `$`/`missingIds`/`el`（53 行），改成 `import { $, el, missingIds } from "./app/core/dom.js"`；`app.js` 3889 → 3838 行 |
+
+验收：`run_all` 8/8、`e2e` **90/90**（含「缺元素上报」相关断言）。
+
+**下一刀（P4.3-b）**：给 store 加一个变更通知（`onChange`/`notify`）后，把
+`views/categories.js`（书架/选择/状态那段 `togglePick`…`setGameStatus`，约 90 行）
+整块搬出去：视图只 import `core/{api,dom,store}`，不再反向依赖主模块；
+`window.__aurora.ring()/layout()` 保持不变。
+

@@ -2,6 +2,7 @@
  * 桥接调用统一走 ./app/core/api.js；后续视图会继续拆到 ./app/views/。
  */
 import { call } from "./app/core/api.js";
+import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
 
@@ -11,59 +12,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
 
   // 最小尺寸由后端按显示器缩放比例钳制（见 gl/api.py: resize_apply）
   /* 记录找不到的元素：HTML 与 JS 对不上时报出来，而不是整页静默死掉 */
-  const missingIds = new Set();
-  const $ = (id) => {
-    const node = document.getElementById(id);
-    if (!node) missingIds.add(id);
-    return node;
-  };
-  const el = {
-    boot: $("boot"), empty: $("empty"), view: $("view"),
-    hall: $("hall"), hallRow: $("hallRow"), hallViewport: $("hallViewport"),
-    hallName: $("hallName"), hallSub: $("hallSub"), hallCount: $("hallCount"),
-    sortMenu: $("sortMenu"), btnBack: $("btnBack"),
-    search: $("searchInput"),
-    searchClear: $("searchClear"),
-    title: $("gTitle"), logo: $("gLogo"), chips: $("gChips"), desc: $("gDesc"),
-    play: $("btnPlay"), playLabel: $("playLabel"),
-    fetching: $("fetching"), fetchTitle: $("fetchTitle"), fetchSub: $("fetchSub"),
-    pillSource: $("pillSource"), pillRunning: $("pillRunning"),
-    bgPanel: $("bgPanel"), bgGrid: $("bgGrid"), bgCount: $("bgCount"),
-    detailPanel: $("detailPanel"), detailBody: $("detailBody"),
-    dTitle: $("dTitle"), dSub: $("dSub"),
-    matchPanel: $("matchPanel"), matchList: $("matchList"), matchQuery: $("matchQuery"),
-    matchLinks: $("matchLinks"), matchHint: $("matchHint"), matchQuick: $("matchQuick"),
-    sourcePanel: $("sourcePanel"), sourceList: $("sourceList"), sourceForm: $("sourceForm"),
-    coverPanel: $("coverPanel"), coverGrid: $("coverGrid"),
-    steamPanel: $("steamPanel"), steamList: $("steamList"),
-    steamImport: $("steamImport"), steamSub: $("steamSub"),
-    steamPickHint: $("steamPickHint"),
-    getPanel: $("getPanel"), getSiteForm: $("getSiteForm"),
-    getQuery: $("getQuery"), getDir: $("getDir"),
-    getDirHint: $("getDirHint"), getWatch: $("getWatch"), getExtract: $("getExtract"),
-    getSites: $("getSites"), addMenu: $("addMenu"),
-    localePanel: $("localePanel"),
-    translateHint: $("translateHint"),
-    showOriginal: $("btnShowOriginal"),
-    moreMenu: $("moreMenu"),
-    settingsView: $("settingsView"), setNav: $("setNav"),
-    categoriesView: $("categoriesView"), viewSwitch: $("viewSwitch"),
-    catRoots: $("catRoots"), catShelves: $("catShelves"), catStatusList: $("catStatusList"),
-    catDevs: $("catDevs"), catWall: $("catWall"), catBar: $("catBar"),
-    catTitle: $("catTitle"), catSub: $("catSub"), catActions: $("catActions"),
-    catCreate: $("catCreate"), catName: $("catName"), catHint: $("catHint"),
-    catQuery: $("catQuery"), catSort: $("catSort"),
-    scopePill: $("scopePill"), scopeLabel: $("scopeLabel"), scopeMenu: $("scopeMenu"),
-    vntextPanel: $("vntextPanel"), vnThreads: $("vnThreads"), vnState: $("vnState"),
-    vnHistory: $("vnHistory"), frameBox: $("frameBox"), frameImg: $("frameImg"),
-    frameSel: $("frameSel"),
-    netStatus: $("netStatus"), netResults: $("netResults"),
-    leStatus: $("leStatus"), leProfiles: $("leProfiles"),
-    toast: $("toast"),
-    dropHint: $("dropHint"),
-    modal: $("modal"), modalTitle: $("modalTitle"), modalBody: $("modalBody"),
-    modalInput: $("modalInput"), modalOk: $("modalOk"), modalCancel: $("modalCancel"),
-  };
+  /* P4.3：元素表与 $ 在 ./app/core/dom.js（视图模块也要用同一份） */
 
   let pywebviewReady = false;
   let drag = null;
