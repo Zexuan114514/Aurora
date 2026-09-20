@@ -21,6 +21,7 @@ from .store import Library
 
 from aurora.app.events import EventBus, default_bus
 from aurora.app.services.library import LibraryService
+from aurora.app.services.hooksearch import HookSearchService
 from aurora.app.services.launch import LaunchService
 from aurora.app.services.metadata import MetadataService
 from aurora.app.services.translation import TranslationService
@@ -102,13 +103,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
             set_option=self._library.set_setting,
             on_action=self._on_overlay_action)
         self._hotkeys = hotkey.Hotkeys()
-        # 自研钩子查找器（找不到文本时用户手动触发；会话状态给界面轮询）
-        self._hooksearch: dict = {"phase": "idle", "message": "", "target": "",
-                                  "candidates": [], "code": "", "error": "",
-                                  "reason": "", "steps": 0}
-        self._hooksearch_stop = threading.Event()
-        self._hooksearch_thread: threading.Thread | None = None
-        self._hooksearch_lock = threading.RLock()
         self._hotkeys.bind(1, hotkey.MOD_CONTROL | hotkey.MOD_ALT, 0x54,   # Ctrl+Alt+T
                            self._toggle_overlay_click_through)
         self._hotkeys.bind(2, hotkey.MOD_CONTROL | hotkey.MOD_ALT, 0x59,   # Ctrl+Alt+Y
@@ -118,6 +112,8 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
                            self._toggle_overlay_click_through)
         self._hotkeys.bind(4, hotkey.MOD_CONTROL | hotkey.MOD_SHIFT, 0x79,
                            self._toggle_overlay_visible)
+        self._hooksearch_service = HookSearchService(self._library, self._pm, self._vn_engine,
+                                                    self._tasks)
         self._vntext = VnTextService(self._library, self._pm, self._vn_engine, self._translator,
                                      self._overlay, self._hotkeys, self._tasks,
                                      stop_hook_search=self.stop_hook_search)

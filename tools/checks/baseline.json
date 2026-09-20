@@ -38,6 +38,10 @@
       "lines": 1
     },
     {
+      "path": "aurora/app/services/hooksearch.py",
+      "lines": 342
+    },
+    {
       "path": "aurora/app/services/launch.py",
       "lines": 179
     },
@@ -155,7 +159,7 @@
     },
     {
       "path": "aurora/ui/bridge/vntext.py",
-      "lines": 459
+      "lines": 185
     },
     {
       "path": "aurora/ui/bridge/window.py",
@@ -167,7 +171,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 198
+      "lines": 194
     },
     {
       "path": "gl/config.py",
@@ -926,6 +930,27 @@
           198
         ]
       }
+    },
+    {
+      "phase": "P3.8-g",
+      "date": "2026-09-20",
+      "note": "HookSearchService（13 个方法 + 会话状态）下沉；vntext mixin 只剩转发；桥接层至此仅剩导入流程与文件对话框未服务化",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/vntext.py（13 个钩子查找方法）",
+          "to": "aurora/app/services/hooksearch.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/vntext.py": [
+          459,
+          185
+        ],
+        "gl/api.py": [
+          198,
+          194
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -983,5 +1008,8 @@
   ],
   "modules_added_in_p3_8f": [
     "aurora/app/services/vntext.py"
+  ],
+  "modules_added_in_p3_8g": [
+    "aurora/app/services/hooksearch.py"
   ]
 }
