@@ -167,22 +167,27 @@ class HookSearchService:
                 if self._hooksearch_stop.is_set():
                     return self._set_hooksearch(phase="idle", message="已中止")
                 if collected:
-                    scored = []
-                    for row in collected:
-                        score = 0.0
-                        if target:
-                            score = difflib.SequenceMatcher(
-                                None, target, str(row.get("text") or "")).ratio()
-                        scored.append((score, row))
-                    scored.sort(key=lambda item: (-item[0], -item[1].get("count", 0)))
-                    pool = [row for _score, row in scored[:12]]
+                    # 先按「文本像不像台词」打分（OCR 只占 0.25 权重），再按采样次数
+                    scored = sorted(
+                        ((vntext.hook_candidate_score(str(row.get("text") or ""),
+                                                     ocr_target=target,
+                                                     count=int(row.get("count") or 0)), row)
+                         for row in collected),
+                        key=lambda item: (-item[0], -item[1].get("count", 0)))
+                    pool = [row for score, row in scored[:12] if score > 0]
+                    if not pool:
+                        return self._hooksearch_fail(
+                            "no-text", "采样到的候选都不像台词（可能停在菜单/黑屏），翻到正文再试")
                     self._set_hooksearch(
                         phase="verifying", steps=len(collected),
                         candidates=[{"code": "", "count": row.get("count", 0),
                                      "encoding": row.get("encoding"),
                                      "sample": str(row.get("text") or "")[:40],
+                                     "score": vntext.hook_candidate_score(
+                                         str(row.get("text") or ""), ocr_target=target,
+                                         count=int(row.get("count") or 0)),
                                      "verified": False} for row in pool],
-                        message=f"采到 {len(collected)} 条候选，按「和当前台词像不像」排序…")
+                        message=f"采到 {len(collected)} 条候选，按「像不像台词（OCR 仅参考）」排序…")
                     verified = self._hooksearch_verify_pool(game_id, pid, hwnd, pool,
                                                             target)
                     if verified:

@@ -680,3 +680,39 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
     if len(set(body)) <= 2 and len(body) >= 6:              # 分割线之类
         return True
     return False
+
+def hook_candidate_score(text: str, *, ocr_target: str = "", count: int = 0) -> float:
+    """候选钩子文本的可信度（0~1）：先看「像不像台词」，再参考与当前台词的相似度。
+
+    为什么需要它：旧实现只按 `difflib.ratio(OCR 台词, 候选文本)` 排序，而 OCR 本身就不准，
+    于是采样到的乱码（资源表、坐标串、重复名）常常排在真台词前面 —— 实测 アマカノ３
+    两个候选全判失败就是这个原因。这里把「文本自身像不像人话」放在第一位：
+
+    * 一票否决：空串 / 乱码 / 系统刷屏 / 噪声行 → 0 分
+    * 加分：命中台词形态、长度合适、含假名、带句读或引号
+    * 减分：长重复片段（资源表/刷屏特征）
+    * OCR 相似度只占 0.25 权重，且 OCR 缺失时不影响排序
+    * `count`（采样命中次数）给一点点权重，作为同分时的破局项
+    """
+    body = clean_hook_text(str(text or ""))
+    if not body or len(body) < 2:
+        return 0.0
+    if looks_like_garbage(body) or looks_like_system_spam(body) or looks_like_noise(body):
+        return 0.0
+    score = 0.0
+    if looks_like_dialogue(body):
+        score += 0.55
+    if 4 <= len(body) <= 120:
+        score += 0.15
+    if KANA_RE.search(body):
+        score += 0.15
+    if _SENTENCE_END_RE.search(body) or "「" in body:
+        score += 0.10
+    repeat = longest_repeat(body)
+    if repeat and len(repeat) >= 6:
+        score -= 0.20
+    if ocr_target:
+        score += 0.25 * difflib.SequenceMatcher(None, str(ocr_target), body).ratio()
+    if count:
+        score += min(0.05, 0.01 * (int(count) ** 0.5))
+    return round(max(0.0, min(1.0, score)), 4)
