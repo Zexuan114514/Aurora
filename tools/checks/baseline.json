@@ -30,6 +30,14 @@
       "lines": 63
     },
     {
+      "path": "aurora/app/services/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/app/services/settings.py",
+      "lines": 89
+    },
+    {
       "path": "aurora/domain/__init__.py",
       "lines": 1
     },
@@ -111,7 +119,7 @@
     },
     {
       "path": "aurora/ui/bridge/settings.py",
-      "lines": 222
+      "lines": 189
     },
     {
       "path": "aurora/ui/bridge/shared.py",
@@ -135,7 +143,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 188
+      "lines": 190
     },
     {
       "path": "gl/config.py",
@@ -760,6 +768,27 @@
           77
         ]
       }
+    },
+    {
+      "phase": "P3.8-a",
+      "date": "2026-09-20",
+      "note": "服务化第一刀：SettingsService（设置快照 / 资源站 CRUD / 资料源配置）下沉到 aurora/app/services/settings.py，桥接 mixin 的 11 个方法变成一行转发",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/settings.py（11 个薄方法）",
+          "to": "aurora/app/services/settings.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/settings.py": [
+          222,
+          189
+        ],
+        "gl/api.py": [
+          188,
+          190
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -797,5 +826,9 @@
     "aurora/infra/tasks.py",
     "aurora/platform/__init__.py",
     "aurora/platform/winapi.py"
+  ],
+  "modules_added_in_p3_8": [
+    "aurora/app/services/__init__.py",
+    "aurora/app/services/settings.py"
   ]
 }

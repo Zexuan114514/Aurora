@@ -20,6 +20,7 @@ from .sources import SourceManager
 from .store import Library
 
 from aurora.app.events import EventBus, default_bus
+from aurora.app.services.settings import SettingsService
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
 
@@ -44,6 +45,7 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._library = Library()
         self._pm = process.ProcessManager()
         self._sources = SourceManager(self._library)
+        self._settings = SettingsService(self._library, self._sources)
         self._window: webview.Window | None = None
         self._drag: dict | None = None
         self._busy: set[str] = set()

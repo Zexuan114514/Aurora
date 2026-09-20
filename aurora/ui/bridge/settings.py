@@ -9,7 +9,7 @@ import time
 import uuid
 from pathlib import Path
 
-from gl import config, downloads, locale, netproxy, vntext   # TODO(P3.3): 收口
+from gl import config, downloads, locale, netproxy, vntext   # TODO(P3.8): 逐个收口
 from gl.sources import net
 
 
@@ -18,41 +18,34 @@ class SettingsBridgeMixin:
 
 
     def set_setting(self, key: str, value) -> dict:
-        return self._library.set_setting(key, value)
+        return self._settings.set_setting(key, value)
 
 
     # ------------------------------------------------------------------ #
     # 资料源管理
     # ------------------------------------------------------------------ #
     def list_sources(self) -> list[dict]:
-        return self._sources.describe()
+        return self._settings.list_sources()
 
 
     def toggle_source(self, source_id: str, enabled: bool) -> dict:
-        self._sources.set_enabled(source_id, bool(enabled))
-        return {"ok": True, "sources": self._sources.describe()}
+        return self._settings.toggle_source(source_id, enabled)
 
 
     def move_source(self, source_id: str, delta: int) -> dict:
-        self._sources.move(source_id, int(delta))
-        return {"ok": True, "sources": self._sources.describe()}
+        return self._settings.move_source(source_id, delta)
 
 
     def add_custom_source(self, config_json: dict) -> dict:
-        entry = self._sources.add_custom(config_json or {})
-        return {"ok": True, "source": entry, "sources": self._sources.describe()}
+        return self._settings.add_custom_source(config_json)
 
 
     def remove_custom_source(self, source_id: str) -> dict:
-        ok = self._sources.remove_custom(source_id)
-        return {"ok": ok, "sources": self._sources.describe()}
+        return self._settings.remove_custom_source(source_id)
 
 
     def set_merge_sources(self, enabled: bool) -> dict:
-        cfg = self._sources.config()
-        cfg["merge_images"] = bool(enabled)
-        self._sources.save_config(cfg)
-        return {"ok": True, "merge_images": cfg["merge_images"]}
+        return self._settings.set_merge_sources(enabled)
 
 
     def test_source(self, source_id: str, query: str = "") -> dict:
@@ -66,45 +59,19 @@ class SettingsBridgeMixin:
     # 获取游戏：资源站（自己增删，点一下用默认浏览器打开）
     # ------------------------------------------------------------------ #
     def _sites(self) -> list[dict]:
-        raw = self._library.settings.get("resource_sites")
-        rows = raw if isinstance(raw, list) else []
-        out: list[dict] = []
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            name = str(row.get("name") or "").strip()[:40]
-            url = str(row.get("url") or "").strip()
-            if not name or not url.startswith(("http://", "https://")):
-                continue
-            out.append({"id": str(row.get("id") or f"site{len(out):02d}"),
-                        "name": name, "url": url[:500]})
-        return out
+        return self._settings.sites()
 
 
     def list_sites(self) -> dict:
-        return {"ok": True, "sites": self._sites()}
+        return self._settings.list_sites()
 
 
     def add_site(self, name: str, url: str) -> dict:
-        """添加一个资源站；地址里可以带 {query} 占位符。"""
-        name = (name or "").strip()[:40]
-        url = (url or "").strip()
-        if not name:
-            return {"ok": False, "error": "empty-name"}
-        if not url.startswith(("http://", "https://")):
-            return {"ok": False, "error": "bad-url"}
-        sites = self._sites()
-        entry = {"id": f"site{uuid.uuid4().hex[:8]}", "name": name, "url": url[:500]}
-        sites.append(entry)
-        self._library.set_setting("resource_sites", sites)
-        config.log(f"resource site added: {name} {url}")
-        return {"ok": True, "site": entry, "sites": sites}
+        return self._settings.add_site(name, url)
 
 
     def remove_site(self, site_id: str) -> dict:
-        sites = [row for row in self._sites() if row["id"] != site_id]
-        self._library.set_setting("resource_sites", sites)
-        return {"ok": True, "sites": sites}
+        return self._settings.remove_site(site_id)
 
 
     def get_download_settings(self) -> dict:
