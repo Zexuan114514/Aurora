@@ -58,6 +58,10 @@
       "lines": 142
     },
     {
+      "path": "aurora/app/services/vntext.py",
+      "lines": 303
+    },
+    {
       "path": "aurora/domain/__init__.py",
       "lines": 1
     },
@@ -151,7 +155,7 @@
     },
     {
       "path": "aurora/ui/bridge/vntext.py",
-      "lines": 657
+      "lines": 459
     },
     {
       "path": "aurora/ui/bridge/window.py",
@@ -163,7 +167,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 194
+      "lines": 198
     },
     {
       "path": "gl/config.py",
@@ -901,6 +905,27 @@
           194
         ]
       }
+    },
+    {
+      "phase": "P3.8-f",
+      "date": "2026-09-20",
+      "note": "VnTextService 上半（25 个方法：面板状态/文本会话/悬浮窗/术语表）下沉；注入 engine/translator/overlay/hotkeys/tasks 与 stop_hook_search 协作者",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/vntext.py（25 个方法）",
+          "to": "aurora/app/services/vntext.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/vntext.py": [
+          657,
+          459
+        ],
+        "gl/api.py": [
+          194,
+          198
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -955,5 +980,8 @@
   ],
   "modules_added_in_p3_8e": [
     "aurora/app/services/launch.py"
+  ],
+  "modules_added_in_p3_8f": [
+    "aurora/app/services/vntext.py"
   ]
 }

@@ -24,6 +24,7 @@ from aurora.app.services.library import LibraryService
 from aurora.app.services.launch import LaunchService
 from aurora.app.services.metadata import MetadataService
 from aurora.app.services.translation import TranslationService
+from aurora.app.services.vntext import VnTextService
 from aurora.app.services.settings import SettingsService
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
@@ -117,6 +118,9 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
                            self._toggle_overlay_click_through)
         self._hotkeys.bind(4, hotkey.MOD_CONTROL | hotkey.MOD_SHIFT, 0x79,
                            self._toggle_overlay_visible)
+        self._vntext = VnTextService(self._library, self._pm, self._vn_engine, self._translator,
+                                     self._overlay, self._hotkeys, self._tasks,
+                                     stop_hook_search=self.stop_hook_search)
         self._recover_sessions()
 
     # ------------------------------------------------------------------ #
