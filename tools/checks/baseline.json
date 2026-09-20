@@ -122,6 +122,14 @@
       "lines": 4
     },
     {
+      "path": "aurora/platform/gameinput.py",
+      "lines": 85
+    },
+    {
+      "path": "aurora/platform/proctree.py",
+      "lines": 126
+    },
+    {
       "path": "aurora/platform/winapi.py",
       "lines": 332
     },
@@ -187,7 +195,7 @@
     },
     {
       "path": "gl/gameinput.py",
-      "lines": 90
+      "lines": 13
     },
     {
       "path": "gl/hookfinder.py",
@@ -231,7 +239,7 @@
     },
     {
       "path": "gl/proctree.py",
-      "lines": 131
+      "lines": 14
     },
     {
       "path": "gl/screencap.py",
@@ -972,6 +980,31 @@
           178
         ]
       }
+    },
+    {
+      "phase": "P3.8-i",
+      "date": "2026-09-20",
+      "note": "依赖收口第一批：proctree 与 gameinput 搬进 aurora/platform/（相对 import 改绝对），gl 保留转发 shim",
+      "moves": [
+        {
+          "from": "gl/proctree.py",
+          "to": "aurora/platform/proctree.py"
+        },
+        {
+          "from": "gl/gameinput.py",
+          "to": "aurora/platform/gameinput.py"
+        }
+      ],
+      "drift": {
+        "gl/proctree.py": [
+          131,
+          14
+        ],
+        "gl/gameinput.py": [
+          90,
+          13
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1033,5 +1066,9 @@
   "modules_added_in_p3_8g": [
     "aurora/app/services/hooksearch.py"
   ],
-  "modules_added_in_p3_8h": []
+  "modules_added_in_p3_8h": [],
+  "modules_added_in_p3_8i": [
+    "aurora/platform/gameinput.py",
+    "aurora/platform/proctree.py"
+  ]
 }
