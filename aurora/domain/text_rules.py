@@ -710,6 +710,11 @@ def hook_candidate_score(text: str, *, ocr_target: str = "", count: int = 0) -> 
         return 0.0
     if kanji >= 2 and hira == 0 and kata <= 1:
         return 0.0
+    # 单字刷屏（试試試試…）：某个字占了绝大多数 → 不是台词
+    if len(body) >= 6:
+        top = max((body.count(ch) for ch in set(body)), default=0)
+        if top / len(body) > 0.6:
+            return 0.0
     score = 0.0
     if hira:
         score += 0.10          # 真台词一定有平假名
