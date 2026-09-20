@@ -191,3 +191,26 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 | 继承让「方法在哪」变模糊 | 读 `gl/api.py` 看不到全部方法 | 契约快照 + `update_contract.py --write` 的输出会列全量方法；mixin 头部写明范围 |
 | mixin 之间互相调用 | 搬第二刀时可能出现跨 mixin 调用 | 允许（同一个 `self`），但禁止跨 mixin 访问对方的私有属性；需要共享状态时上移到 `Api.__init__` |
 | 临时 `gl` 依赖 | 桥接层仍 import 遗留模块 | 已在 `check_layers` 里显式列出，P3.2 归零 |
+
+## P3.9 依赖收口与收尾（2026-09-20）
+
+| 批次 | 内容 |
+| --- | --- |
+| P3.9 二批 | `screencap`/`ocr` → `aurora/platform`；`netproxy` → `aurora/infra` |
+| P3.9-b/c/d/e | `linetrans`、`downloads`、`process`、`vntext`（1358 行文本引擎）→ `aurora/infra` |
+| P3.9-f | `tray`/`hotkey` → `aurora/platform` |
+| P3.9-g | `overlay` → `aurora/ui`；`config` → `aurora/infra`（最纠缠的模块） |
+| P3.9-h | `FileDialogPort` + `infra/dialogs.WebviewFileDialog`，桥接层不再直接调窗口对话框 |
+
+**机制改进**：`gl/` 的转发壳从「逐个复制名字」改成 **`sys.modules` 透明模块别名**——
+读写模块级状态与给模块打补丁（如探针模拟「没装日语」时改 `ocr._langs`）都作用到同一份实现上。
+
+**搬迁引入的两个回归（都被真机矩阵抓到并修复）**：
+
+1. `config` 搬到 `infra` 后仍按 `__file__` 推 `PKG_DIR/WEB_DIR` → 指向不存在的 `aurora/infra/web`，
+   用户启动会看到空白窗口（`e2e` 第一项 JS 即 null）。改为按项目根推导，保持 `PKG_DIR = 项目根/gl` 的语义。
+2. `overlay` 搬到 `ui` 后 `HTML_PATH` 同样按 `__file__` 推 → 悬浮窗创建失败（日志 `overlay html missing`）。
+   改为统一走 `config.WEB_DIR`。
+
+**收尾验收（2026-09-20）**：`e2e` **90/90**、`theme_probe` / `download_probe` / `locale_probe` / `net_probe` / `session_probe` / `vntext_probe` 全部通过、`visual` 背景缩放与复位正常、`pytest` 41 passed、`run_all` 7/7、契约 106/42/96/14 零差异；`Aurora.exe` 重建后实测出现可见窗口「Aurora 游戏启动器」1356×816。
+
