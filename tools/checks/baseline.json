@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3719
+      "lines": 3695
     },
     {
       "path": "gl/web/index.html",
@@ -396,6 +396,10 @@
     {
       "path": "gl/web/app/views/settings.js",
       "lines": 54
+    },
+    {
+      "path": "gl/web/app/views/hall.js",
+      "lines": 42
     }
   ],
   "threads": [
@@ -1354,6 +1358,17 @@
         {
           "from": "app.js: setSettingsTab/openSettings/closeSettings/refreshSettingsPanes",
           "to": "gl/web/app/views/settings.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-d",
+      "date": "2026-09-21",
+      "note": "大厅自检读出面（__aurora.ring()/layout()）搬到 app/views/hall.js，纯函数传参不入 ctx；e2e 90/90",
+      "moves": [
+        {
+          "from": "app.js: window.__aurora.ring/layout 的取数",
+          "to": "gl/web/app/views/hall.js"
         }
       ]
     }

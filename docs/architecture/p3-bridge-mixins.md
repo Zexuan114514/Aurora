@@ -419,3 +419,20 @@ closeAll: (...a) => closeAll(...a),
 **下一刀（P4.3-d）**：搬 `views/hall.js`（环/平铺布局 + `window.__aurora.ring()/layout()`
 的取数逻辑，测试面签名不变）——这一块最大（环动画与拖拽都在里面），单独一轮做。
 
+### P4.3-d 大厅视图第一刀：自检读出面 `views/hall.js`（2026-09-21 00:40）
+
+大厅是最大的一块（环动画、拖拽、键盘导航、背景调度都在里面），所以拆两步走。
+这一刀先搬**自检读出面**——`window.__aurora.ring()` / `layout()` 是 e2e / visual 的判据
+来源，逻辑纯读、无副作用，最适合先独立：
+
+| 改动 | 内容 |
+| --- | --- |
+| `gl/web/app/views/hall.js` | 新增 `ringReadout({RING, state})` 与 `layoutReadout({row, viewport, layoutName, flatClass})` |
+| 设计选择 | 这两个函数**刻意不 import 任何东西**，依赖全部由调用方传入 —— 模块初始化阶段不存在 TDZ 风险（P4.3-c 的教训） |
+| `gl/web/app.js` | `__aurora.ring/layout` 变成一行调用 + 传参；**返回结构一个字段都没动**，e2e/visual 判据不变；`app.js` 3719 → 3695 行 |
+
+验收：`run_all` 8/8、`e2e` **90/90**。
+
+**下一刀（P4.3-e）**：搬环本体（`RING` 配置与几何计算 → `views/hall.js`，动画/拖拽的写入方
+留在主模块，通过 `ringHandle` 之类的接口交互），仍是每刀一跑 e2e/visual。
+

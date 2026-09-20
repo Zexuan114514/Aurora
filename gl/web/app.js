@@ -4,6 +4,7 @@
 import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
+import { ringReadout, layoutReadout } from "./app/views/hall.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -3474,39 +3475,14 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   }
 
   window.__aurora = {
-    /* 自检用：大厅环形队列的当前状态（位置、目标、顺序、是否在拖动） */
-    ring() {
-      return {
-        float: Number(RING.float.toFixed(3)),
-        target: RING.target,
-        drag: RING.dragActive,
-        focus: state.focus,
-        keys: RING.items.map((item) => item.key),
-      };
-    },
-    /* 自检用：当前主页布局 + 平铺布局下每张封面的实际位置 */
-    layout() {
-      const row = el.hallRow;
-      const vp = el.hallViewport.getBoundingClientRect();
-      return {
-        name: hallLayout(),
-        flatClass: document.body.classList.contains("hall-flat"),
-        rowTransform: row.style.transform || "",
-        viewportWidth: Math.round(vp.width),
-        tiles: [...row.children].map((node) => {
-          const rect = node.getBoundingClientRect();
-          const style = getComputedStyle(node);
-          return {
-            key: node.dataset.add ? "__add__" : (node.dataset.id || ""),
-            center: Math.round(rect.left + rect.width / 2 - vp.left),
-            width: Math.round(rect.width),
-            transform: style.transform,
-            visible: style.visibility !== "hidden" && Number(style.opacity) > 0.05,
-            focus: node.classList.contains("focus"),
-          };
-        }),
-      };
-    },
+    /* 自检用：大厅环形队列状态 / 布局读数 —— 取数逻辑在 ./app/views/hall.js（P4.3-d） */
+    ring: () => ringReadout({ RING, state }),
+    layout: () => layoutReadout({
+      row: el.hallRow,
+      viewport: el.hallViewport.getBoundingClientRect(),
+      layoutName: hallLayout(),
+      flatClass: document.body.classList.contains("hall-flat"),
+    }),
     emit(event, payload) {
       try {
         if (event === "game:updated" || event === "game:stopped" || event === "game:running") {
