@@ -214,3 +214,51 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 
 **收尾验收（2026-09-20）**：`e2e` **90/90**、`theme_probe` / `download_probe` / `locale_probe` / `net_probe` / `session_probe` / `vntext_probe` 全部通过、`visual` 背景缩放与复位正常、`pytest` 41 passed、`run_all` 7/7、契约 106/42/96/14 零差异；`Aurora.exe` 重建后实测出现可见窗口「Aurora 游戏启动器」1356×816。
 
+## P3.10 「找钩子」重做：签名播种 + 寄存器偏移（2026-09-20）
+
+### 现场结论（アマカノ３ / Artemis-Emote 真机）
+
+1. **采样式收集对「自绘文字」引擎无效**：文本指针只在绘制调用的一瞬间存在于寄存器/栈上，
+   50ms 一次的全线程采样永远撞不上 —— 12 秒采到的 600~1300 条候选**全是噪声**
+   （`igd11dxva64.dll` 字符串表、GPU 驱动栈帧等），没有一条像台词。
+2. **Textractor 自带钩子在这类引擎上完全空转**：它的 108 个 API 钩子（GDI/User32）都注入成功，
+   但游戏用 D3D11 自绘文字，一个字都不经过它们。
+3. **官方的做法**（`texthook/hookfinder.cc` 的 `SearchForHooks`）是：把候选函数全挂上 →
+   在每个挂钩点扫 `[-128, +72]` 的栈槽 → 谁指向一段文本就记成
+   `(挂钩地址, 数据偏移, padding)`；x64 上那些「栈槽」其实就是**存根压栈保存的寄存器**。
+4. **H-code 的 `#偏移` 语义**（源码 `hookcode.cpp` + `texthook.cc` 的 x64 存根）：
+   `dwDataBase` = 挂钩点的原始 RSP；`#N`（N<0 时解析器再 `-=4`）→ 读 `[RSP+N]`。
+   存根按 `rflags/rax/rbx/rcx/rdx/rsp/rbp/rsi/rdi/r8…r15` 顺序压栈，于是
+   「真实 -0x70 = R12」要写成 `-6C`；RDX 是 `-24`、RCX 是 `-1C`、RDI 是 `-44`。
+
+### 现在的实现
+
+| 步骤 | 做法 | 代码 |
+| --- | --- | --- |
+| ① 定位可疑函数 | 序言特征码扫描（内存 + **磁盘 PE 镜像**） | `hookfinder.scan_text_signatures` |
+| ② 试数据偏移 | 按 `HOOK_OFFSETS` 顺序发 H-code（R12→RDX→RCX→R8/R9→RDI/RSI→…→影子空间） | `hookfinder.HOOK_OFFSETS` |
+| ③ 验证 | 发码 → 代点一次 → 看这条线程有没有吐出像台词的文本（OCR 文本只做参考） | `HookSearchService._hooksearch_try` |
+| ④ 落盘 | 命中即写 `vntext_hook` 并发给正在跑的 CLI | 既有 `_hooksearch_try` |
+
+**为什么必须扫磁盘**：Textractor 在某函数入口装过钩子后，那几字节被改成跳转 ——
+同一局里再扫内存就**找不到这个函数了**（真机实测：候选从 `Amakano3.exe+0x1b1f70` 变成完全不命中）。
+磁盘镜像不会被改，所以按 PE 节表把文件偏移换算成 RVA 再取候选。
+
+**验收（真机，pid 17164 / アマカノ３）**：
+
+* 服务级：候选 1 命中 —— `HS65001#-6C@1B1F70:Amakano3.exe`，库里随即写入这条码；
+  其间 Textractor 打出 `[2:430C:…:UserHook:HS65001#-6C@1B1F70:Amakano3.exe] 詩夢「……これで、落ちたら」`。
+* 界面级：真窗口 + 真页面，面板实时跟着事件走 `[识别台词] → [验证候选] → [成功]`，
+  提示「找到了：HS65001#-6C@1B1F70:Amakano3.exe（已存为该游戏专用码）」。
+* 离线：`pytest` 46 passed（新增 `tests/test_hook_offsets.py` 锁偏移语义）、`run_all` 7/7。
+
+### 顺带修掉的三件事
+
+1. **悬浮窗挡点击**：查找期间把悬浮窗临时设成穿透（`persist=False`），结束还原 ——
+   否则置顶的悬浮窗会盖住代点位置，`advance()` 的安全策略会拒绝点击。
+2. **伪线程污染**：Textractor 的「剪贴板/控制台/默认」线程会把剪贴板内容当台词
+   （真机实测：用户刚复制的链接）—— 验证阶段一律跳过。
+3. **调试器安全脱离**：事件处理一旦抛异常就漏掉 `ContinueDebugEvent`，脱离时那个未处理的
+   单步异常会转交给游戏本体（アマカノ３ 因此崩过两次，WER 异常码 `0x80000004`）。
+   现在每个事件都包 `try/finally`，脱离前先 drain（排空）再拆断点。
+

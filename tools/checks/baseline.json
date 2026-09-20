@@ -39,7 +39,7 @@
     },
     {
       "path": "aurora/app/services/hooksearch.py",
-      "lines": 390
+      "lines": 540
     },
     {
       "path": "aurora/app/services/launch.py",

@@ -85,10 +85,10 @@ ENGINE_PROFILES = {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,
         "hook_hint": "Artemis/Emote：引擎自己用 D3D11 画字（emotedriver.dll 只导入"
                      "KERNEL32 + D3DCOMPILER_47），GDI 文本钩子全空；Textractor 也没有"
-                     "这个引擎的专用钩子。出路是**用户钩子码**：用 MisakaHookFinder"
-                     "（内嵌 Textractor 的文本搜索）搜出特殊码，例如 アマカノ３ 的"
-                     "HS65001#-6C@1B1F70:Amakano3.exe，填到「翻译」面板存为专用即可；"
-                     "本机实测过的作品 Aurora 会自动带出。临时也可以用 OCR 模式。",
+                     "这个引擎的专用钩子。点「找不到文本？开始侦测」让 Aurora 自己找："
+                     "它会按绘制函数特征码定位候选、逐个试寄存器偏移，实测 アマカノ３ 十秒内"
+                     "就能拿到 HS65001#-6C@1B1F70:Amakano3.exe；本机实测过的作品还会自动"
+                     "带出这条码。临时也可以用 OCR 模式。",
     },
     "WillPlus": {
         "name_prefix": True, "collapse_doubling": True, "dedupe_window": 8.0,

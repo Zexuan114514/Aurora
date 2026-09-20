@@ -20,11 +20,22 @@ from gl import (config, gameinput, hookfinder, ocr, screencap, vntext,
 class HookSearchService:
     """钩子查找：会话状态、采样、试码、失败路径。"""
 
-    def __init__(self, library, pm, engine, tasks) -> None:
+    #: 签名播种阶段最多花多久（超了就往下走老路子，别让界面干等）
+    SEED_BUDGET = 60.0
+    #: 一个函数入口最多试几个偏移（每个偏移都要发一条钩子码 + 代点一次）
+    SEED_OFFSETS = 12
+    #: 最多看几个签名命中的函数
+    SEED_FUNCTIONS = 4
+
+    #: Textractor 的伪线程：剪贴板/控制台里的内容不是游戏文本，验证时要跳过
+    PSEUDO_THREADS = ("剪贴板", "控制台", "默认")
+
+    def __init__(self, library, pm, engine, tasks, overlay=None) -> None:
         self._library = library
         self._pm = pm
         self._vn_engine = engine
         self._tasks = tasks
+        self._overlay = overlay
         self._hooksearch: dict = {"phase": "idle", "message": "", "target": "",
                                   "candidates": [], "code": "", "error": "",
                                   "reason": "", "steps": 0}
@@ -65,19 +76,22 @@ class HookSearchService:
             if fresh and int(fresh["hwnd"]) != int(hwnd or 0):
                 config.log(f"hooksearch: window changed {hwnd} -> {fresh['hwnd']}")
                 hwnd = int(fresh["hwnd"])
-        try:
-            winapi.focus_window(int(hwnd))
-            time.sleep(0.25)
-        except Exception:
-            pass
-        sent = gameinput.advance(int(hwnd))
-        if not sent and game_id:
-            fresh = self._game_window(game_id)
-            if fresh and int(fresh["hwnd"]) != int(hwnd or 0):
-                winapi.focus_window(int(fresh["hwnd"]))
+        # 抢前台要重试：Windows 允许「刚被别的窗口抢走」的前台锁，而且真机实测
+        # 第一次 focus_window 常常不生效（返回 False 但窗口其实已经在上层）。
+        for attempt in range(3):
+            try:
+                winapi.focus_window(int(hwnd))
                 time.sleep(0.25)
-                sent = gameinput.advance(int(fresh["hwnd"]))
-        return sent
+            except Exception:
+                pass
+            sent = gameinput.advance(int(hwnd))
+            if sent:
+                return sent
+            fresh = self._game_window(game_id) if game_id else None
+            if fresh and int(fresh["hwnd"]) != int(hwnd or 0):
+                hwnd = int(fresh["hwnd"])
+            time.sleep(0.2 * (attempt + 1))
+        return ""
 
     def _game_window(self, game_id: str) -> dict | None:
         """按游戏进程重新解析主窗口。
@@ -139,6 +153,18 @@ class HookSearchService:
                         target = vntext.tidy_ocr_text(result["text"])
             if len(target) < 2:
                 target = ""
+            # ── 主路径 0：签名播种（最快、命中率最高）──
+            #    采样式收集对「自绘文字」引擎是没用的：文本指针只在绘制那一瞬间存在，
+            #    采样永远撞不上（アマカノ３ 实测 1200+ 条候选全是噪声）。真正管用的是
+            #    MisakaHookFinder / Textractor「Search for hooks」那套：
+            #    先用特征码定位绘制函数 → 再在函数入口按固定顺序试数据偏移。
+            seeded = self._hooksearch_seed_pass(game_id, pid, hwnd, target)
+            if seeded:
+                return self._set_hooksearch(
+                    phase="done", code=seeded,
+                    message=f"找到了：{seeded}（已存为该游戏专用码）")
+            if self._hooksearch_stop.is_set():
+                return self._set_hooksearch(phase="idle", message="已中止")
             # ── 主路径：采样式收集（Misaka「翻页数次后列候选」的思路，不挂钩子）──
             #    采样所有线程栈 → 拿到「返回地址 + 槽偏移 + 那段文本」；
             #    文本能直接读到 → 和 OCR 到的当前台词一比，就知道哪条是原文。
@@ -319,6 +345,118 @@ class HookSearchService:
     def _hooksearch_on_hit(self, row: dict) -> None:
         self._set_hooksearch(message=f"已捕获访问（第 {row.get('count')} 次）：{hex(int(row.get('rip') or 0))}")
 
+    # ------------------------------------------------------------------ #
+    # 签名播种：特征码定位绘制函数 → 逐个试寄存器/栈偏移
+    # ------------------------------------------------------------------ #
+    def _hooksearch_seed_pass(self, game_id: str, pid: int, hwnd: int,
+                              target: str) -> str:
+        """按「文本绘制函数」的序言特征码找候选点，逐个试码，返回第一条能出台词的码。
+
+        思路来自 MisakaHookFinder / Textractor 的 SearchForHooks：先找嫌疑函数，
+        再在函数入口试「数据偏移」。x64 上偏移主要是**寄存器**（Textractor 的存根
+        会把 16 个寄存器压在挂钩点 RSP 下方，H-code 写负数偏移就能取到）。
+        """
+        started = time.time()
+        self._set_hooksearch(phase="seeding",
+                             message="正在按引擎特征码找可疑的文本绘制函数…")
+        try:
+            seats = hookfinder.scan_text_signatures(pid, limit=self.SEED_FUNCTIONS)
+        except Exception as exc:
+            config.log(f"hooksearch: 签名扫描失败 {exc}")
+            seats = []
+        if not seats:
+            config.log("hooksearch: 签名播种没找到候选函数")
+            return ""
+        tried = 0
+        stop_overlay = self._hooksearch_overlay_off()
+        try:
+            for row in seats:
+                if self._hooksearch_stop.is_set():
+                    return ""
+                module = str(row.get("module") or "")
+                base = int(row.get("base") or 0)
+                address = int(row.get("address") or 0)
+                if not module or not base or not address:
+                    continue
+                offsets = list(hookfinder.HOOK_OFFSETS)[:self.SEED_OFFSETS]
+                for index, offset in enumerate(offsets):
+                    if self._hooksearch_stop.is_set():
+                        return ""
+                    if time.time() - started > self.SEED_BUDGET:
+                        config.log("hooksearch: 签名播种超时，转老路子")
+                        return ""
+                    try:
+                        code = hookfinder.build_code(
+                            module=module, module_base=base, rip=address,
+                            offset=int(offset), encoding="utf-8")
+                    except hookfinder.HookFinderError:
+                        continue
+                    tried += 1
+                    self._set_hooksearch(
+                        phase="verifying", steps=tried,
+                        message=f"试第 {tried} 个候选：{module}+{address - base:#X} "
+                                f"偏移 {offset:#x}（{code}）")
+                    if self._hooksearch_try(game_id, hwnd, code, target,
+                                            clicks=1, wait=3.0):
+                        return code
+                # UTF-16 引擎的兜底：同一条函数只再试最像的几个偏移
+                for offset in offsets[:4]:
+                    if self._hooksearch_stop.is_set():
+                        return ""
+                    if time.time() - started > self.SEED_BUDGET:
+                        return ""
+                    try:
+                        code = hookfinder.build_code(
+                            module=module, module_base=base, rip=address,
+                            offset=int(offset), encoding="utf-16")
+                    except hookfinder.HookFinderError:
+                        continue
+                    tried += 1
+                    self._set_hooksearch(
+                        phase="verifying", steps=tried,
+                        message=f"试第 {tried} 个候选（UTF-16）：{code}")
+                    if self._hooksearch_try(game_id, hwnd, code, target,
+                                            clicks=1, wait=3.0):
+                        return code
+        finally:
+            self._hooksearch_overlay_restore(stop_overlay)
+        config.log(f"hooksearch: 签名播种试了 {tried} 条候选码，都没吐出台词")
+        return ""
+
+    def _hooksearch_overlay_off(self):
+        """找钩子期间把悬浮窗设成穿透——否则置顶的悬浮窗会挡住代点的位置。
+
+        返回原来的 click_through 值（找不到悬浮窗时返回 None）。
+        """
+        overlay = self._overlay
+        if overlay is None:
+            return None
+        current = None
+        try:
+            current = bool(overlay.click_through)
+        except Exception:
+            try:
+                current = bool(overlay.initial_payload().get("click_through"))
+            except Exception:
+                current = None
+        if current:
+            return current                    # 本来就穿透，不用动
+        try:
+            overlay.set_click_through(True, persist=False)
+            config.log("hooksearch: 悬浮窗临时改为穿透")
+        except Exception as exc:
+            config.log(f"hooksearch: 关不掉悬浮窗穿透 {exc}")
+        return current
+
+    def _hooksearch_overlay_restore(self, previous) -> None:
+        if previous is None or self._overlay is None:
+            return
+        try:
+            self._overlay.set_click_through(bool(previous), persist=False)
+            config.log("hooksearch: 悬浮窗穿透设置已还原")
+        except Exception:
+            pass
+
     def _hooksearch_verify_pool(self, game_id: str, pid: int, hwnd: int,
                                 pool: list[dict], target: str) -> str:
         """把采样来的候选变成 H-code 逐个验证，返回第一个能出真台词的码。"""
@@ -361,16 +499,20 @@ class HookSearchService:
         config.log(f"hooksearch: {reason} {message}")
         self._set_hooksearch(phase="error", error=reason, reason=reason, message=message)
 
-    def _hooksearch_try(self, game_id: str, hwnd: int, code: str, target: str) -> bool:
-        """发一条候选码 → 代点翻页 → 看这条线程有没有吐出像样的台词。"""
+    def _hooksearch_try(self, game_id: str, hwnd: int, code: str, target: str, *,
+                        clicks: int = 3, wait: float = 5.0) -> bool:
+        """发一条候选码 → 代点翻页 → 看这条线程有没有吐出像样的台词。
+
+        clicks/wait 给签名播种用更小的值（那边候选多，每条只给一次机会）。
+        """
         before = self._hooksearch_sample(code)
         if not self._vn_engine.send_hook(code).get("ok"):
             return False
-        for _ in range(3):
+        for _ in range(max(1, int(clicks))):
             if self._hooksearch_stop.is_set():
                 return False
             self._hooksearch_advance(hwnd, game_id)
-            deadline = time.time() + 5.0
+            deadline = time.time() + max(0.5, float(wait))
             while time.time() < deadline and not self._hooksearch_stop.is_set():
                 time.sleep(0.4)
                 sample = self._hooksearch_sample(code)
@@ -383,8 +525,16 @@ class HookSearchService:
         return False
 
     def _hooksearch_sample(self, code: str) -> str:
+        """取「我们这条钩子码」的线程样例。
+
+        跳过 Textractor 的伪线程（剪贴板/控制台/默认）—— 它们会把剪贴板内容
+        （真机实测：用户复制的链接）当成台词吐出来，跟着一起判定就会误报。
+        """
         status = self._vn_engine.status()
         for row in status.get("threads") or []:
+            name = str(row.get("name") or "")
+            if name in self.PSEUDO_THREADS:
+                continue
             if vntext.hook_code_matches(code, f"{row.get('name','')}:{row.get('code','')}"):
                 return str(row.get("sample") or "")
         return ""

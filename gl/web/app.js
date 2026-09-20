@@ -1591,6 +1591,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     };
     // 自研钩子查找器：找不到文本时手动触发（会临时附加调试器，期间游戏可能卡一下）
     const PHASE_LABEL = { idle: "未开始", starting: "准备中", ocr: "识别台词",
+                          seeding: "按特征码找绘制函数",
                           scanning: "定位文本", collecting: "等待游戏访问",
                           verifying: "验证候选", done: "成功", error: "失败" };
     const renderFind = (hs) => {
@@ -3810,6 +3811,14 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
           }
         } else if (event === "vntext:status") {
           if (el.vntextPanel.classList.contains("open")) renderVntextPanel(payload);
+        } else if (event === "hooksearch:status") {
+          // 查找器的每一步都从总线推过来，面板即时更新（不再只靠 1.5s 轮询兜底）
+          if (vnFindHooks.render) vnFindHooks.render(payload);
+          const phase = (payload || {}).phase;
+          if (vnFindTimer && (phase === "idle" || phase === "done" || phase === "error")) {
+            clearInterval(vnFindTimer);
+            vnFindTimer = null;
+          }
         } else if (event === "vntext:line") {
           if (state.settingsOpen && state.settingsTab === "vntext") renderGlossary();
           if (el.vntextPanel.classList.contains("open")) refreshVntext();

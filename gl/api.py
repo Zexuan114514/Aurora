@@ -118,7 +118,7 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._hotkeys.bind(4, hotkey.MOD_CONTROL | hotkey.MOD_SHIFT, 0x79,
                            self._toggle_overlay_visible)
         self._hooksearch_service = HookSearchService(self._library, self._pm, self._vn_engine,
-                                                    self._tasks)
+                                                    self._tasks, overlay=self._overlay)
         self._vntext = VnTextService(self._library, self._pm, self._vn_engine, self._translator,
                                      self._overlay, self._hotkeys, self._tasks,
                                      stop_hook_search=self.stop_hook_search)

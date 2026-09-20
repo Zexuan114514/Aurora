@@ -61,7 +61,7 @@ class VnTextBridgeMixin:
 
 
     def _set_hooksearch(self, **patch) -> None:
-        return self._hooksearch_service._set_hooksearch()
+        return self._hooksearch_service._set_hooksearch(**patch)
 
 
     def get_hook_search_status(self) -> dict:

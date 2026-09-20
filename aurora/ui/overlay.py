@@ -236,6 +236,11 @@ class Overlay:
             wintypes.HWND(hwnd), wintypes.HWND(HWND_TOPMOST), 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW))
 
+    @property
+    def click_through(self) -> bool:
+        """当前是否穿透（找钩子期间要临时打开，否则置顶悬浮窗会挡住代点位置）。"""
+        return bool(self._click_through)
+
     def set_click_through(self, on: bool, *, persist: bool = True) -> dict:
         with self._lock:
             self._click_through = bool(on)

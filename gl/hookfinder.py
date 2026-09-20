@@ -491,41 +491,66 @@ def search(pid: int, buffers: list[dict], *, seconds: float = 8.0,
             tid = int(event.dwThreadId)
             events[code] = events.get(code, 0) + 1
             cont = DBG_CONTINUE
-            if code == EXCEPTION_DEBUG_EVENT:
-                exc_code = int.from_bytes(bytes(event.u[0:4]), "little")
-                if exc_code == EXCEPTION_SINGLE_STEP:
-                    ctx = armed.get(tid)
-                    if ctx is None:
-                        arm(tid)
+            exit_process = False
+            # 血泪教训：事件处理里一旦抛异常，「放行」这步就漏了 —— 我们脱离时那个
+            # 未处理的单步异常会转交给游戏本体，游戏直接在断点地址崩溃
+            # （アマカノ３ 真机崩过两次，WER: 0x80000004）。所以每步都包 try/finally。
+            try:
+                if code == EXCEPTION_DEBUG_EVENT:
+                    exc_code = int.from_bytes(bytes(event.u[0:4]), "little")
+                    if exc_code == EXCEPTION_SINGLE_STEP:
                         ctx = armed.get(tid)
-                    state = ctx.get() if ctx else None
-                    if state and (state["dr6"] & 0xF):
-                        steps += 1
-                        hit = _collect_hit(handle, state, targets)
-                        if hit:
-                            key = (hit["rip"], hit["offset"], hit["padding"])
-                            row = hits.setdefault(key, {**hit, "count": 0})
-                            row["count"] += 1
-                            if on_hit:
-                                try:
-                                    on_hit(dict(row))
-                                except Exception:
-                                    pass
-                        if ctx:
-                            ctx.set(clear_dr6=True)
-                elif exc_code == 0x80000003:
-                    # 附加时系统会在调试对象里插一个 int3；这是我们自己的事件，放行即可
-                    pending.update(_thread_ids(pid))
-                else:
-                    cont = DBG_EXCEPTION_NOT_HANDLED
-            elif code == CREATE_THREAD_DEBUG_EVENT:
-                pending.add(tid)
-            elif code == EXIT_PROCESS_DEBUG_EVENT:
-                kernel32.ContinueDebugEvent(int(event.dwProcessId), tid, cont)
+                        if ctx is None:
+                            arm(tid)
+                            ctx = armed.get(tid)
+                        state = ctx.get() if ctx else None
+                        if state and (state["dr6"] & 0xF):
+                            steps += 1
+                            hit = _collect_hit(handle, state, targets)
+                            if hit:
+                                key = (hit["rip"], hit["offset"], hit["padding"])
+                                row = hits.setdefault(key, {**hit, "count": 0})
+                                row["count"] += 1
+                                if on_hit:
+                                    try:
+                                        on_hit(dict(row))
+                                    except Exception:
+                                        pass
+                            if ctx:
+                                ctx.set(clear_dr6=True)
+                    elif exc_code == 0x80000003:
+                        # 附加时系统会在调试对象里插一个 int3；这是我们自己的事件，放行即可
+                        pending.update(_thread_ids(pid))
+                    else:
+                        cont = DBG_EXCEPTION_NOT_HANDLED
+                elif code == CREATE_THREAD_DEBUG_EVENT:
+                    pending.add(tid)
+                elif code == EXIT_PROCESS_DEBUG_EVENT:
+                    exit_process = True
+            except Exception as exc:
+                config.log(f"hookfinder: 调试事件处理出错（已忽略）{exc!r}")
+            finally:
+                try:
+                    kernel32.ContinueDebugEvent(int(event.dwProcessId), tid, cont)
+                except Exception:
+                    pass
+            if exit_process:
                 attached = False
                 break
-            kernel32.ContinueDebugEvent(int(event.dwProcessId), tid, cont)
     finally:
+        # 脱离前先把还挂着的调试事件放干净，再拆断点 —— 顺序反了就会把异常留给游戏
+        drain_deadline = time.time() + 0.6
+        while time.time() < drain_deadline:
+            if not kernel32.WaitForDebugEvent(ctypes.byref(event), 60):
+                break
+            try:
+                exc_code = int.from_bytes(bytes(event.u[0:4]), "little")
+                cont = (DBG_CONTINUE if exc_code in (0x80000003, EXCEPTION_SINGLE_STEP)
+                        else DBG_EXCEPTION_NOT_HANDLED)
+                kernel32.ContinueDebugEvent(int(event.dwProcessId),
+                                            int(event.dwThreadId), cont)
+            except Exception:
+                pass
         disarm()
         if attached:
             try:
@@ -763,3 +788,250 @@ def choose_decoding(raw: bytes) -> tuple[str, str]:
         if score > best_score:
             best_text, best_enc, best_score = text, encoding, score
     return best_text, best_enc
+
+
+# --------------------------------------------------------------------------- #
+# 签名播种：按「文本绘制函数」的序言特征码直接找候选挂钩点
+#
+# 血泪教训（アマカノ３ 真机）：采样式收集线程栈是**找不到**这种引擎的 ——
+# 文本指针只在绘制调用的一瞬间存在，50ms 一次采样永远撞不上。真正管用的路子是
+# MisakaHookFinder / Textractor「Search for hooks」那一套：
+#   ① 先定位「嫌疑函数」（特征码 / 导出表 / 调用频度）
+#   ② 在函数入口按固定顺序试「数据偏移」，看哪个偏移指向真台词
+# 函数入口的数据偏移在 x64 上主要是**寄存器**：Textractor 的存根会先把 16 个通用
+# 寄存器压到挂钩点的 RSP 下方，所以 H-code 里写负数偏移就能取寄存器（见下表）。
+# --------------------------------------------------------------------------- #
+
+#: 已知文本绘制函数的序言特征码（自己真机实测攒的；不抄 Textractor 的特征码数据）。
+#: 越靠前越可信：`artemis64` 在 アマカノ３ 上**唯一命中** Amakano3.exe+0x1B1F70。
+TEXT_FUNC_SIGNATURES: tuple[tuple[str, bytes], ...] = (
+    ("artemis64", bytes.fromhex("48895C24205556574154415541564157488BEC")),
+    ("artemis64-wide", bytes.fromhex("48895C242055565741544155415641574883EC")),
+    ("emote-epilogue", bytes.fromhex("CC40574883EC4048C7442430")),
+)
+
+#: Textractor x64 存根的伪 pushad 帧：寄存器 → 相对挂钩点 RSP 的**真实**偏移。
+#: （存根顺序 push rflags/rax/rbx/rcx/rdx/rsp/rbp/rsi/rdi/r8…r15，每个 8 字节）
+REG_FRAME: dict[str, int] = {
+    "Rax": -0x10, "Rbx": -0x18, "Rcx": -0x20, "Rdx": -0x28, "Rbp": -0x38,
+    "Rsi": -0x40, "Rdi": -0x48, "R8": -0x50, "R9": -0x58, "R10": -0x60,
+    "R11": -0x68, "R12": -0x70, "R13": -0x78, "R14": -0x80, "R15": -0x88,
+}
+
+#: 试偏移的顺序（**真实**栈偏移；build_code 会按 Textractor 的 ITH 规则处理负数）。
+#: 前面几个是实测命中过/上游文档记载的寄存器，后面才是影子空间等兜底位置。
+HOOK_OFFSETS: tuple[int, ...] = (
+    -0x70,            # R12：アマカノ３ 实测（H-code 里写 -6C）
+    -0x28,            # RDX：x64 第 2 个参数，Artemis64 上游写法
+    -0x20,            # RCX：第 1 个参数
+    -0x50, -0x58,     # R8 / R9：第 3、4 个参数
+    -0x48, -0x40,     # RDI / RSI
+    -0x18, -0x10,     # RBX / RAX
+    -0x68, -0x60,     # R11 / R10
+    -0x78, -0x80,     # R13 / R14
+    0x08, 0x10, 0x18, 0x20, 0x28,   # 调用者影子空间（少数引擎把文本指针放这儿）
+)
+
+PAGE_EXECUTE_MASK = 0x10 | 0x20 | 0x40 | 0x80
+
+
+def modules_of(pid: int) -> list[dict]:
+    """进程模块表 → [{name, path, base, size}]；第 0 个就是主 exe。"""
+    psapi = ctypes.WinDLL("psapi", use_last_error=True)
+    psapi.GetModuleFileNameExW.argtypes = [wintypes.HANDLE, ctypes.c_void_p,
+                                           ctypes.c_wchar_p, wintypes.DWORD]
+    psapi.GetModuleInformation.argtypes = [wintypes.HANDLE, ctypes.c_void_p,
+                                           ctypes.c_void_p, wintypes.DWORD]
+    handle = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
+    if not handle:
+        return []
+    out: list[dict] = []
+    try:
+        needed = wintypes.DWORD()
+        modules = (ctypes.c_void_p * 1024)()
+        if not kernel32.K32EnumProcessModules(handle, ctypes.byref(modules),
+                                              ctypes.sizeof(modules),
+                                              ctypes.byref(needed)):
+            return []
+        count = min(len(modules), needed.value // ctypes.sizeof(ctypes.c_void_p))
+        for index in range(count):
+            base = int(modules[index] or 0)
+            if not base:
+                continue
+            buffer = ctypes.create_unicode_buffer(1024)
+            if not psapi.GetModuleFileNameExW(handle, modules[index], buffer, 1024):
+                continue
+            info = ctypes.create_string_buffer(64)
+            size = 0
+            if psapi.GetModuleInformation(handle, modules[index], info, len(info)):
+                size = int.from_bytes(info.raw[8:12], "little")
+            out.append({"name": os.path.basename(buffer.value), "path": buffer.value,
+                        "base": base, "size": size})
+    finally:
+        kernel32.CloseHandle(handle)
+    return out
+
+
+def _exec_regions(handle) -> list[tuple[int, int]]:
+    """只取「已提交、可读、可执行」的区域（扫特征码用，省掉几百 MB 的数据段）。"""
+    out: list[tuple[int, int]] = []
+    wow = wintypes.BOOL()
+    kernel32.IsWow64Process(handle, ctypes.byref(wow))
+    top = 0x7FFF0000 if wow.value else 0x7FFFFFFF0000
+    mbi = memmatch.MEMORY_BASIC_INFORMATION()
+    address = 0
+    while address < top:
+        if not kernel32.VirtualQueryEx(handle, ctypes.c_void_p(address),
+                                       ctypes.byref(mbi), ctypes.sizeof(mbi)):
+            break
+        size = int(mbi.RegionSize or 0x1000)
+        protect = int(mbi.Protect or 0)
+        if mbi.State == memmatch.MEM_COMMIT and not protect & memmatch.PAGE_GUARD \
+                and protect & PAGE_EXECUTE_MASK:
+            out.append((int(address), min(size, memmatch.MAX_REGION_READ)))
+        address += size
+    return out
+
+
+def _pe_signature_rvas(path: str, signature: bytes,
+                       max_bytes: int = 256 * 1024 * 1024) -> list[int]:
+    """在磁盘上的 PE 文件里找特征码，并把文件偏移换算成 RVA。
+
+    为什么非要看磁盘：Textractor 在某个函数入口装过钩子之后，内存里那几字节会被
+    改成跳转指令 —— 于是**再扫内存就找不到这个函数了**（真机实测：同一局里第二次
+    找钩子，签名从命中变成完全不命中）。磁盘上的镜像不会被改，所以按磁盘扫更稳。
+    """
+    out: list[int] = []
+    try:
+        if not path or os.path.getsize(path) > max_bytes:
+            return out
+        with open(path, "rb") as fh:
+            data = fh.read()
+    except OSError:
+        return out
+    if len(data) < 0x100 or data[:2] != b"MZ":
+        return out
+    try:
+        pe_offset = int.from_bytes(data[0x3C:0x40], "little")
+        if data[pe_offset:pe_offset + 4] != b"PE\0\0":
+            return out
+        sections = int.from_bytes(data[pe_offset + 6:pe_offset + 8], "little")
+        opt_size = int.from_bytes(data[pe_offset + 20:pe_offset + 22], "little")
+        table = pe_offset + 24 + opt_size
+        for index in range(sections):
+            row = table + index * 40
+            raw_size = int.from_bytes(data[row + 16:row + 20], "little")
+            raw_ptr = int.from_bytes(data[row + 20:row + 24], "little")
+            virtual = int.from_bytes(data[row + 12:row + 16], "little")
+            if not raw_size or not raw_ptr:
+                continue
+            blob = data[raw_ptr:raw_ptr + raw_size]
+            start = 0
+            while True:
+                offset = blob.find(signature, start)
+                if offset < 0:
+                    break
+                out.append(virtual + offset)
+                start = offset + 1
+                if len(out) > 64:
+                    return out
+    except Exception:
+        return out
+    return out
+
+
+def scan_text_signatures(pid: int, *, limit: int = 4, max_hits: int = 24) -> list[dict]:
+    """按序言特征码找「文本绘制函数」→ [{module, base, address, rva, signature}]。
+
+    只用第一个命中过的签名（更具体的在前），并优先主 exe 里的命中 —— 文本绘制函数
+    通常在游戏自己的 exe 里；引擎 DLL（如 emotedriver.dll）里的命中排在后面。
+    """
+    handle = kernel32.OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, pid)
+    if not handle:
+        return []
+    found: list[dict] = []
+    seen: set[int] = set()
+    try:
+        modules = modules_of(pid)
+        exe_name = str((modules[0] if modules else {}).get("name") or "").lower()
+        regions = _exec_regions(handle)
+        for sig_name, sig in TEXT_FUNC_SIGNATURES:
+            hits = 0
+            for base, size in regions:
+                data = _read_raw(handle, base, size)
+                if not data:
+                    continue
+                start = 0
+                while hits < max_hits:
+                    offset = data.find(sig, start)
+                    if offset < 0:
+                        break
+                    start = offset + 1
+                    address = base + offset
+                    if address in seen:
+                        continue
+                    owner = ""
+                    owner_base = 0
+                    for row in modules:
+                        if row["base"] <= address < row["base"] + max(row["size"], 0x1000):
+                            owner, owner_base = str(row["name"]), int(row["base"])
+                            break
+                    if not owner or not owner_base:
+                        continue
+                    seen.add(address)
+                    found.append({"module": owner, "base": owner_base,
+                                  "address": address, "rva": address - owner_base,
+                                  "signature": sig_name})
+                    hits += 1
+            if found:
+                break                       # 具体签名命中了就别再用宽泛签名撒网
+    finally:
+        kernel32.CloseHandle(handle)
+    # 内存里可能已经被 Textractor 的钩子改写过（函数序言被换成跳转）—— 再扫一遍磁盘
+    # 镜像，把漏掉的候选补回来（同一签名、同一模块只按 RVA 去重）。
+    known = {(str(row["module"]).lower(), int(row["rva"])) for row in found}
+    exe_dir = ""
+    for row in modules:
+        if str(row["name"]).lower() == exe_name:
+            exe_dir = os.path.dirname(str(row["path"] or "")).lower()
+            break
+    for module in modules:
+        name = str(module.get("name") or "")
+        path = str(module.get("path") or "")
+        if not name or not path:
+            continue
+        # 只翻游戏目录里的东西 + 主 exe：系统 DLL 里没有我们要的绘制函数，白读
+        if name.lower() != exe_name and (not exe_dir
+                                         or not path.lower().startswith(exe_dir)):
+            continue
+        for sig_name, sig in TEXT_FUNC_SIGNATURES:
+            for rva in _pe_signature_rvas(path, sig):
+                if (name.lower(), rva) in known:
+                    continue
+                known.add((name.lower(), rva))
+                found.append({"module": name, "base": int(module.get("base") or 0),
+                              "address": int(module.get("base") or 0) + rva,
+                              "rva": rva, "signature": f"{sig_name}(disk)"})
+            if any(str(row["signature"]).startswith(sig_name) for row in found):
+                break
+    found.sort(key=lambda row: (str(row["module"]).lower() != exe_name, row["rva"]))
+    brief = ", ".join(f"{row['module']}+{row['rva']:#x}" for row in found[:6])
+    config.log(f"hookfinder: 签名播种命中 {len(found)} 个候选函数 [{brief}]")
+    return found[:limit]
+
+
+def hit_candidates(hit: dict, targets: list[dict]) -> list[dict]:
+    """把一次断点命中翻译成候选 H-code 参数。
+
+    hit 里带着命中时的寄存器（`regs`：寄存器 → 与该缓冲区的差值）和栈快照
+    （`slots`：栈偏移 → 差值）。差值就是 H-code 的 padding（补几个字节到文本头）。
+    """
+    out: list[dict] = []
+    for name, delta in (hit.get("regs") or {}).items():
+        real = REG_FRAME.get(str(name))
+        if real is None:
+            continue
+        out.append({"offset": real, "padding": int(delta), "from": str(name)})
+    for slot, delta in (hit.get("slots") or {}).items():
+        out.append({"offset": int(slot), "padding": int(delta), "from": f"rsp{int(slot):+#x}"})
+    return out
