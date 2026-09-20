@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from aurora.app.events import default_bus
 from aurora.app.projection import _public
+from aurora.ui.bridge.shared import LAUNCHABLE_EXTS
 from gl import config, detect   # TODO(P3.8): 收口到 aurora.infra
 import shutil
 import time

@@ -5,12 +5,15 @@
 """
 from __future__ import annotations
 
+import difflib
+
 import threading
 import time
 from pathlib import Path
 
 from aurora.app.events import default_bus
-from gl import config, gameinput, hookfinder, vntext   # TODO(P3.8): 收口到 aurora.platform / aurora.infra
+from gl import (config, gameinput, hookfinder, ocr, screencap, vntext,
+                winapi)   # TODO(P3.8): 收口到 aurora.platform / aurora.infra
 
 
 class HookSearchService:
