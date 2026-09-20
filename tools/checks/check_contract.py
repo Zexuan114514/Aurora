@@ -12,6 +12,14 @@ OVERLAY = "gl/overlay.py"
 APP_JS = "gl/web/app.js"
 
 
+def emit_sources() -> list[str]:
+    """`_emit` 与悬浮窗动作现在分散在桥接 mixin 里，扫描要覆盖整个桥接层。"""
+    sources = [API, "gl/downloads.py", "gl/overlay.py"]
+    sources += sorted(p.relative_to(ROOT).as_posix()
+                      for p in (ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
+    return sources
+
+
 def check() -> Result:
     result = Result("契约快照（桥接 + 事件）")
     contract = load_json(CONTRACT)
@@ -64,7 +72,7 @@ def check() -> Result:
         result.fail(f"悬浮窗桥接与快照不一致：快照 {sorted(snap_overlay)} / "
                     f"代码 {sorted(set(live_overlay) - excluded_overlay)}")
 
-    live_topics = emitted_topics(API, "gl/downloads.py", "gl/overlay.py")
+    live_topics = emitted_topics(*emit_sources())
     snap_topics = set(contract["events"])
     if live_topics - snap_topics:
         result.fail(f"代码里 emit 了新主题但快照没有：{sorted(live_topics - snap_topics)}")
@@ -73,7 +81,7 @@ def check() -> Result:
     result.note(f"事件主题 {len(snap_topics)} 个，与代码 emit 集合一致")
 
     actions = set(contract["overlay_actions"])
-    overlay_src = (ROOT / OVERLAY).read_text(encoding="utf-8") + (ROOT / API).read_text(encoding="utf-8")
+    overlay_src = "".join((ROOT / name).read_text(encoding="utf-8") for name in emit_sources())
     for action in sorted(actions):
         if f'"{action}"' not in overlay_src:
             result.fail(f"悬浮窗动作 {action} 在代码里找不到实现")

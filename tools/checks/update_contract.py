@@ -69,7 +69,10 @@ def build() -> dict:
             "called_by_frontend": name in {"ready", "save_bounds", "begin_resize", "action"},
         })
 
-    topics = sorted(emitted_topics(API, "gl/downloads.py", "gl/overlay.py"))
+    sources = [API, "gl/downloads.py", "gl/overlay.py"]
+    sources += sorted(p.relative_to(ROOT).as_posix()
+                      for p in (ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
+    topics = sorted(emitted_topics(*sources))
     payload = dict(current)
     payload["channels"] = {
         "main": {

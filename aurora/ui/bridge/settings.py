@@ -190,7 +190,7 @@ class SettingsBridgeMixin:
 
     def test_network(self) -> dict:
         """逐个试一下关键端点，把「连不上」变成看得见的结果。"""
-        from .sources import net
+        from gl.sources import net
 
         probes = (
             ("Steam 商店", "https://store.steampowered.com/api/storesearch/?term=neko&cc=CN&l=schinese",

@@ -80,6 +80,11 @@ def check() -> Result:
         for node in ast.walk(module):
             if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("aurora.infra"):
                 result.fail(f"{rel} 桥接层不得直接 import infra（改用 app 端口）")
+            # mixin 是从 gl/api.py 搬出来的：函数内的相对 import 会解析到 aurora.ui.bridge 下，
+            # 必须写成绝对路径（from gl import x / from gl.sources import y）。
+            if isinstance(node, ast.ImportFrom) and node.level:
+                result.fail(f"{rel} 出现相对 import（第 {node.lineno} 行）："
+                            f"mixin 里必须用绝对 import，否则会解析到 aurora.ui.bridge 命名空间")
             if isinstance(node, ast.ImportFrom) and (node.module or "") in {"gl", "gl.config"}:
                 pass
         if "from gl import" in path.read_text(encoding="utf-8"):

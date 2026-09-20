@@ -86,6 +86,10 @@
       "lines": 490
     },
     {
+      "path": "aurora/ui/bridge/metadata.py",
+      "lines": 432
+    },
+    {
       "path": "aurora/ui/bridge/settings.py",
       "lines": 222
     },
@@ -98,6 +102,10 @@
       "lines": 157
     },
     {
+      "path": "aurora/ui/bridge/vntext.py",
+      "lines": 660
+    },
+    {
       "path": "aurora/ui/bridge/window.py",
       "lines": 135
     },
@@ -107,7 +115,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 1292
+      "lines": 309
     },
     {
       "path": "gl/config.py",
@@ -537,6 +545,27 @@
           1292
         ]
       }
+    },
+    {
+      "phase": "P3.4",
+      "date": "2026-09-20",
+      "note": "metadata(18) + vntext/hooksearch/overlay(38) 共 56 个方法搬进 aurora/ui/bridge/；api.py 只剩 14 个方法（init/bootstrap/launch/session/_emit）",
+      "moves": [
+        {
+          "from": "gl/api.py（18 个元数据方法）",
+          "to": "aurora/ui/bridge/metadata.py"
+        },
+        {
+          "from": "gl/api.py（38 个 vntext/钩子/悬浮窗方法）",
+          "to": "aurora/ui/bridge/vntext.py"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          1292,
+          309
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -561,5 +590,9 @@
   "modules_added_in_p3_3": [
     "aurora/ui/bridge/library.py",
     "aurora/ui/bridge/shared.py"
+  ],
+  "modules_added_in_p3_4": [
+    "aurora/ui/bridge/metadata.py",
+    "aurora/ui/bridge/vntext.py"
   ]
 }

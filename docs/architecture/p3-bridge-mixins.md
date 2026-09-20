@@ -80,6 +80,30 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 钩子查找 / 悬浮窗动作）、`downloads`、`bootstrap` 聚合；再加 `TaskRunner` + `EventBus` 收掉 20 个具名线程，
 并把桥接层对 `gl` 的临时依赖（config / process / vntext / downloads / locale / netproxy）收口。
 
+## P3.4 追加：元数据 + 游戏内翻译 / 钩子查找 / 悬浮窗（2026-09-20）
+
+| 项 | 结果 |
+| --- | --- |
+| 新 mixin | `aurora/ui/bridge/metadata.py`（18 个方法：重抓 / Steam 导入 / 搜索匹配 / 简介翻译）<br>`aurora/ui/bridge/vntext.py`（38 个方法：翻译面板状态 / 钩子查找器 / 悬浮窗动作 / 术语表） |
+| `gl/api.py` | 1292 → **309 行**（累计 2232 → 309，-86%），类内只剩 **14 个方法**：`__init__` / `bootstrap` / `scan_downloads` / `set_game_locale` / `shutdown` / `launch` / `_locale_command` / `_on_game_found` / `_on_game_exit` / `stop` / `_start_heartbeat` / `_beat` / `_recover_sessions` / `_emit` |
+| `Api` 基类 | 6 个 mixin：window / shell / settings / library / metadata / vntext |
+| 契约 | 公开方法 106 / 前端调用点 96 / 事件主题 14，零差异 |
+| 验收 | `pytest` 26 passed、`run_all` 6/6；运行时冒烟 **37 个方法**，其中 `scan_steam` 读到本机 Steam 库、`test_translation` 真连免费接口返回译文 |
+
+**冒烟抓到两个真问题（都已修）**：
+
+1. **函数内相对 import 在 mixin 里解析错**：`from . import steamlib` / `from .sources import net` /
+   `from . import winapi` 原本在 `gl/` 里合法，搬进 `aurora/ui/bridge/` 后会去找 `aurora.ui.bridge.*` →
+   `ImportError`。三处改成绝对路径（`from gl import steamlib` 等），并在 `check_layers` 里加硬规则：
+   桥接 mixin 出现任何相对 import 直接判失败。
+2. **契约守卫的扫描范围要跟着方法走**：`_emit(...)` 与悬浮窗动作字符串搬进 mixin 后，
+   「事件主题 / 悬浮窗动作」检查只扫 `gl/api.py` 就全红。现在 `check_contract` 与 `update_contract`
+   都会扫描整个 `aurora/ui/bridge/`。
+
+**P3.5（最后一刀）**：把剩下 14 个方法按 `launch`（启动 / 会话 / 恢复）+ `downloads` + `bootstrap`
+拆完，然后做 `TaskRunner` + `EventBus`（收掉 20 个具名线程、去掉构造器回调），
+并把桥接层对 `gl` 的临时依赖收口到 `aurora.platform` / `aurora.infra`。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |

@@ -96,7 +96,7 @@ class WindowBridgeMixin:
         """让 Windows 外框（暗色模式 / 描边）跟随界面主题。"""
         if self._window is None:
             return {"ok": False, "error": "no-window"}
-        from . import winapi
+        from gl import winapi
 
         dark = not bool(is_light)
         return {"ok": winapi.set_dark_frame(self._window, dark), "dark": dark}
