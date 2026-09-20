@@ -44,6 +44,23 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 - `aurora/ui/bridge/*` 里 `from gl import config/process/vntext` 的临时依赖收口到
   `aurora.platform` / `aurora.infra`（同时把 `gl/winapi.py` 搬进 `aurora/platform/`）。
 
+## P3.2 追加：设置 / 资料源 / 站点 / 下载 / 转区 / 网络（2026-09-20）
+
+| 项 | 结果 |
+| --- | --- |
+| 新 mixin | `aurora/ui/bridge/settings.py`，223 行 / **19 个方法**：`set_setting`、资料源管理 7 个、站点管理 4 个（含 `_sites`）、下载 2 个、转区 2 个、网络 3 个 |
+| `gl/api.py` | 1993 → **1808 行**（累计 2232 → 1808，-424） |
+| `Api` 基类 | `Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin)` |
+| 契约 | 公开方法 **106** / 前端调用点 96 / 事件 14，与快照零差异 |
+| 验收 | `pytest` 26 passed、`run_all` 6/6；运行时冒烟：17 次调用全部返回预期结构（`list_sources`/`_sites` 返回列表属设计），无 `NameError`/`AttributeError` |
+
+> 这批方法里含 `test_network`（会真连五个端点）与 `test_source`（联网），离线冒烟只覆盖本地分支，
+> 联网行为仍由 `tools/net_probe.py` / `tools/test_sources.py` 回归。
+
+**P3.3 待办**：`library`（约 30 个方法：增删改查 / 分类 / 素材 / 导入导出）、`metadata`（搜索与翻译）、
+`launch`（启动与会话）、`vntext`（翻译面板与钩子查找）、`downloads`、以及 `TaskRunner` + `EventBus` 收线程；
+最后把桥接层对 `gl` 的临时依赖收口到 `aurora.platform` / `aurora.infra`。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |

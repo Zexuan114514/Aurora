@@ -82,6 +82,10 @@
       "lines": 6
     },
     {
+      "path": "aurora/ui/bridge/settings.py",
+      "lines": 222
+    },
+    {
       "path": "aurora/ui/bridge/shell.py",
       "lines": 157
     },
@@ -95,7 +99,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 1993
+      "lines": 1808
     },
     {
       "path": "gl/config.py",
@@ -487,6 +491,23 @@
           1993
         ]
       }
+    },
+    {
+      "phase": "P3.2",
+      "date": "2026-09-20",
+      "note": "设置/资料源/站点/下载/转区/网络 19 个方法搬进 aurora/ui/bridge/settings.py",
+      "moves": [
+        {
+          "from": "gl/api.py（19 个设置相关方法）",
+          "to": "aurora/ui/bridge/settings.py"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          1993,
+          1808
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -504,5 +525,8 @@
     "aurora/ui/bridge/__init__.py",
     "aurora/ui/bridge/shell.py",
     "aurora/ui/bridge/window.py"
+  ],
+  "modules_added_in_p3_2": [
+    "aurora/ui/bridge/settings.py"
   ]
 }
