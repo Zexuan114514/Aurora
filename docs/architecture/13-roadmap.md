@@ -12,7 +12,7 @@
 | **P0 基线冻结** ✅ | 让「现状」变成可断言的数字 | 契约快照（105 + 4 方法、14 事件）；去敏库夹具；能力/线程/体积基线；`tests/` + 离线检查与 CI 骨架 | 快照与今日行为一致；`run_all.py` 6/6、`pytest` 7 passed | 仅新增文件，删掉即回滚 |
 | **P1 纯逻辑分层** ✅ | 把规则从 IO 里剥出来 | `aurora/domain/*`（文本规则、匹配打分、引擎规则、会话结算）；`gl` 转发 shim | 82 个金样本逐字一致；`pytest` 15 passed；`selftest.py` 10/10、`meta_offline.py`、`vntext_probe.py`、`session_probe.py` 通过 | 删除 `aurora/`，恢复原 import |
 | **P2 数据 v2** ✅ | 让数据可迁移、可恢复、写入成本降到常量级 | `state/{settings,library}.json` + `state/sessions.jsonl`；迁移器 + 备份 + `--check`；单写者 + 去抖 | 迁移全等断言；去抖与强杀不损坏；回滚可用；导入/导出兼容且脱敏 | 用备份回到 v1 文件；代码回退版本 |
-| **P3 用例服务化 + 桥接 mixins** | 拆掉 2072 行的 `api.py`，契约零漂移 | `app/services/*`；`ui/bridge/*` mixins；`TaskRunner`、`EventBus` | 契约 diff = 0；`check_bridge.py` 无缺失；真机启动/翻译/钩子查找抽测通过 | 按 mixin 粒度回退到旧方法实现 |
+| **P3 用例服务化 + 桥接 mixins** 🔶 | 拆掉 2232 行的 `api.py`，契约零漂移 | P3.1 已完成：`ui/bridge/{window,shell}.py`（22 个方法）；P3.2：其余方法 + `app/services` + `TaskRunner`/`EventBus` | 契约 diff = 0；`check_bridge.py` 无缺失；真机启动/翻译/钩子查找抽测通过 | 按 mixin 粒度回退到旧方法实现 |
 | **P4 前端 ES 模块化** | 3688 行 IIFE → 模块 + 单一状态层 | `ui/web/app/**`；`core/api.js`、`core/store.js`；打包清单单一来源 | `e2e.py` 90/90；`visual.py` 全过；`__auroraErrors` 为空 | 保留旧 `app.js` 一个版本，按开关回退 |
 | **P5 资产服务化** | 资产单一来源，取消 web 目录复制 | `infra/webserver.py`；`/assets/` 映射；删除 `sync_user_assets` | 双内核下封面/背景/图标正常；越权与穿越用例被拒 | 开关回退到「复制到 web 目录」的旧机制 |
 | **P6 插件与规则包** | 让社区贡献不需要读核心代码 | `data/plugins/*` + manifest；`data/rules/engines/*.json`；`docs/engines.md` 自动生成 | WillPlus/Artemis 实测码从规则包带出；`vntext_live.py` 真机通过 | 保留内置规则为默认，关掉插件目录加载 |
@@ -54,7 +54,9 @@
 | P0 基线冻结 | ✅ 已完成（2026-09-20） | [`baseline.md`](baseline.md)：契约快照 + 去敏夹具 + 探针清单 + 架构基线 + `tools/checks/run_all.py`（6/6）+ `.github/workflows/offline-checks.yml` |
 | P1 纯逻辑分层 | ✅ 已完成（2026-09-20） | [`p1-domain-migration.md`](p1-domain-migration.md)：82 个金样本 + 转发 shim + 分层守卫激活；`gl/vntext.py` 2145 → 1359 行 |
 | P2 数据 v2 | ✅ 已完成（2026-09-20） | [`p2-data-v2.md`](p2-data-v2.md)：state/ 分账 + 迁移器 + 单写者；`pytest` 26 passed；真实库迁移计划 24 游戏 / 123 会话 |
-| P3–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
+| P3.1 桥接 mixin（窗口 / Shell） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md)：22 个方法搬进 mixin，`api.py` 2232 → 1993 行，契约零漂移 |
+| P3.2 其余 mixin + 服务化 + TaskRunner | 待开始 | 同上文档「还没做的」小节列出了范围 |
+| P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions
 

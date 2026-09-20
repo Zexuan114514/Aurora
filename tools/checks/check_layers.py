@@ -72,6 +72,21 @@ def check() -> Result:
                 if name == "infra":
                     result.fail(f"{rel} 直接 import 了 infra（必须经端口注入）")
 
+    # 桥接 mixin：只能做参数整形与编排，不得直接碰 infra
+    legacy = []
+    for path in _walk("aurora/ui/bridge"):
+        rel = path.relative_to(ROOT).as_posix()
+        module = ast.parse(path.read_text(encoding="utf-8", errors="ignore"))
+        for node in ast.walk(module):
+            if isinstance(node, ast.ImportFrom) and (node.module or "").startswith("aurora.infra"):
+                result.fail(f"{rel} 桥接层不得直接 import infra（改用 app 端口）")
+            if isinstance(node, ast.ImportFrom) and (node.module or "") in {"gl", "gl.config"}:
+                pass
+        if "from gl import" in path.read_text(encoding="utf-8"):
+            legacy.append(rel)
+    if legacy:
+        result.note(f"桥接层暂时借道 gl 遗留模块（P3.2 收口）：{', '.join(legacy)}")
+
     wiring = []
     for path in _walk("aurora"):
         if path.name == "bootstrap.py":

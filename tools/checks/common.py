@@ -85,12 +85,71 @@ def python_files(*roots: str) -> list[pathlib.Path]:
     return found
 
 
-def class_methods(path: pathlib.Path | str, class_name: str) -> dict[str, ast.FunctionDef]:
-    """返回某个类的全部方法（含 dunder），键为方法名。"""
-    tree = ast.parse(read_text(path))
+def _module_file(module: str) -> pathlib.Path | None:
+    """把 `a.b.c` 映射到仓库里的 a/b/c.py 或 a/b/c/__init__.py。"""
+    parts = module.split(".")
+    candidate = ROOT.joinpath(*parts).with_suffix(".py")
+    if candidate.is_file():
+        return candidate
+    package = ROOT.joinpath(*parts) / "__init__.py"
+    return package if package.is_file() else None
+
+
+def class_methods(path: pathlib.Path | str, class_name: str,
+                  _seen: set[tuple[str, str]] | None = None) -> dict[str, ast.FunctionDef]:
+    """返回某个类的方法，**含从基类继承的**（P3 起桥接方法分散在 mixin 里）。
+
+    静态解析：同文件的基类直接递归；`from a.b import Base` 形式的基类按模块名找到文件再递归。
+    子类同名方法覆盖基类（与 Python MRO 的直觉一致）。
+    """
+    seen = _seen if _seen is not None else set()
+    full_path = pathlib.Path(path)
+    if not full_path.is_absolute():
+        full_path = ROOT / full_path
+    path = full_path
+    key = (str(path), class_name)
+    if key in seen:
+        return {}
+    seen.add(key)
+
+    text = read_text(path)
+    tree = ast.parse(text)
+    # 名字 → 模块 的映射：`from a.b.c import Base` 之后 `class X(Base)` 才能被解析到文件
+    import_map: dict[str, str] = {}
     for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == class_name:
-            return {fn.name: fn for fn in node.body if isinstance(fn, ast.FunctionDef)}
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if node.level:      # 相对导入：按当前文件所在包补全
+                base_pkg = pathlib.Path(path).parent.relative_to(ROOT).parts
+                prefix = ".".join(base_pkg[:len(base_pkg) - node.level + 1])
+                module = f"{prefix}.{module}" if module else prefix
+            for alias in node.names:
+                import_map[alias.asname or alias.name] = module
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.ClassDef) and node.name == class_name):
+            continue
+        collected: dict[str, ast.FunctionDef] = {}
+        for base in node.bases:
+            base_class = None
+            base_module = None
+            if isinstance(base, ast.Name):
+                base_class = base.id
+            elif isinstance(base, ast.Attribute):
+                base_class = base.attr
+                base_module = ast.unparse(base.value)
+            if not base_class:
+                continue
+            if base_module:
+                target = _module_file(base_module)
+            else:
+                owner = import_map.get(base_class, "")
+                target = _module_file(owner) if owner else pathlib.Path(path)
+            if target is not None:
+                collected.update(class_methods(target, base_class, seen))
+        for fn in node.body:
+            if isinstance(fn, ast.FunctionDef):
+                collected[fn.name] = fn           # 子类覆盖
+        return collected
     return {}
 
 

@@ -110,7 +110,11 @@ def _public(game: dict, pm: process.ProcessManager) -> dict:
     }
 
 
-class Api:
+from aurora.ui.bridge.shell import ShellBridgeMixin
+from aurora.ui.bridge.window import WindowBridgeMixin
+
+
+class Api(WindowBridgeMixin, ShellBridgeMixin):
     def __init__(self) -> None:
         self._library = Library()
         self._pm = process.ProcessManager()
@@ -216,57 +220,6 @@ class Api:
     def test_source(self, source_id: str, query: str = "") -> dict:
         return self._sources.test(source_id, query or "千恋万花")
 
-    def open_source_search(self, query: str, source_id: str = "") -> dict:
-        """在指定的“跳转型”源里搜索（用浏览器打开）。"""
-        target = None
-        for row in self._sources.link_sources():
-            if not source_id or row["id"] == source_id:
-                target = row
-                break
-        if target is None:
-            return {"ok": False, "error": "no-link-source"}
-        source = self._sources.get(target["id"])
-        url = source.link_for(query) if source else ""
-        if not url:
-            return {"ok": False, "error": "no-url"}
-        return {**self.open_url(url), "url": url}
-
-    def open_url(self, url: str) -> dict:
-        if isinstance(url, str) and url.startswith(("http://", "https://")):
-            try:
-                os.startfile(url)  # noqa: S606
-                return {"ok": True}
-            except Exception as exc:
-                return {"ok": False, "error": str(exc)}
-        return {"ok": False, "error": "bad-url"}
-
-    def window_cmd(self, command: str) -> dict:
-        if self._window is None:
-            return {"ok": False}
-        if command == "minimize":
-            self._window.minimize()
-        elif command == "hide":
-            self._window.hide()
-        elif command == "show":
-            self._window.show()
-        elif command == "close":
-            # 勾了「关闭时缩到托盘」就只藏起来，游戏继续在后台跑
-            if self._tray is not None and self._library.settings.get("close_to_tray"):
-                self._window.hide()
-                self._tray.notify(config.APP_TITLE, "已缩小到托盘，游戏仍在后台运行。")
-                return {"ok": True, "hidden": True}
-            if self._tray is not None:
-                self._tray.stop()
-                self._tray = None
-            self._window.destroy()
-        elif command == "toggle_maximize":
-            return {"ok": True, "maximized": winapi.toggle_maximize(self._window)}
-        return {"ok": True}
-
-    def set_tray(self, tray) -> None:
-        """由 main.py 注入托盘控制器（没有托盘时为 None）。"""
-        self._tray = tray
-
     # ------------------------------------------------------------------ #
     # 获取游戏：Steam 发现 / 一键安装 / 下载目录
     # ------------------------------------------------------------------ #
@@ -311,19 +264,6 @@ class Api:
         self._library.set_setting("resource_sites", sites)
         return {"ok": True, "sites": sites}
 
-    def open_site(self, site_id: str, query: str = "") -> dict:
-        """用系统默认浏览器打开资源站（带 {query} 的地址会拼上关键词）。"""
-        from urllib.parse import quote
-
-        row = next((item for item in self._sites() if item["id"] == site_id), None)
-        if row is None:
-            return {"ok": False, "error": "not-found"}
-        url = row["url"]
-        text = str(query or "").strip()
-        if "{query}" in url:
-            url = url.replace("{query}", quote(text))
-        return {**self.open_url(url), "url": url}
-
     def get_download_settings(self) -> dict:
         """下载目录 / 监听开关 / 解压开关 / 本机解压器。"""
         return {"ok": True, **self._downloads.status()}
@@ -351,25 +291,6 @@ class Api:
         else:
             self._library.set_setting(key, bool(value))
         return {"ok": True, **self._downloads.status()}
-
-    def pick_download_dir(self) -> dict:
-        """让用户挑一个下载目录。"""
-        if self._window is None:
-            return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(webview.FOLDER_DIALOG)
-        if not result:
-            return {"ok": False, "cancelled": True}
-        path = result[0] if isinstance(result, (list, tuple)) else result
-        return self.set_download_option("download_dir", path)
-
-    def open_download_dir(self) -> dict:
-        target = self._downloads.download_dir()
-        try:
-            target.mkdir(parents=True, exist_ok=True)
-            os.startfile(str(target))  # noqa: S606
-        except Exception as exc:
-            return {"ok": False, "error": str(exc)}
-        return {"ok": True, "dir": str(target)}
 
     def scan_downloads(self) -> dict:
         """手动扫一遍下载目录（忽略“已处理”记录）。"""
@@ -404,19 +325,6 @@ class Api:
         else:
             return {"ok": False, "error": "bad-key"}
         return self.get_locale_status()
-
-    def pick_locale_proc(self) -> dict:
-        if self._window is None:
-            return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
-            webview.OPEN_DIALOG,
-            allow_multiple=False,
-            file_types=("可执行文件 (*.exe)", "所有文件 (*.*)"),
-        )
-        if not result:
-            return {"ok": False, "cancelled": True}
-        path = result[0] if isinstance(result, (list, tuple)) else result
-        return self.set_locale_option("le_proc_path", path)
 
     def set_game_locale(self, game_id: str, enabled: bool, guid: str = "") -> dict:
         """单个游戏的转区开关与配置。"""
@@ -484,13 +392,6 @@ class Api:
         route = netproxy.current()
         return {"ok": True, "proxy": route["proxy"], "source": route["source"],
                 "results": results}
-
-    def open_data_dir(self) -> dict:
-        try:
-            os.startfile(str(config.DATA_DIR))  # noqa: S606
-        except Exception as exc:
-            return {"ok": False, "error": str(exc)}
-        return {"ok": True, "dir": str(config.DATA_DIR)}
 
     # ------------------------------------------------------------------ #
     # 游戏内翻译（Textractor 钩子 + 屏幕 OCR）
@@ -569,33 +470,6 @@ class Api:
         else:
             return {"ok": False, "error": "bad-key"}
         return {"ok": True, **self._vntext_state()}
-
-    def pick_textractor(self) -> dict:
-        if self._window is None:
-            return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
-            webview.OPEN_DIALOG, allow_multiple=False,
-            file_types=("命令行程序 (*.exe)", "所有文件 (*.*)"))
-        if not result:
-            return {"ok": False, "cancelled": True}
-        path = result[0] if isinstance(result, (list, tuple)) else result
-        if not Path(path).is_file():
-            return {"ok": False, "error": "not-found"}
-        self._library.set_setting("vntext_tractor_path", str(path))
-        return {"ok": True, **self._vntext_state()}
-
-    def open_textractor_page(self) -> dict:
-        return self.open_url(vntext.TEXTRACTOR_URL)
-
-    def open_language_settings(self) -> dict:
-        try:
-            os.startfile("ms-settings:regionlanguage")  # noqa: S606
-        except Exception:
-            try:
-                os.startfile("ms-settings:keyboard")  # noqa: S606
-            except Exception as exc:
-                return {"ok": False, "error": str(exc)}
-        return {"ok": True}
 
     def start_vntext(self, game_id: str) -> dict:
         game = self._library.get(game_id)
@@ -1129,90 +1003,6 @@ class Api:
         self._emit("vntext:status", self._vntext_state())
         return {"ok": True, "visible": self._overlay.visible()}
 
-    def minimize_to_tray(self) -> bool:
-        """关窗前调用：托盘可用且用户开了这个设置时，藏起来并返回 True。"""
-        if self._window is None or self._tray is None:
-            return False
-        if not self._library.settings.get("close_to_tray"):
-            return False
-        try:
-            self._window.hide()
-        except Exception:
-            return False
-        self._tray.notify(config.APP_TITLE, "已缩小到托盘，游戏仍在后台运行。")
-        return True
-
-    # ------------------------------------------------------------------ #
-    # 窗口拖拽 / 缩放
-    # ------------------------------------------------------------------ #
-    def drag_start(self) -> dict:
-        if self._window is None:
-            return {}
-        x, y, w, h = winapi.get_rect(self._window)
-        self._drag = {"x": x, "y": y, "w": w, "h": h,
-                      "maximized": winapi.is_maximized(self._window)}
-        return dict(self._drag)
-
-    def drag_move(self, dx: float, dy: float) -> dict:
-        if not self._drag or self._window is None:
-            return {"ok": False}
-        dx, dy = int(dx), int(dy)
-        if self._drag.get("maximized"):
-            # 最大化状态下拖动工具条：先还原窗口，再跟着鼠标走（与系统行为一致）
-            winapi.restore(self._window)
-            x, y, w, h = winapi.get_rect(self._window)
-            self._drag = {"x": x - dx, "y": y - dy, "w": w, "h": h, "maximized": False}
-        winapi.set_rect(self._window, self._drag["x"] + int(dx), self._drag["y"] + int(dy),
-                        0, 0, move=True, size=False)
-        return {"ok": True}
-
-    def drag_end(self) -> dict:
-        self._drag = None
-        return {"ok": True}
-
-    def resize_start(self) -> dict:
-        if self._window is None:
-            return {}
-        x, y, w, h = winapi.get_rect(self._window)
-        return {"x": x, "y": y, "w": w, "h": h}
-
-    def resize_apply(self, x: int, y: int, width: int, height: int, edge: str = "") -> dict:
-        if self._window is None:
-            return {"ok": False}
-        scale = winapi.dpi_scale(self._window)
-        min_w = int(self._window.min_size[0] * scale)
-        min_h = int(self._window.min_size[1] * scale)
-        width, height = int(width), int(height)
-        if width < min_w:
-            if "w" in edge:
-                x += width - min_w
-            width = min_w
-        if height < min_h:
-            if "n" in edge:
-                y += height - min_h
-            height = min_h
-        winapi.set_rect(self._window, x, y, width, height)
-        return {"ok": True}
-
-    # ------------------------------------------------------------------ #
-    # 导入 / 删除
-    # ------------------------------------------------------------------ #
-    def pick_executable(self) -> dict:
-        if self._window is None:
-            return {"ok": False, "error": "no-window"}
-        result = self._window.create_file_dialog(
-            webview.OPEN_DIALOG,
-            allow_multiple=True,
-            file_types=("可执行文件 (*.exe;*.bat;*.cmd)", "所有文件 (*.*)"),
-        )
-        if not result:
-            return {"ok": False, "cancelled": True}
-        paths = [str(p) for p in result]
-        added = [self._import_one(p) for p in paths]
-        games = [g for g in added if g]
-        skipped = [p for p, game in zip(paths, added) if not game]
-        return {"ok": True, "games": games, "skipped": skipped}
-
     #: 一次拖放最多导入多少个 exe，避免误拖整个盘符时炸库
     MAX_DROPPED = 40
     #: 拖入文件夹时最多向下找几层（游戏常见是 <游戏名>\Game\xxx.exe）
@@ -1424,15 +1214,6 @@ class Api:
         self._emit("game:updated", _public(updated, self._pm))
         return {"ok": True, "game": _public(updated, self._pm)}
 
-    def apply_window_theme(self, is_light: bool) -> dict:
-        """让 Windows 外框（暗色模式 / 描边）跟随界面主题。"""
-        if self._window is None:
-            return {"ok": False, "error": "no-window"}
-        from . import winapi
-
-        dark = not bool(is_light)
-        return {"ok": winapi.set_dark_frame(self._window, dark), "dark": dark}
-
     # ------------------------------------------------------------------ #
     # 自定义名称 / 封面
     # ------------------------------------------------------------------ #
@@ -1641,13 +1422,6 @@ class Api:
                     "ignored": 0,
                 })
             self._emit("batch:done", {"total": len(items), "imported": len(imported)})
-
-    def reveal(self, game_id: str) -> dict:
-        game = self._library.get(game_id)
-        if not game:
-            return {"ok": False}
-        process.reveal(game["exe"])
-        return {"ok": True}
 
     def set_launch_args(self, game_id: str, args: str) -> dict:
         game = self._library.update(game_id, launch_args=args or "")
@@ -2067,19 +1841,6 @@ class Api:
                     item.unlink()
             except Exception:
                 pass
-
-    def apply_window_icon(self, game_id: str) -> dict:
-        """把窗口/任务栏图标换成该游戏的自定义图标；空字符串表示恢复默认。"""
-        if self._window is None:
-            return {"ok": False}
-        path = ""
-        if game_id:
-            game = self._library.get(game_id)
-            url = (game or {}).get("custom_icon") or ""
-            if url:
-                path = str(config.USER_ICON_DIR / url.split("/")[-1].split("?")[0])
-        winapi.set_icon(self._window, path or None)
-        return {"ok": True}
 
     # ------------------------------------------------------------------ #
     # 运行

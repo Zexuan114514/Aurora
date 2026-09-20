@@ -84,6 +84,20 @@ def plan(layout: Layout) -> MigrationPlan:
     result = MigrationPlan(needed=needed, from_version=version, layout_note=note,
                            has_legacy_glossary=layout.legacy_glossary.exists())
     if not needed:
+        # 已经是 v2：顺手把现有规模读出来，避免报告里出现「0 游戏」这种吓人的数字
+        if version == SCHEMA_VERSION:
+            library = read_json(layout.library_file, {}) or {}
+            settings = read_json(layout.settings_file, {}) or {}
+            result.games = len(library.get("games") or [])
+            result.bookshelves = len(library.get("bookshelves") or [])
+            result.settings = len(settings.get("settings") or {})
+            try:
+                with open(layout.sessions_file, "r", encoding="utf-8") as fh:
+                    result.sessions = sum(1 for line in fh if line.strip())
+            except Exception:
+                result.sessions = 0
+        elif version is None:
+            result.notes.append("全新数据目录：首次启动会创建 state/ 三件套")
         return result
 
     raw = read_json(layout.legacy_library, None)

@@ -100,6 +100,11 @@ def test_second_load_sees_v2_without_remigrating(tmp_path: pathlib.Path) -> None
     assert len(copies) == 1, "迁移前复制的那份备份应只有一份"
     assert len(legacy) == 1, "v1 原文件应搬进备份目录"
 
+    # 已经是 v2 时，迁移计划要报出真实规模（而不是 0），否则用户会以为数据丢了
+    again = migrations.plan(layout_for(tmp_path))
+    assert again.needed is False and again.layout_note == "v2"
+    assert (again.games, again.settings, again.sessions) == (24, 39, 123)
+
 
 def test_settings_write_is_debounced_until_flush(tmp_path: pathlib.Path) -> None:
     store, _ = open_store(tmp_path)          # fresh：没有 v1

@@ -63,7 +63,7 @@
     },
     {
       "path": "aurora/infra/store/migrations.py",
-      "lines": 202
+      "lines": 216
     },
     {
       "path": "aurora/infra/store/paths.py",
@@ -74,12 +74,28 @@
       "lines": 346
     },
     {
+      "path": "aurora/ui/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/ui/bridge/__init__.py",
+      "lines": 6
+    },
+    {
+      "path": "aurora/ui/bridge/shell.py",
+      "lines": 157
+    },
+    {
+      "path": "aurora/ui/bridge/window.py",
+      "lines": 135
+    },
+    {
       "path": "gl/__init__.py",
       "lines": 5
     },
     {
       "path": "gl/api.py",
-      "lines": 2232
+      "lines": 1993
     },
     {
       "path": "gl/config.py",
@@ -450,6 +466,27 @@
           345
         ]
       }
+    },
+    {
+      "phase": "P3.1",
+      "date": "2026-09-20",
+      "note": "桥接层开始拆 mixin：窗口/托盘/主题与 Shell/对话框两组方法搬进 aurora/ui/bridge（方法体逐字未改）",
+      "moves": [
+        {
+          "from": "gl/api.py（10 个窗口方法）",
+          "to": "aurora/ui/bridge/window.py"
+        },
+        {
+          "from": "gl/api.py（12 个 Shell/对话框方法）",
+          "to": "aurora/ui/bridge/shell.py"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          2232,
+          1993
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -461,5 +498,11 @@
     "aurora/infra/store/migrations.py",
     "aurora/infra/store/paths.py",
     "aurora/infra/store/state.py"
+  ],
+  "modules_added_in_p3": [
+    "aurora/ui/__init__.py",
+    "aurora/ui/bridge/__init__.py",
+    "aurora/ui/bridge/shell.py",
+    "aurora/ui/bridge/window.py"
   ]
 }
