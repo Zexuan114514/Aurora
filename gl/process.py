@@ -1,23 +1,12 @@
-"""兼容层：process 已搬到 `aurora.infra.process`（P3.9-d），这里保留同名转发。"""
+"""兼容层：process 已搬到 `aurora.infra.process`（P3.9），这里是**透明模块别名**。
+
+用 sys.modules 替换（而不是逐个复制名字），这样读写模块级状态、以及给模块打补丁
+（如 tools/vntext_probe.py 模拟「没装日语」时改 ocr._langs）都会作用到同一份实现上。
+"""
 from __future__ import annotations
 
-from aurora.infra.process import (  # noqa: F401  (re-export)
-    CREATE_NEW_PROCESS_GROUP,
-    DETACHED_PROCESS,
-    CREATE_BREAKAWAY_FROM_JOB,
-    PROCESS_QUERY_LIMITED_INFORMATION,
-    SYNCHRONIZE,
-    WAIT_TIMEOUT,
-    INFINITE,
-    _kernel32,
-    _open,
-    process_image,
-    pid_matches,
-    ForeignProcess,
-    POLL_SECONDS,
-    STARTUP_GRACE,
-    EXIT_GRACE,
-    ProcessManager,
-    _split_args,
-    reveal,
-)
+import sys
+
+from aurora.infra import process as _impl
+
+sys.modules[__name__] = _impl

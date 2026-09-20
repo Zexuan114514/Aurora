@@ -1,41 +1,12 @@
-"""兼容层：Win32 原语已搬到 `aurora.platform.winapi`（P3.6），这里保留同名转发。"""
+"""兼容层：winapi 已搬到 `aurora.platform.winapi`（P3.9），这里是**透明模块别名**。
+
+用 sys.modules 替换（而不是逐个复制名字），这样读写模块级状态、以及给模块打补丁
+（如 tools/vntext_probe.py 模拟「没装日语」时改 ocr._langs）都会作用到同一份实现上。
+"""
 from __future__ import annotations
 
-from aurora.platform.winapi import (  # noqa: F401  (re-export)
-    DWMWA_USE_IMMERSIVE_DARK_MODE,
-    DWMWA_WINDOW_CORNER_PREFERENCE,
-    DWMWA_BORDER_COLOR,
-    DWMWCP_ROUND,
-    DWMWCP_ROUNDSMALL,
-    SWP_NOSIZE,
-    SWP_NOMOVE,
-    SWP_NOZORDER,
-    SWP_NOACTIVATE,
-    SWP_FRAMECHANGED,
-    SW_MAXIMIZE,
-    SW_RESTORE,
-    SW_SHOW,
-    ASFW_ANY,
-    _user32,
-    _dwmapi,
-    _set_dwm,
-    handle_of,
-    find_window,
-    focus_window,
-    raise_window,
-    _attach_thread_input,
-    BORDER_DARK,
-    BORDER_LIGHT,
-    system_prefers_light,
-    set_dark_frame,
-    polish,
-    _as_ico,
-    set_icon,
-    maximize,
-    restore,
-    is_maximized,
-    toggle_maximize,
-    get_rect,
-    set_rect,
-    dpi_scale,
-)
+import sys
+
+from aurora.platform import winapi as _impl
+
+sys.modules[__name__] = _impl

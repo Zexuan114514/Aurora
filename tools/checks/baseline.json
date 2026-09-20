@@ -134,6 +134,10 @@
       "lines": 144
     },
     {
+      "path": "aurora/infra/vntext.py",
+      "lines": 1364
+    },
+    {
       "path": "aurora/platform/__init__.py",
       "lines": 4
     },
@@ -215,11 +219,11 @@
     },
     {
       "path": "gl/downloads.py",
-      "lines": 15
+      "lines": 12
     },
     {
       "path": "gl/gameinput.py",
-      "lines": 13
+      "lines": 12
     },
     {
       "path": "gl/hookfinder.py",
@@ -231,7 +235,7 @@
     },
     {
       "path": "gl/linetrans.py",
-      "lines": 14
+      "lines": 12
     },
     {
       "path": "gl/locale.py",
@@ -247,11 +251,11 @@
     },
     {
       "path": "gl/netproxy.py",
-      "lines": 15
+      "lines": 12
     },
     {
       "path": "gl/ocr.py",
-      "lines": 16
+      "lines": 12
     },
     {
       "path": "gl/overlay.py",
@@ -259,15 +263,15 @@
     },
     {
       "path": "gl/process.py",
-      "lines": 23
+      "lines": 12
     },
     {
       "path": "gl/proctree.py",
-      "lines": 14
+      "lines": 12
     },
     {
       "path": "gl/screencap.py",
-      "lines": 22
+      "lines": 12
     },
     {
       "path": "gl/sources/__init__.py",
@@ -319,7 +323,7 @@
     },
     {
       "path": "gl/vntext.py",
-      "lines": 1367
+      "lines": 12
     },
     {
       "path": "gl/web/app.css",
@@ -339,7 +343,7 @@
     },
     {
       "path": "gl/winapi.py",
-      "lines": 41
+      "lines": 12
     },
     {
       "path": "main.py",
@@ -1096,6 +1100,27 @@
           23
         ]
       }
+    },
+    {
+      "phase": "P3.9-e",
+      "date": "2026-09-20",
+      "note": "vntext（文本引擎 1358 行）搬进 aurora/infra；十个 gl 转发壳改为透明模块别名（sys.modules 替换），修复打补丁不生效的问题",
+      "moves": [
+        {
+          "from": "gl/vntext.py",
+          "to": "aurora/infra/vntext.py"
+        },
+        {
+          "from": "同名转发壳（10 个模块）",
+          "to": "sys.modules 透明别名"
+        }
+      ],
+      "drift": {
+        "gl/vntext.py": [
+          1367,
+          12
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1173,5 +1198,8 @@
   "modules_added_in_p3_9d": [
     "aurora/infra/downloads.py",
     "aurora/infra/process.py"
+  ],
+  "modules_added_in_p3_9e": [
+    "aurora/infra/vntext.py"
   ]
 }
