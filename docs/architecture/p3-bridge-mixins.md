@@ -142,6 +142,34 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 3. 继续收口 `gl` 依赖：`config` → `aurora.infra.store.paths`、`process`/`vntext`/`downloads`/`locale`/`netproxy`
    按分层归位（`platform` 或 `infra`），每步都用契约守卫 + 冒烟验证。
 
+## P3.7 执行记录（2026-09-20，四个提交）
+
+| 批次 | 提交 | 内容 |
+| --- | --- | --- |
+| a | `f9f69a6` | `Api` 起引入 `TaskRunner` + `EventBus`；心跳收编为 `session.heartbeat`；`_emit` 走总线（新增 `_dispatch_event` 作唯一前端出口）；修 `winapi` 相对 import 与线程池非 daemon 两个真 bug |
+| b | `652ca50` | 9 处长驻线程 → `default_runner().spawn()`：会话监控 / 翻译队列 / 下载监听 / 托盘 / 热键 / 悬浮窗 / CLI flush / 拖放绑定 / 托盘看护 |
+| c | `23a3a6c` | 剩余 8 处：vntext 的 hook 读循环 / 专码发送 / OCR 采样；metadata 的重抓 / Steam 导入 / 自动匹配 / 翻译队列 / 批量翻译；hooksearch 与两处翻页点击。**裸线程清零**（只剩 runner 自身与 state 单写者） |
+| d | `b5d9b56` | 回调改事件：`linetrans`/`vntext`/`process`/`downloads` 无回调时向 `default_bus()` 发布内部主题（`engine.*`），`Api` 改为订阅 6 个内部主题；`overlay.on_action` 是请求-响应语义，保留回调 |
+
+**结果**：`gl/` + `aurora/` + `main.py` 里的裸 `threading.Thread` 只剩 2 处（`aurora/infra/tasks.py` 的 runner 与
+`aurora/infra/store/state.py` 的单写者），其余全部是命名任务（`TaskRunner.submit` / `spawn`）。
+桥接层 0 处 `aurora.infra` 依赖（改用注入的 `self._tasks`），`check_layers` 全程无违规。
+
+**每批验收**：`pytest`（33 passed，含 TaskRunner 的 spawn/取消/单例用例）、`run_all` 6/6、
+契约 106 公开 / 42 内部 / 96 前端调用点 / 14 事件主题零差异、`session_probe` 与 `vntext_probe` 全部通过、
+总线冒烟（`engine.vntext_status` → `vntext:status`、`engine.downloads_status` → `downloads:status`、
+`engine.translate(done)` → `vntext:line(translated)`、`engine.session_*` 对未知游戏不崩）。
+
+## P3.8 待办（剩余工作，按优先级）
+
+1. **服务化**：mixin 里的编排逻辑搬进 `aurora/app/services/`（`settings` / `library` / `metadata` / `launch` / `vntext`），
+   mixin 退化成「参数整形 → 调服务 → 推事件」；建议先做 `settings`（纯校验与 CRUD，风险最低）再做 `library`。
+2. **依赖收口**：桥接层仍 `from gl import config, process, vntext, downloads, locale, netproxy, steamlib, think`
+   等 8 个文件（`check_layers` 会实时列出）；按 `config` → `aurora.infra.store.paths`、
+   `winapi` 已就位的模式逐个搬到 `aurora/platform` / `aurora/infra` 并留转发 shim。
+3. **收尾**：重跑真机矩阵（`vntext_live` hook 与 OCR、`e2e` 90 项、`visual`）、重建 `Aurora.exe`、
+   更新 README 的目录结构与自检脚本小节。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |
