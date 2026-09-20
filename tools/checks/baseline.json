@@ -94,12 +94,20 @@
       "lines": 1
     },
     {
+      "path": "aurora/infra/downloads.py",
+      "lines": 326
+    },
+    {
       "path": "aurora/infra/linetrans.py",
       "lines": 314
     },
     {
       "path": "aurora/infra/netproxy.py",
       "lines": 136
+    },
+    {
+      "path": "aurora/infra/process.py",
+      "lines": 411
     },
     {
       "path": "aurora/infra/store/__init__.py",
@@ -207,7 +215,7 @@
     },
     {
       "path": "gl/downloads.py",
-      "lines": 327
+      "lines": 15
     },
     {
       "path": "gl/gameinput.py",
@@ -251,7 +259,7 @@
     },
     {
       "path": "gl/process.py",
-      "lines": 408
+      "lines": 23
     },
     {
       "path": "gl/proctree.py",
@@ -1071,6 +1079,23 @@
           14
         ]
       }
+    },
+    {
+      "phase": "P3.9-d",
+      "date": "2026-09-20",
+      "note": "依赖收口第五批：process（进程/会话原语）搬进 aurora/infra；会话公式断言随搬迁更新到 infra 模块",
+      "moves": [
+        {
+          "from": "gl/process.py",
+          "to": "aurora/infra/process.py"
+        }
+      ],
+      "drift": {
+        "gl/process.py": [
+          408,
+          23
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1144,5 +1169,9 @@
   ],
   "modules_added_in_p3_9b": [
     "aurora/infra/linetrans.py"
+  ],
+  "modules_added_in_p3_9d": [
+    "aurora/infra/downloads.py",
+    "aurora/infra/process.py"
   ]
 }

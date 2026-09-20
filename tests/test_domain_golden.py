@@ -115,8 +115,10 @@ def test_session_rules_wired_into_process_and_api() -> None:
     `gl/api.py` 顶端 import webview，离线 CI 里没有这个依赖，所以对 api.py 只做静态检查。
     """
     domain = importlib.import_module("aurora.domain.session_rules")
-    processor = importlib.import_module("gl.process")
+    # P3.9-d：进程/会话原语搬到 aurora.infra.process，gl.process 只是转发壳
+    processor = importlib.import_module("aurora.infra.process")
     assert processor.session_rules is domain
+    assert importlib.import_module("gl.process").ProcessManager is processor.ProcessManager
 
     # P3.5 起会话方法搬到了 aurora/ui/bridge/session.py：只要「有且只有一处」调用 domain 公式，
     # 并且它所在模块确实 import 了 session_rules 即可。
