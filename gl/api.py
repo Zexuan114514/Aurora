@@ -21,6 +21,7 @@ from .store import Library
 
 from aurora.app.events import EventBus, default_bus
 from aurora.app.services.library import LibraryService
+from aurora.app.services.launch import LaunchService
 from aurora.app.services.metadata import MetadataService
 from aurora.app.services.translation import TranslationService
 from aurora.app.services.settings import SettingsService
@@ -55,7 +56,6 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._lock = threading.RLock()
         #: P3.7：后台任务统一走 TaskRunner（心跳先收编，其余逐个搬）
         self._tasks = TaskRunner(max_workers=8, name_prefix="aurora-task")
-        self._heartbeat = None
         #: P3.7：事件先进 EventBus（信封见 contracts/events.md），再由唯一出口推给前端
         self._events = default_bus()      # P3.8：与核心模块/服务共用进程级总线
         self._events.subscribe("*", self._dispatch_event)
@@ -86,6 +86,9 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
             status_fn=None,          # P3.7：状态改走事件总线
         )
         self._downloads.start()
+        self._launch = LaunchService(self._library, self._pm, self._tasks,
+                                     start_vntext=self.start_vntext, stop_vntext=self.stop_vntext,
+                                     downloads_getter=lambda: self._downloads)
         # 网络：让 gl.sources.net 知道当前用哪条代理路线
         netproxy.set_settings_provider(lambda: self._library.settings)
         self._pm.set_callbacks()      # P3.7：会话事件改走总线

@@ -120,7 +120,10 @@ def test_session_rules_wired_into_process_and_api() -> None:
 
     # P3.5 起会话方法搬到了 aurora/ui/bridge/session.py：只要「有且只有一处」调用 domain 公式，
     # 并且它所在模块确实 import 了 session_rules 即可。
-    candidates = [ROOT / "gl" / "api.py"] + sorted((ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
+    # P3.8：会话方法继续下沉到 app/services，候选范围跟着扩
+    candidates = ([ROOT / "gl" / "api.py"]
+                  + sorted((ROOT / "aurora" / "ui" / "bridge").glob("*.py"))
+                  + sorted((ROOT / "aurora" / "app").rglob("*.py")))
     callers = []
     for path in candidates:
         text = path.read_text(encoding="utf-8")

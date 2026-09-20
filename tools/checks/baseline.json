@@ -38,6 +38,10 @@
       "lines": 1
     },
     {
+      "path": "aurora/app/services/launch.py",
+      "lines": 179
+    },
+    {
       "path": "aurora/app/services/library.py",
       "lines": 155
     },
@@ -131,7 +135,7 @@
     },
     {
       "path": "aurora/ui/bridge/session.py",
-      "lines": 177
+      "lines": 60
     },
     {
       "path": "aurora/ui/bridge/settings.py",
@@ -159,7 +163,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 191
+      "lines": 194
     },
     {
       "path": "gl/config.py",
@@ -876,6 +880,27 @@
           191
         ]
       }
+    },
+    {
+      "phase": "P3.8-e",
+      "date": "2026-09-20",
+      "note": "LaunchService（启动/转区命令/会话结算与恢复/心跳/下载扫描，10 个方法）下沉；start_vntext/stop_vntext/downloads 通过注入协作者调用；session_rules 断言范围随之扩到 app/services",
+      "moves": [
+        {
+          "from": "aurora/ui/bridge/session.py（10 个方法）",
+          "to": "aurora/app/services/launch.py"
+        }
+      ],
+      "drift": {
+        "aurora/ui/bridge/session.py": [
+          177,
+          60
+        ],
+        "gl/api.py": [
+          191,
+          194
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -927,5 +952,8 @@
   ],
   "modules_added_in_p3_8d": [
     "aurora/app/services/metadata.py"
+  ],
+  "modules_added_in_p3_8e": [
+    "aurora/app/services/launch.py"
   ]
 }
