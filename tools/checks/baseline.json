@@ -39,19 +39,19 @@
     },
     {
       "path": "aurora/app/services/hooksearch.py",
-      "lines": 342
+      "lines": 390
     },
     {
       "path": "aurora/app/services/launch.py",
-      "lines": 179
+      "lines": 180
     },
     {
       "path": "aurora/app/services/library.py",
-      "lines": 326
+      "lines": 327
     },
     {
       "path": "aurora/app/services/metadata.py",
-      "lines": 293
+      "lines": 295
     },
     {
       "path": "aurora/app/services/settings.py",
@@ -87,11 +87,15 @@
     },
     {
       "path": "aurora/domain/text_rules.py",
-      "lines": 682
+      "lines": 736
     },
     {
       "path": "aurora/infra/__init__.py",
       "lines": 1
+    },
+    {
+      "path": "aurora/infra/netproxy.py",
+      "lines": 136
     },
     {
       "path": "aurora/infra/store/__init__.py",
@@ -126,8 +130,16 @@
       "lines": 85
     },
     {
+      "path": "aurora/platform/ocr.py",
+      "lines": 156
+    },
+    {
       "path": "aurora/platform/proctree.py",
       "lines": 126
+    },
+    {
+      "path": "aurora/platform/screencap.py",
+      "lines": 280
     },
     {
       "path": "aurora/platform/winapi.py",
@@ -199,7 +211,7 @@
     },
     {
       "path": "gl/hookfinder.py",
-      "lines": 754
+      "lines": 765
     },
     {
       "path": "gl/hotkey.py",
@@ -223,11 +235,11 @@
     },
     {
       "path": "gl/netproxy.py",
-      "lines": 141
+      "lines": 15
     },
     {
       "path": "gl/ocr.py",
-      "lines": 161
+      "lines": 16
     },
     {
       "path": "gl/overlay.py",
@@ -243,7 +255,7 @@
     },
     {
       "path": "gl/screencap.py",
-      "lines": 285
+      "lines": 22
     },
     {
       "path": "gl/sources/__init__.py",
@@ -295,7 +307,7 @@
     },
     {
       "path": "gl/vntext.py",
-      "lines": 1366
+      "lines": 1367
     },
     {
       "path": "gl/web/app.css",
@@ -1005,6 +1017,39 @@
           13
         ]
       }
+    },
+    {
+      "phase": "P3.9",
+      "date": "2026-09-20",
+      "note": "依赖收口第二批：screencap/ocr 进 aurora/platform，netproxy 进 aurora/infra，gl 留转发 shim",
+      "moves": [
+        {
+          "from": "gl/screencap.py",
+          "to": "aurora/platform/screencap.py"
+        },
+        {
+          "from": "gl/ocr.py",
+          "to": "aurora/platform/ocr.py"
+        },
+        {
+          "from": "gl/netproxy.py",
+          "to": "aurora/infra/netproxy.py"
+        }
+      ],
+      "drift": {
+        "gl/screencap.py": [
+          285,
+          22
+        ],
+        "gl/ocr.py": [
+          161,
+          16
+        ],
+        "gl/netproxy.py": [
+          141,
+          15
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -1070,5 +1115,10 @@
   "modules_added_in_p3_8i": [
     "aurora/platform/gameinput.py",
     "aurora/platform/proctree.py"
+  ],
+  "modules_added_in_p3_9": [
+    "aurora/infra/netproxy.py",
+    "aurora/platform/ocr.py",
+    "aurora/platform/screencap.py"
   ]
 }
