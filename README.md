@@ -346,7 +346,7 @@ v4.1/
 │  │  └─ net.py           HTTP 重试、缓存、HTML 清洗
 │  ├─ assets/aurora.ico   程序图标（7 种尺寸）
 │  └─ web/                index.html · app.css · app.js（前端全部代码）
-├─ data/                  运行时生成：library.json / icons / backgrounds / cache / aurora.log
+├─ data/                  运行时生成：state/（settings·library·sessions）/ vntext/ / logs/ / cache/ / 素材目录
 └─ tools/                 自检、打包与调试脚本（可选）
 ```
 
@@ -376,7 +376,9 @@ python tools\meta_offline.py      # 用本地缓存校验元数据解析（断�
 python tools\check_bridge.py      # 前端调用的方法与后端实现是否一一对应
 python tools\check_library.py     # 检查现有游戏库文件是否完好（字段缺失 / 类型异常）
 python tools\checks\run_all.py    # 离线检查全家桶：契约快照 / 依赖白名单 / 去敏夹具 / 探针清单 / 基线漂移 / 分层守卫
+python tools\checks\update_contract.py  # 桥接契约快照：默认干跑比对，--write 才写入（有意增删方法时用）
 python -m pytest                  # 同一批离线检查 + domain 金样本回归（82 个用例）
+python main.py --check-migration  # 数据迁移干跑：只报告 v1→v2 会迁移多少游戏/会话，不写任何文件
 python tools\translate_probe.py   # 简介翻译自检：语言检测 + 接口链路 + 缓存
 python tools\download_probe.py    # 获取游戏自检：资源站增删 / 跳转链接 + 下载目录监听 / 自动解压 / 自动导入
 python tools\locale_probe.py      # 转区启动自检：LE 探测 / 四件套校验 / LEConfig 解析 / 启动命令 / PE 位数
@@ -422,6 +424,7 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 | `theme_probe.py` | **全部通过**（4 预设 × 深色/浅色/跟随系统，强调色与 data-theme 正确；深色面板为白色低透明度、文字亮色；浅色面板为白色高透明度、文字深色） |
 | `checks\run_all.py` | **6/6 通过**（契约快照 105+4 方法 / 14 事件、运行时依赖白名单、去敏夹具 24 游戏 / 63 字段 / 123 会话、探针清单 29 个脚本、架构基线漂移、分层守卫） |
 | `pytest` | **15 passed**（6 项离线检查 + 82 个 domain 金样本用例 + 转发/接线断言） |
+| `pytest`（P2 后） | **26 passed**（新增 10 项数据 v2 用例：迁移全等 / 干跑 / 去抖 / 损坏恢复 / 导出脱敏 / 导入合并 / 回滚） |
 - `analyze.py` 的区域与文字行检测已按环形大厅重排（工具条 / 两侧远封面 / 左邻封面 / 焦点封面 / 右邻封面 / 底部信息带）。
 
 > ⚠️ 两个 `.bat` 必须是 **GBK 编码 + CRLF 换行**：`cmd.exe` 按系统 ANSI 代码页（简体中文为 936）解析批处理，UTF-8 或 LF 换行会把中文注释拆成乱码并切断命令行。改动脚本后请用 `python tools\make_bat.py` 重新生成，不要用普通编辑器直接保存。

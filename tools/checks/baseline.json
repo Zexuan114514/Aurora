@@ -4,7 +4,7 @@
   "app_version": "1.0.0",
   "python": "3.13",
   "bridge": {
-    "public_methods": 105,
+    "public_methods": 106,
     "internal_methods": 41,
     "frontend_call_points": 96,
     "overlay_methods": 4,
@@ -16,6 +16,14 @@
     {
       "path": "aurora/__init__.py",
       "lines": 1
+    },
+    {
+      "path": "aurora/app/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/app/ports.py",
+      "lines": 63
     },
     {
       "path": "aurora/domain/__init__.py",
@@ -42,16 +50,40 @@
       "lines": 682
     },
     {
+      "path": "aurora/infra/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/infra/store/__init__.py",
+      "lines": 1
+    },
+    {
+      "path": "aurora/infra/store/atomic.py",
+      "lines": 115
+    },
+    {
+      "path": "aurora/infra/store/migrations.py",
+      "lines": 202
+    },
+    {
+      "path": "aurora/infra/store/paths.py",
+      "lines": 157
+    },
+    {
+      "path": "aurora/infra/store/state.py",
+      "lines": 346
+    },
+    {
       "path": "gl/__init__.py",
       "lines": 5
     },
     {
       "path": "gl/api.py",
-      "lines": 2257
+      "lines": 2232
     },
     {
       "path": "gl/config.py",
-      "lines": 220
+      "lines": 231
     },
     {
       "path": "gl/detect.py",
@@ -75,7 +107,7 @@
     },
     {
       "path": "gl/linetrans.py",
-      "lines": 307
+      "lines": 311
     },
     {
       "path": "gl/locale.py",
@@ -151,7 +183,7 @@
     },
     {
       "path": "gl/store.py",
-      "lines": 294
+      "lines": 354
     },
     {
       "path": "gl/translate.py",
@@ -187,59 +219,34 @@
     },
     {
       "path": "main.py",
-      "lines": 318
+      "lines": 345
     }
   ],
   "threads": [
     {
-      "name": "aurora-hooksearch",
-      "file": "gl/api.py",
-      "line": 694
+      "name": "aurora-downloads",
+      "file": "gl/downloads.py",
+      "line": 165
     },
     {
-      "name": "aurora-hooksearch-advance",
-      "file": "gl/api.py",
-      "line": 737
-    },
-    {
-      "name": "aurora-hooksearch-advance",
-      "file": "gl/api.py",
-      "line": 818
-    },
-    {
-      "name": "aurora-refresh-all",
-      "file": "gl/api.py",
-      "line": 1506
-    },
-    {
-      "name": "aurora-library.json",
-      "file": "gl/api.py",
-      "line": 1529
-    },
-    {
-      "name": "aurora-steam-import",
-      "file": "gl/api.py",
-      "line": 1634
-    },
-    {
-      "name": "aurora-translate-q",
-      "file": "gl/api.py",
-      "line": 1882
-    },
-    {
-      "name": "aurora-translate-all",
-      "file": "gl/api.py",
-      "line": 1950
+      "name": "aurora-drop-bind",
+      "file": "main.py",
+      "line": 182
     },
     {
       "name": "aurora-heartbeat",
       "file": "gl/api.py",
-      "line": 2205
+      "line": 2182
     },
     {
-      "name": "aurora-downloads",
-      "file": "gl/downloads.py",
-      "line": 165
+      "name": "aurora-hooksearch",
+      "file": "gl/api.py",
+      "line": 696
+    },
+    {
+      "name": "aurora-hooksearch-advance",
+      "file": "gl/api.py",
+      "line": 739
     },
     {
       "name": "aurora-hotkeys",
@@ -249,7 +256,7 @@
     {
       "name": "aurora-linetrans",
       "file": "gl/linetrans.py",
-      "line": 87
+      "line": 91
     },
     {
       "name": "aurora-overlay-resize",
@@ -257,9 +264,34 @@
       "line": 139
     },
     {
+      "name": "aurora-refresh-all",
+      "file": "gl/api.py",
+      "line": 1521
+    },
+    {
       "name": "aurora-session-{game_id[:6]}",
       "file": "gl/process.py",
-      "line": 266
+      "line": 272
+    },
+    {
+      "name": "aurora-state-writer",
+      "file": "aurora/infra/store/state.py",
+      "line": 71
+    },
+    {
+      "name": "aurora-steam-import",
+      "file": "gl/api.py",
+      "line": 1611
+    },
+    {
+      "name": "aurora-translate-all",
+      "file": "gl/api.py",
+      "line": 1927
+    },
+    {
+      "name": "aurora-translate-q",
+      "file": "gl/api.py",
+      "line": 1859
     },
     {
       "name": "aurora-tray",
@@ -267,34 +299,29 @@
       "line": 150
     },
     {
+      "name": "aurora-tray-supervisor",
+      "file": "main.py",
+      "line": 259
+    },
+    {
       "name": "aurora-vntext-flush",
       "file": "gl/vntext.py",
-      "line": 1323
+      "line": 537
     },
     {
       "name": "aurora-vntext-hook",
       "file": "gl/vntext.py",
-      "line": 1491
+      "line": 705
     },
     {
       "name": "aurora-vntext-hookcode",
       "file": "gl/vntext.py",
-      "line": 1500
+      "line": 714
     },
     {
       "name": "aurora-vntext-ocr",
       "file": "gl/vntext.py",
-      "line": 2022
-    },
-    {
-      "name": "aurora-drop-bind",
-      "file": "main.py",
-      "line": 163
-    },
-    {
-      "name": "aurora-tray-supervisor",
-      "file": "main.py",
-      "line": 240
+      "line": 1236
     }
   ],
   "data": {
@@ -382,6 +409,57 @@
           378
         ]
       }
+    },
+    {
+      "phase": "P2",
+      "date": "2026-09-20",
+      "note": "数据分账：state/{settings,library}.json + sessions.jsonl；路径单一解析点；单写者去抖；导入导出脱敏",
+      "moves": [
+        {
+          "from": "gl/config.py（import 期路径常量）",
+          "to": "aurora/infra/store/paths.py"
+        },
+        {
+          "from": "gl/store.py（直接全量写 JSON）",
+          "to": "aurora/infra/store/{atomic,state,migrations}.py"
+        },
+        {
+          "from": "gl/api.py（导出/导入逻辑）",
+          "to": "aurora/infra/store/state.py"
+        },
+        {
+          "from": "gl/api.py::_on_game_exit（内嵌 sessions）",
+          "to": "state/sessions.jsonl"
+        }
+      ],
+      "drift": {
+        "gl/config.py": [
+          220,
+          231
+        ],
+        "gl/store.py": [
+          294,
+          354
+        ],
+        "gl/api.py": [
+          2257,
+          2232
+        ],
+        "main.py": [
+          318,
+          345
+        ]
+      }
     }
+  ],
+  "modules_added_in_p2": [
+    "aurora/app/__init__.py",
+    "aurora/app/ports.py",
+    "aurora/infra/__init__.py",
+    "aurora/infra/store/__init__.py",
+    "aurora/infra/store/atomic.py",
+    "aurora/infra/store/migrations.py",
+    "aurora/infra/store/paths.py",
+    "aurora/infra/store/state.py"
   ]
 }

@@ -83,6 +83,7 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | [`13-roadmap.md`](13-roadmap.md) | （技能流程收口） | P0–P7 阶段、验收、回滚 |
 | [`baseline.md`](baseline.md) | （P0 基线冻结） | 契约 / 夹具 / 探针清单 / 架构基线 / 离线检查与 CI |
 | [`p1-domain-migration.md`](p1-domain-migration.md) | （P1 交付记录） | 纯逻辑下沉 domain：映射表、金样本、验收证据 |
+| [`p2-data-v2.md`](p2-data-v2.md) | （P2 交付记录） | 数据分账 / 迁移 / 单写者：布局、迁移规则、验收证据 |
 | [`contracts/bridge-contract.json`](contracts/bridge-contract.json) | component-boundary-reviewer | 桥接方法签名快照（105 + 4） |
 | [`contracts/events.md`](contracts/events.md) | runtime-view-writer | 事件信封、主题表、兼容规则 |
 | [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md) | service-decomposition-advisor | 插件与引擎规则包契约 |

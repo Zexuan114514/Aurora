@@ -15,81 +15,665 @@
   "channels": {
     "main": {
       "js_api": "gl.api.Api",
-      "method_count": 146,
+      "method_count": 147,
+      "public_method_count": 106,
+      "internal_method_count": 41,
       "frontend_call_count": 96,
+      "excluded_members": [
+        "__init__"
+      ],
       "methods": [
         {
-          "name": "bootstrap",
-          "params": [],
-          "returns": "dict",
-          "kind": "query",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_setting",
+          "name": "_apply_source",
           "params": [
             {
-              "name": "key",
+              "name": "game_id",
               "type": "str",
               "required": true
             },
             {
-              "name": "value",
+              "name": "source_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "candidate_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "str",
+              "required": false
+            },
+            {
+              "name": "source",
+              "type": "str",
+              "required": false
+            },
+            {
+              "name": "score",
+              "type": "float | None",
+              "required": false
+            },
+            {
+              "name": "query",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_auto_search",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_auto_search_async",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_beat",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_changed_payload",
+          "params": [
+            {
+              "name": "changed",
+              "type": "list[dict]",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_emit",
+          "params": [
+            {
+              "name": "event",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "payload",
+              "type": "dict",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_expand_dropped",
+          "params": [
+            {
+              "name": "paths",
+              "type": "list[str]",
+              "required": true
+            }
+          ],
+          "returns": "tuple[list[str], int]",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_advance",
+          "params": [
+            {
+              "name": "hwnd",
+              "type": "int",
+              "required": true
+            }
+          ],
+          "returns": "str",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_fail",
+          "params": [
+            {
+              "name": "reason",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "message",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_on_hit",
+          "params": [
+            {
+              "name": "row",
+              "type": "dict",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_sample",
+          "params": [
+            {
+              "name": "code",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "str",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_state",
+          "params": [],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_try",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "hwnd",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "code",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "target",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "bool",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_verify_pool",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "pid",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "hwnd",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "pool",
+              "type": "list[dict]",
+              "required": true
+            },
+            {
+              "name": "target",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "str",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_hooksearch_worker",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "pid",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "hwnd",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "text",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_import_one",
+          "params": [
+            {
+              "name": "path",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "auto_search",
+              "type": "bool | None",
+              "required": false
+            }
+          ],
+          "returns": "dict | None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_locale_command",
+          "params": [
+            {
+              "name": "game",
+              "type": "dict",
+              "required": true
+            }
+          ],
+          "returns": "tuple[list[str] | None, str]",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_on_game_exit",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "seconds",
+              "type": "float",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_on_game_found",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "pid",
+              "type": "int",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_on_overlay_action",
+          "params": [
+            {
+              "name": "name",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "payload",
               "type": "any",
               "required": true
             }
           ],
           "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
         },
         {
-          "name": "list_sources",
-          "params": [],
-          "returns": "list[dict]",
-          "kind": "query",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "toggle_source",
+          "name": "_on_translate_event",
           "params": [
             {
-              "name": "source_id",
+              "name": "kind",
               "type": "str",
               "required": true
             },
             {
-              "name": "enabled",
-              "type": "bool",
+              "name": "payload",
+              "type": "dict",
               "required": true
             }
           ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
         },
         {
-          "name": "move_source",
+          "name": "_on_vntext_line",
           "params": [
             {
-              "name": "source_id",
+              "name": "payload",
+              "type": "dict",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_purge_assets",
+          "params": [
+            {
+              "name": "game_id",
               "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_purge_covers",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_recover_sessions",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_refresh_all_worker",
+          "params": [
+            {
+              "name": "ids",
+              "type": "list[str]",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_remove_icon_files",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_scan_folder",
+          "params": [
+            {
+              "name": "folder",
+              "type": "Path",
               "required": true
             },
             {
-              "name": "delta",
+              "name": "limit",
               "type": "int",
               "required": true
             }
           ],
+          "returns": "list[str]",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_set_custom_icon",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "source",
+              "type": "Path",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_set_hooksearch",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_shelves_payload",
+          "params": [],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_sites",
+          "params": [],
+          "returns": "list[dict]",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_start_heartbeat",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_steam_worker",
+          "params": [
+            {
+              "name": "items",
+              "type": "list[dict]",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_toggle_overlay_click_through",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_toggle_overlay_visible",
+          "params": [],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_translate_all_worker",
+          "params": [
+            {
+              "name": "ids",
+              "type": "list[str]",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_translate_async",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "force",
+              "type": "bool",
+              "required": false
+            }
+          ],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_translate_description",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_translate_queue_loop",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_vntext_state",
+          "params": [],
+          "returns": "dict",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "add_by_path",
+          "params": [
+            {
+              "name": "path",
+              "type": "str",
+              "required": true
+            }
+          ],
           "returns": "dict",
           "kind": "command",
           "internal": false,
-          "called_by_frontend": true
+          "called_by_frontend": false
         },
         {
           "name": "add_custom_source",
@@ -106,128 +690,21 @@
           "called_by_frontend": true
         },
         {
-          "name": "remove_custom_source",
+          "name": "add_games_to_shelf",
           "params": [
             {
-              "name": "source_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_merge_sources",
-          "params": [
-            {
-              "name": "enabled",
-              "type": "bool",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "test_source",
-          "params": [
-            {
-              "name": "source_id",
-              "type": "str",
+              "name": "game_ids",
+              "type": "list",
               "required": true
             },
             {
-              "name": "query",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "open_source_search",
-          "params": [
-            {
-              "name": "query",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "source_id",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "open_url",
-          "params": [
-            {
-              "name": "url",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "window_cmd",
-          "params": [
-            {
-              "name": "command",
-              "type": "str",
+              "name": "shelf_ids",
+              "type": "list",
               "required": true
             }
           ],
           "returns": "dict",
           "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_tray",
-          "params": [
-            {
-              "name": "tray",
-              "type": "any",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_sites",
-          "params": [],
-          "returns": "list[dict]",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "list_sites",
-          "params": [],
-          "returns": "dict",
-          "kind": "query",
           "internal": false,
           "called_by_frontend": true
         },
@@ -251,16 +728,459 @@
           "called_by_frontend": true
         },
         {
-          "name": "remove_site",
+          "name": "advance_game",
           "params": [
             {
-              "name": "site_id",
+              "name": "game_id",
               "type": "str",
               "required": true
             }
           ],
           "returns": "dict",
           "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "apply_appid",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "appid",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "source",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "apply_candidate",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "source_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "candidate_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "str",
+              "required": false
+            },
+            {
+              "name": "kind",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "apply_window_icon",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "apply_window_theme",
+          "params": [
+            {
+              "name": "is_light",
+              "type": "bool",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "bootstrap",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "capture_game_frame",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "clear_background",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "clear_custom_cover",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "clear_custom_icon",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "clear_vntext_context",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "close_overlay",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "create_shelf",
+          "params": [
+            {
+              "name": "name",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "delete_shelf",
+          "params": [
+            {
+              "name": "shelf_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "drag_end",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "drag_move",
+          "params": [
+            {
+              "name": "dx",
+              "type": "float",
+              "required": true
+            },
+            {
+              "name": "dy",
+              "type": "float",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "drag_start",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "export_library",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "get_download_settings",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "get_hook_search_status",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "get_locale_status",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "get_network_status",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "get_vntext_status",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "import_dropped",
+          "params": [
+            {
+              "name": "paths",
+              "type": "list[str]",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "import_library",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "import_steam_games",
+          "params": [
+            {
+              "name": "items",
+              "type": "list[dict]",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "launch",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "list_glossary",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "list_shelves",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "list_sites",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "list_sources",
+          "params": [],
+          "returns": "list[dict]",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "lock_vntext_thread",
+          "params": [
+            {
+              "name": "key",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "minimize_to_tray",
+          "params": [],
+          "returns": "bool",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "move_shelf",
+          "params": [
+            {
+              "name": "shelf_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "delta",
+              "type": "int",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "move_source",
+          "params": [
+            {
+              "name": "source_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "delta",
+              "type": "int",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "open_data_dir",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "open_download_dir",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "open_language_settings",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
           "internal": false,
           "called_by_frontend": true
         },
@@ -275,8 +1195,7 @@
             {
               "name": "query",
               "type": "str",
-              "required": false,
-              "default": "''"
+              "required": false
             }
           ],
           "returns": "dict",
@@ -285,10 +1204,452 @@
           "called_by_frontend": true
         },
         {
-          "name": "get_download_settings",
+          "name": "open_source_search",
+          "params": [
+            {
+              "name": "query",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "source_id",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "open_textractor_page",
           "params": [],
           "returns": "dict",
-          "kind": "query",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "open_url",
+          "params": [
+            {
+              "name": "url",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_custom_icon",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_download_dir",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_executable",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_local_background",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_local_cover",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_locale_proc",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_textractor",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "refresh_all_metadata",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "refresh_running",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "remove_custom_source",
+          "params": [
+            {
+              "name": "source_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "remove_game",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "remove_games_from_shelf",
+          "params": [
+            {
+              "name": "game_ids",
+              "type": "list",
+              "required": true
+            },
+            {
+              "name": "shelf_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "remove_glossary_entry",
+          "params": [
+            {
+              "name": "source",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "remove_site",
+          "params": [
+            {
+              "name": "site_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "rename_game",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "rename_shelf",
+          "params": [
+            {
+              "name": "shelf_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "name",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "reset_name",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "resize_apply",
+          "params": [
+            {
+              "name": "x",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "y",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "width",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "height",
+              "type": "int",
+              "required": true
+            },
+            {
+              "name": "edge",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "resize_start",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "reveal",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "scan_downloads",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "scan_steam",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "search",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "query",
+              "type": "str | None",
+              "required": false
+            },
+            {
+              "name": "auto_apply",
+              "type": "bool",
+              "required": false
+            },
+            {
+              "name": "all_sources",
+              "type": "bool",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "send_hook_code",
+          "params": [
+            {
+              "name": "code",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_background",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "kind",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_background_view",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "scale",
+              "type": "float",
+              "required": true
+            },
+            {
+              "name": "x",
+              "type": "float",
+              "required": true
+            },
+            {
+              "name": "y",
+              "type": "float",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_cover",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "url",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
           "internal": false,
           "called_by_frontend": true
         },
@@ -312,34 +1673,107 @@
           "called_by_frontend": true
         },
         {
-          "name": "pick_download_dir",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "open_download_dir",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "scan_downloads",
-          "params": [],
+          "name": "set_game_locale",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "enabled",
+              "type": "bool",
+              "required": true
+            },
+            {
+              "name": "guid",
+              "type": "str",
+              "required": false
+            }
+          ],
           "returns": "dict",
           "kind": "command",
           "internal": false,
           "called_by_frontend": true
         },
         {
-          "name": "get_locale_status",
-          "params": [],
+          "name": "set_game_status",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "status",
+              "type": "str",
+              "required": true
+            }
+          ],
           "returns": "dict",
-          "kind": "query",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_games_favorite",
+          "params": [
+            {
+              "name": "game_ids",
+              "type": "list",
+              "required": true
+            },
+            {
+              "name": "value",
+              "type": "bool",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_glossary_entry",
+          "params": [
+            {
+              "name": "source",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "target",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_launch_args",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "args",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
           "internal": false,
           "called_by_frontend": true
         },
@@ -363,31 +1797,12 @@
           "called_by_frontend": true
         },
         {
-          "name": "pick_locale_proc",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_game_locale",
+          "name": "set_merge_sources",
           "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
             {
               "name": "enabled",
               "type": "bool",
               "required": true
-            },
-            {
-              "name": "guid",
-              "type": "str",
-              "required": false,
-              "default": "''"
             }
           ],
           "returns": "dict",
@@ -396,10 +1811,30 @@
           "called_by_frontend": true
         },
         {
-          "name": "get_network_status",
-          "params": [],
+          "name": "set_overlay_click_through",
+          "params": [
+            {
+              "name": "on",
+              "type": "bool",
+              "required": true
+            }
+          ],
           "returns": "dict",
-          "kind": "query",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_overlay_style",
+          "params": [
+            {
+              "name": "patch",
+              "type": "dict",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
           "internal": false,
           "called_by_frontend": true
         },
@@ -423,36 +1858,37 @@
           "called_by_frontend": true
         },
         {
-          "name": "test_network",
-          "params": [],
+          "name": "set_setting",
+          "params": [
+            {
+              "name": "key",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "value",
+              "type": "any",
+              "required": true
+            }
+          ],
           "returns": "dict",
           "kind": "command",
           "internal": false,
           "called_by_frontend": true
         },
         {
-          "name": "open_data_dir",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
+          "name": "set_tray",
+          "params": [
+            {
+              "name": "tray",
+              "type": "any",
+              "required": true
+            }
+          ],
+          "returns": "None",
+          "kind": "command",
           "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_vntext_state",
-          "params": [],
-          "returns": "dict",
-          "kind": "internal",
-          "internal": true,
           "called_by_frontend": false
-        },
-        {
-          "name": "get_vntext_status",
-          "params": [],
-          "returns": "dict",
-          "kind": "query",
-          "internal": false,
-          "called_by_frontend": true
         },
         {
           "name": "set_vntext_hook",
@@ -493,35 +1929,11 @@
           "called_by_frontend": true
         },
         {
-          "name": "pick_textractor",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "open_textractor_page",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "open_language_settings",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "start_vntext",
+          "name": "set_vntext_paused",
           "params": [
             {
-              "name": "game_id",
-              "type": "str",
+              "name": "paused",
+              "type": "bool",
               "required": true
             }
           ],
@@ -529,241 +1941,6 @@
           "kind": "command",
           "internal": false,
           "called_by_frontend": true
-        },
-        {
-          "name": "stop_vntext",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_hooksearch_state",
-          "params": [],
-          "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_set_hooksearch",
-          "params": [],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "get_hook_search_status",
-          "params": [],
-          "returns": "dict",
-          "kind": "query",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "advance_game",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_hooksearch_advance",
-          "params": [
-            {
-              "name": "hwnd",
-              "type": "int",
-              "required": true
-            }
-          ],
-          "returns": "str",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "start_hook_search",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "text",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "stop_hook_search",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_hooksearch_worker",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "pid",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "hwnd",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "text",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_hooksearch_on_hit",
-          "params": [
-            {
-              "name": "row",
-              "type": "dict",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_hooksearch_verify_pool",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "pid",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "hwnd",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "pool",
-              "type": "list[dict]",
-              "required": true
-            },
-            {
-              "name": "target",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "str",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_hooksearch_fail",
-          "params": [
-            {
-              "name": "reason",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "message",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_hooksearch_try",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "hwnd",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "code",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "target",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "bool",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_hooksearch_sample",
-          "params": [
-            {
-              "name": "code",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "str",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "close_overlay",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
         },
         {
           "name": "set_vntext_region",
@@ -785,7 +1962,34 @@
           "called_by_frontend": true
         },
         {
-          "name": "capture_game_frame",
+          "name": "shutdown",
+          "params": [],
+          "returns": "None",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
+          "name": "start_hook_search",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "text",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "start_vntext",
           "params": [
             {
               "name": "game_id",
@@ -799,10 +2003,10 @@
           "called_by_frontend": true
         },
         {
-          "name": "lock_vntext_thread",
+          "name": "stop",
           "params": [
             {
-              "name": "key",
+              "name": "game_id",
               "type": "str",
               "required": true
             }
@@ -813,10 +2017,116 @@
           "called_by_frontend": true
         },
         {
-          "name": "send_hook_code",
+          "name": "stop_hook_search",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "stop_vntext",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "test_network",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "test_source",
           "params": [
             {
-              "name": "code",
+              "name": "source_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "query",
+              "type": "str",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "test_translation",
+          "params": [
+            {
+              "name": "overrides",
+              "type": "dict | None",
+              "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "toggle_favorite",
+          "params": [
+            {
+              "name": "game_id",
+              "type": "str",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "toggle_overlay",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "toggle_source",
+          "params": [
+            {
+              "name": "source_id",
+              "type": "str",
+              "required": true
+            },
+            {
+              "name": "enabled",
+              "type": "bool",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "translate_all_descriptions",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "translate_game",
+          "params": [
+            {
+              "name": "game_id",
               "type": "str",
               "required": true
             }
@@ -841,11 +2151,11 @@
           "called_by_frontend": true
         },
         {
-          "name": "set_vntext_paused",
+          "name": "window_cmd",
           "params": [
             {
-              "name": "paused",
-              "type": "bool",
+              "name": "command",
+              "type": "str",
               "required": true
             }
           ],
@@ -853,139 +2163,18 @@
           "kind": "command",
           "internal": false,
           "called_by_frontend": true
-        },
+        }
+      ]
+    },
+    "overlay": {
+      "js_api": "gl.overlay.OverlayBridge",
+      "method_count": 4,
+      "excluded_members": [
+        "__init__"
+      ],
+      "methods": [
         {
-          "name": "clear_vntext_context",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "set_overlay_style",
-          "params": [
-            {
-              "name": "patch",
-              "type": "dict",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_overlay_click_through",
-          "params": [
-            {
-              "name": "on",
-              "type": "bool",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "toggle_overlay",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "list_glossary",
-          "params": [],
-          "returns": "dict",
-          "kind": "query",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_glossary_entry",
-          "params": [
-            {
-              "name": "source",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "target",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "remove_glossary_entry",
-          "params": [
-            {
-              "name": "source",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_on_vntext_line",
-          "params": [
-            {
-              "name": "payload",
-              "type": "dict",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_on_translate_event",
-          "params": [
-            {
-              "name": "kind",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "payload",
-              "type": "dict",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_on_overlay_action",
+          "name": "action",
           "params": [
             {
               "name": "name",
@@ -995,1195 +2184,18 @@
             {
               "name": "payload",
               "type": "any",
-              "required": true
+              "required": false
             }
           ],
           "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
+          "called_by_frontend": true
         },
         {
-          "name": "_toggle_overlay_click_through",
-          "params": [],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_toggle_overlay_visible",
+          "name": "begin_resize",
           "params": [],
           "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "minimize_to_tray",
-          "params": [],
-          "returns": "bool",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "drag_start",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
           "called_by_frontend": true
         },
-        {
-          "name": "drag_move",
-          "params": [
-            {
-              "name": "dx",
-              "type": "float",
-              "required": true
-            },
-            {
-              "name": "dy",
-              "type": "float",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "drag_end",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "resize_start",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "resize_apply",
-          "params": [
-            {
-              "name": "x",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "y",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "width",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "height",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "edge",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "pick_executable",
-          "params": [],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_scan_folder",
-          "params": [
-            {
-              "name": "folder",
-              "type": "Path",
-              "required": true
-            },
-            {
-              "name": "limit",
-              "type": "int",
-              "required": true
-            }
-          ],
-          "returns": "list[str]",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_expand_dropped",
-          "params": [
-            {
-              "name": "paths",
-              "type": "list[str]",
-              "required": true
-            }
-          ],
-          "returns": "tuple[list[str], int]",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "import_dropped",
-          "params": [
-            {
-              "name": "paths",
-              "type": "list[str]",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "add_by_path",
-          "params": [
-            {
-              "name": "path",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_import_one",
-          "params": [
-            {
-              "name": "path",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "auto_search",
-              "type": "bool | None",
-              "required": false,
-              "default": "None"
-            }
-          ],
-          "returns": "dict | None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "remove_game",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_purge_assets",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "toggle_favorite",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_shelves_payload",
-          "params": [],
-          "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "list_shelves",
-          "params": [],
-          "returns": "dict",
-          "kind": "query",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "create_shelf",
-          "params": [
-            {
-              "name": "name",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "rename_shelf",
-          "params": [
-            {
-              "name": "shelf_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "name",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "move_shelf",
-          "params": [
-            {
-              "name": "shelf_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "delta",
-              "type": "int",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "delete_shelf",
-          "params": [
-            {
-              "name": "shelf_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_changed_payload",
-          "params": [
-            {
-              "name": "changed",
-              "type": "list[dict]",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "add_games_to_shelf",
-          "params": [
-            {
-              "name": "game_ids",
-              "type": "list",
-              "required": true
-            },
-            {
-              "name": "shelf_ids",
-              "type": "list",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "remove_games_from_shelf",
-          "params": [
-            {
-              "name": "game_ids",
-              "type": "list",
-              "required": true
-            },
-            {
-              "name": "shelf_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_games_favorite",
-          "params": [
-            {
-              "name": "game_ids",
-              "type": "list",
-              "required": true
-            },
-            {
-              "name": "value",
-              "type": "bool",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_game_status",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "status",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "apply_window_theme",
-          "params": [
-            {
-              "name": "is_light",
-              "type": "bool",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "rename_game",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "name",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "reset_name",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_cover",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "url",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "clear_custom_cover",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "pick_local_cover",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_purge_covers",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "refresh_all_metadata",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_refresh_all_worker",
-          "params": [
-            {
-              "name": "ids",
-              "type": "list[str]",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "export_library",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "import_library",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "scan_steam",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "import_steam_games",
-          "params": [
-            {
-              "name": "items",
-              "type": "list[dict]",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_steam_worker",
-          "params": [
-            {
-              "name": "items",
-              "type": "list[dict]",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "reveal",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_launch_args",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "args",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_auto_search_async",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_auto_search",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "search",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "query",
-              "type": "str | None",
-              "required": false,
-              "default": "None"
-            },
-            {
-              "name": "auto_apply",
-              "type": "bool",
-              "required": false,
-              "default": "False"
-            },
-            {
-              "name": "all_sources",
-              "type": "bool",
-              "required": false,
-              "default": "True"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "apply_candidate",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "source_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "candidate_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "name",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            },
-            {
-              "name": "kind",
-              "type": "str",
-              "required": false,
-              "default": "'manual'"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "apply_appid",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "appid",
-              "type": "int",
-              "required": true
-            },
-            {
-              "name": "source",
-              "type": "str",
-              "required": false,
-              "default": "'manual'"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_apply_source",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "source_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "candidate_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "name",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            },
-            {
-              "name": "source",
-              "type": "str",
-              "required": false,
-              "default": "'auto'"
-            },
-            {
-              "name": "score",
-              "type": "float | None",
-              "required": false,
-              "default": "None"
-            },
-            {
-              "name": "query",
-              "type": "str",
-              "required": false,
-              "default": "''"
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_translate_async",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "force",
-              "type": "bool",
-              "required": false,
-              "default": "False"
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_translate_queue_loop",
-          "params": [],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_translate_description",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "translate_game",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "translate_all_descriptions",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_translate_all_worker",
-          "params": [
-            {
-              "name": "ids",
-              "type": "list[str]",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "test_translation",
-          "params": [
-            {
-              "name": "overrides",
-              "type": "dict | None",
-              "required": false,
-              "default": "None"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_background",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "url",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "kind",
-              "type": "str",
-              "required": false,
-              "default": "'remote'"
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "clear_background",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "set_background_view",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "scale",
-              "type": "float",
-              "required": true
-            },
-            {
-              "name": "x",
-              "type": "float",
-              "required": true
-            },
-            {
-              "name": "y",
-              "type": "float",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "pick_local_background",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "pick_custom_icon",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "dialog",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_set_custom_icon",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "source",
-              "type": "Path",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "clear_custom_icon",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_remove_icon_files",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "apply_window_icon",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "launch",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_locale_command",
-          "params": [
-            {
-              "name": "game",
-              "type": "dict",
-              "required": true
-            }
-          ],
-          "returns": "tuple[list[str] | None, str]",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_on_game_found",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "pid",
-              "type": "int",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_on_game_exit",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "seconds",
-              "type": "float",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "stop",
-          "params": [
-            {
-              "name": "game_id",
-              "type": "str",
-              "required": true
-            }
-          ],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_start_heartbeat",
-          "params": [],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_beat",
-          "params": [],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "_recover_sessions",
-          "params": [],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        },
-        {
-          "name": "refresh_running",
-          "params": [],
-          "returns": "dict",
-          "kind": "command",
-          "internal": false,
-          "called_by_frontend": true
-        },
-        {
-          "name": "_emit",
-          "params": [
-            {
-              "name": "event",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "payload",
-              "type": "dict",
-              "required": true
-            }
-          ],
-          "returns": "None",
-          "kind": "internal",
-          "internal": true,
-          "called_by_frontend": false
-        }
-      ],
-      "public_method_count": 105,
-      "internal_method_count": 41,
-      "excluded_members": [
-        "__init__"
-      ]
-    },
-    "overlay": {
-      "js_api": "gl.overlay.OverlayBridge",
-      "method_count": 4,
-      "methods": [
         {
           "name": "ready",
           "params": [],
@@ -2216,34 +2228,7 @@
           ],
           "returns": "dict",
           "called_by_frontend": true
-        },
-        {
-          "name": "begin_resize",
-          "params": [],
-          "returns": "dict",
-          "called_by_frontend": true
-        },
-        {
-          "name": "action",
-          "params": [
-            {
-              "name": "name",
-              "type": "str",
-              "required": true
-            },
-            {
-              "name": "payload",
-              "type": "any",
-              "required": false,
-              "default": "None"
-            }
-          ],
-          "returns": "dict",
-          "called_by_frontend": true
         }
-      ],
-      "excluded_members": [
-        "__init__"
       ]
     }
   },

@@ -19,7 +19,7 @@ data/                           # AURORA_DATA → 程序目录 data/ → %LOCALA
     glossary.json               # 术语表：全局 + 每游戏
   rules/engines/*.json          # 用户引擎规则包（覆盖内置）
   plugins/{sources,translators}/<id>/{plugin.json,main.py}
-  assets/{covers,backgrounds,icons}/   # 用户与下载素材（原 data/{covers,backgrounds,icons}）
+  covers/ backgrounds/ icons/          # 用户与下载素材：P2 起仍在原位，P5 资产服务化时再搬到 assets/
   cache/sources/<source>/<hash>.json   # 接口缓存（可重建）
   cache/vntext/<hash>.json             # 译文缓存（可重建）
   logs/aurora.log*                     # 结构化日志（按大小/日期滚动）
@@ -86,8 +86,10 @@ data/                           # AURORA_DATA → 程序目录 data/ → %LOCALA
 ### `state/sessions.jsonl`
 
 ```json
-{"ts_start":1758326400,"ts_end":1758329400,"seconds":3000,"game_id":"a1b2c3d4e5f6","pid":12345,"matched_by":"tree","reattached":false}
+{"game_id":"a1b2c3d4e5f6","ts_start":1758326400,"ts_end":1758329400,"seconds":3000,"source":"session"}
 ```
+
+`source` 取值：`session`（实时会话）| `migrated-v1`（从 v1 内嵌历史摊平而来）。
 
 | 规则 | 说明 |
 | --- | --- |
@@ -118,8 +120,8 @@ data/                           # AURORA_DATA → 程序目录 data/ → %LOCALA
 | 6 提交 | 原子替换到位（`os.replace`） | 任一步失败 → 保留 v1 文件不动 |
 | 7 收尾 | 把 v1 文件移入 `state/backup/`（不在原位置留第二份真相），写迁移日志 | —— |
 
-**干跑模式**：`Aurora.exe --check-migration`（源码 `python main.py --check-migration`）只输出
-「将迁移多少游戏 / 多少会话 / 多少设置键 / 备份路径」，不写任何文件。
+**干跑模式**（P2 已实现）：`Aurora.exe --check-migration`（源码 `python main.py --check-migration`）只输出
+「将迁移多少游戏 / 多少会话 / 多少设置键 / 备份路径」，不写任何文件；v1 不可解析时退出码 2 并给出原因。
 
 **回滚**：关闭 Aurora → 把 `state/backup/library-v1-<ts>.json` 复制回 `data/library.json` →
 删除（或改名保留）`data/state/` → 用旧版 exe 启动。界面提示与文档都要给出这三步。

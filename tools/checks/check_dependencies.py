@@ -48,7 +48,10 @@ def check() -> Result:
     result = Result("运行时依赖白名单")
     stdlib = set(sys.stdlib_module_names)
 
-    runtime_files = python_files("main.py", "gl")
+    roots = ["main.py", "gl"]
+    if (ROOT / "aurora").exists():
+        roots.append("aurora")          # P1/P2 起新代码也算运行时代码
+    runtime_files = python_files(*roots)
     hard: dict[str, set[str]] = {}
     optional: dict[str, set[str]] = {}
     for path in runtime_files:
