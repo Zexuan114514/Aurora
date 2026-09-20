@@ -545,32 +545,16 @@ def search(pid: int, buffers: list[dict], *, seconds: float = 8.0,
 # 差分法：台词往往是渲染时临时生成的（内存里查不到逐字副本），所以改「盯变化」
 # --------------------------------------------------------------------------- #
 
-def _text_at(handle, address: int, *, max_bytes: int = 400) -> tuple[str, str]:
-    """把一个地址当字符串读出来 → (文本, 编码)；不像台词就返回 ("", "")。"""
-    if not address or address < 0x10000:
+def _text_at(handle, address: int, limit: int = 0) -> tuple[str, str]:
+    """读一段内存并判定它是哪种编码的文本（P3.9：UTF-8/UTF-16 双解码择优）。"""
+    size = int(limit or 256)
+    raw = _read_raw(handle, int(address), size)
+    if len(raw) < 4:
         return "", ""
-    raw = _read_raw(handle, address, max_bytes)
-    if len(raw) < 6:
+    text, encoding = choose_decoding(raw)
+    if len(text) < 2:
         return "", ""
-    for label, codec in (("utf-16", "utf-16-le"), ("utf-8", "utf-8"), ("sjis", "cp932")):
-        try:
-            text = raw.decode(codec, "ignore")
-        except Exception:
-            continue
-        run = text.split("\x00")[0]
-        match = memmatch.TEXT_RUN_RE.search(run)
-        if not match:
-            continue
-        body = match.group(0).strip()
-        if not (6 <= len(body) <= 200):
-            continue
-        if not DIALOGUE_HINT_RE.search(body):
-            continue
-        if re.search(r"[\u0400-\u04ff\u0530-\u058f\u0590-\u05ff\u0900-\u097f]",
-                     body):
-            continue
-        return body, label
-    return "", ""
+    return text, encoding
 
 
 def harvest(pid: int, *, seconds: float = 12.0, stop_event=None,
@@ -623,6 +607,11 @@ def harvest(pid: int, *, seconds: float = 12.0, stop_event=None,
                         continue
                     text, encoding = _text_at(handle, value)
                     if not text:
+                        # 不像文本但像代码地址 → 这是「下一层帧」的返回地址；
+                        # 旧实现把 ±0x100 里所有槽都算到 [sp] 那一帧，导致 rip 指错位置，
+                        # 拼出的 H-code 自然挂不到真正读文本的那条指令上。
+                        if 0x10000 <= value < 0x7FFF_FFFF_FFFF:
+                            ret = value
                         continue
                     key = (ret, slot_addr - sp, encoding)
                     row = rows.setdefault(key, {"rip": ret, "offset": slot_addr - sp,
@@ -752,3 +741,25 @@ def module_of(pid: int, address: int) -> tuple[str, int]:
         return best
     finally:
         kernel32.CloseHandle(handle)
+
+def choose_decoding(raw: bytes) -> tuple[str, str]:
+    """把一段内存按 UTF-8 / UTF-16 各解一次，返回（文本, 编码），取更像台词的那个。
+
+    真机教训（アマカノ３ / Artemis-Emote）：这类引擎的文本是 UTF-8，旧实现只按 UTF-16 解，
+    读出来是「罕见汉字 + 零散片假名」的乱码（圠荈レ譈䣲骍Ｘ），既骗过重复检测又让候选全废。
+    打分用 domain 层的 hook_candidate_score（纯函数，无 IO），保证与找钩子的排序口径一致。
+    """
+    from aurora.domain.text_rules import hook_candidate_score
+    best_text, best_enc, best_score = "", "", -1.0
+    for encoding, codec in (("utf-8", "utf-8"), ("utf-16", "utf-16-le")):
+        try:
+            text = raw.decode(codec, "ignore")
+        except Exception:
+            continue
+        text = text.replace("\x00", "").strip()
+        if not text:
+            continue
+        score = hook_candidate_score(text)
+        if score > best_score:
+            best_text, best_enc, best_score = text, encoding, score
+    return best_text, best_enc
