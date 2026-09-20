@@ -82,6 +82,7 @@
 | P4.3-d 大厅自检读出面（`views/hall.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-d 小节：`__aurora.ring()/layout()` 取数搬进 hall 模块（纯函数传参），返回结构零变化；`app.js` 3695 行、`e2e` 90/90 |
 | P4.3-e 环几何进 hall 模块（`RING_GEOMETRY` / `ringGeometryOf`） | ✅ 已完成（2026-09-21） | 同上 P4.3-e 小节：几何常量与纯计算搬走，动画写入方留主模块；`e2e` 90/90、`visual` errors=[] |
 | P4.3-f 单张封面变换（`placeRingTile`） | ✅ 已完成（2026-09-21） | 同上 P4.3-f 小节：`visual` 的 ring 判据数值与改前逐字相同；`e2e` 90/90 |
+| P4.3-g 环叶子 helper（`ringMod`/`ringSigned`/`clearRingStyles`） | ✅ 已完成（2026-09-21） | 同上 P4.3-g 小节：三处定义改 import、8 处引用不变；`e2e` 90/90、ring 判据数值不变 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

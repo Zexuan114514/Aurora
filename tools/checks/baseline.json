@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3648
+      "lines": 3635
     },
     {
       "path": "gl/web/index.html",
@@ -399,7 +399,7 @@
     },
     {
       "path": "gl/web/app/views/hall.js",
-      "lines": 128
+      "lines": 152
     }
   ],
   "threads": [
@@ -1391,6 +1391,17 @@
         {
           "from": "app.js: ringPlace(node, r)",
           "to": "gl/web/app/views/hall.js: placeRingTile"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-g",
+      "date": "2026-09-21",
+      "note": "ringMod/ringSigned/clearRingStyles 搬到 views/hall.js；帧循环整块留待 createRing 接口一次性搬",
+      "moves": [
+        {
+          "from": "app.js: ringMod/ringSigned/clearRingStyles",
+          "to": "gl/web/app/views/hall.js"
         }
       ]
     }

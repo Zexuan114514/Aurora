@@ -471,3 +471,23 @@ const ringPlace = (node, r) => placeRingTile(node, r, { ring: RING, size: ringSi
 与 DOM，建议用 `createRing({ el, ring, state, onFocus })` 交出 `{measure, sync, step, run, stop}`
 的接口一次性搬完，仍以 `ring_check` + e2e 双验收。
 
+### P4.3-g 环的叶子 helper 先归位（2026-09-21 02:05）
+
+帧循环那一整块要一次搬完（`createRing` 接口，见上），但那之前先把**不涉及帧语义**的三个
+叶子函数摘出来，主模块能少一点是一点：
+
+| 搬到 `views/hall.js` | 说明 |
+| --- | --- |
+| `ringMod(i, n)` | 环上的循环取模（负数也落到 `[0, n)`） |
+| `ringSigned(d, n)` | 折到 `[-n/2, n/2)`：第 i 项在第几圈、哪个方向 |
+| `clearRingStyles(node)` | 清掉一张封面上的环样式（切平铺/重用节点时用） |
+
+主模块里三处定义删掉、改成 import（调用点零改动，8 处引用照旧）。
+
+验收：`run_all` 8/8、`e2e` **90/90**、`visual` `errors=[]` 且 ring 判据数值仍是
+`0/347.0`、`16/283.2`（与前一刀逐字相同）。
+
+**下一刀（P4.3-h）**：`createRing({ el, ring, state, onFocusChange, … })` 把
+`ringMeasure`/`ringSync`/`ringFrame`/`ringRun` 与拖拽、键盘一起搬完；先存 `visual` 基线，
+改完 `e2e` + `visual` 双验收并逐项比对 `ring_check`。
+

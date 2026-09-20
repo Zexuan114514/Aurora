@@ -6,7 +6,8 @@ import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
 import { ringReadout, layoutReadout } from "./app/views/hall.js";
 import { RING_GEOMETRY, RING_BASE, ringGeometryOf,
-         placeRingTile } from "./app/views/hall.js";
+         placeRingTile, ringMod, ringSigned,
+         clearRingStyles } from "./app/views/hall.js";
 import { $, el, missingIds } from "./app/core/dom.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -337,12 +338,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   };
   let ringSize = {unit: 1, w: 180, h: 270, rx: 580, rz: 260, depth: 1100};
 
-  const ringMod = (i, n) => ((i % n) + n) % n;
-  /* 折到 [-n/2, n/2)：第 i 项相对当前位置在第几圈、哪个方向 */
-  const ringSigned = (d, n) => {
-    const m = ringMod(d, n);
-    return m > n / 2 ? m - n : m;
-  };
+  /* ringMod / ringSigned（P4.3-g）在 ./app/views/hall.js */
   const ringClamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   /* 窗口越窄，半径与封面一起收，保证一圈封面仍然是同样的构图 */
@@ -499,15 +495,6 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
 
   /* ---------- 平铺横滑（NS 大厅）：一排放不下就把焦点那张滑到正中 ---------- */
   const hallLayout = () => (state.settings.hall_layout === "flat" ? "flat" : "ring");
-
-  function clearRingStyles(node) {
-    for (const prop of ["transform", "opacity", "filter", "zIndex", "visibility",
-                        "willChange", "transition", "pointerEvents"]) {
-      node.style.removeProperty(prop.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()));
-    }
-    node.style.removeProperty("--veil");
-    delete node.dataset.ringHidden;
-  }
 
   function updateRowFlat(instant = false) {
     const row = el.hallRow;

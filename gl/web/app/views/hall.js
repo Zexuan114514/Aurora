@@ -105,6 +105,30 @@ export function placeRingTile(node, r, { ring, size }) {
   node.style.setProperty("--veil", veil.toFixed(3));
 }
 
+/* ------------------------------------------------------------------ *
+ * 环用到的几个叶子 helper：循环取模、把差值折到 [-n/2, n/2)、清掉环样式。
+ * 都是纯函数/纯 DOM 清理，不碰帧循环语义（帧循环本身仍在主模块）。
+ * ------------------------------------------------------------------ */
+
+/** 环上的循环取模（负数也要落到 [0, n)）。 */
+export const ringMod = (i, n) => ((i % n) + n) % n;
+
+/** 把差值折到 [-n/2, n/2)：第 i 项相对当前位置在第几圈、哪个方向。 */
+export const ringSigned = (d, n) => {
+  const m = ringMod(d, n);
+  return m > n / 2 ? m - n : m;
+};
+
+/** 清掉一张封面上的环样式（切到平铺布局、或节点要重用时调）。 */
+export function clearRingStyles(node) {
+  for (const prop of ["transform", "opacity", "filter", "zIndex", "visibility",
+                      "willChange", "transition", "pointerEvents"]) {
+    node.style.removeProperty(prop.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()));
+  }
+  node.style.removeProperty("--veil");
+  delete node.dataset.ringHidden;
+}
+
 /** 当前主页布局 + 平铺布局下每张封面的实际位置（全部是读 DOM）。 */
 export function layoutReadout({ row, viewport, layoutName, flatClass }) {
   return {
