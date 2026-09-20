@@ -61,6 +61,25 @@ P3 的第一刀：把 `gl/api.py` 里两组自包含方法搬进 `aurora/ui/brid
 `launch`（启动与会话）、`vntext`（翻译面板与钩子查找）、`downloads`、以及 `TaskRunner` + `EventBus` 收线程；
 最后把桥接层对 `gl` 的临时依赖收口到 `aurora.platform` / `aurora.infra`。
 
+## P3.3 追加：游戏库 / 分类 / 素材 / 导入导出（2026-09-20）
+
+| 项 | 结果 |
+| --- | --- |
+| 新 mixin | `aurora/ui/bridge/library.py`，491 行 / **37 个方法**：游戏增删改（11）、分类书架（11）、封面/背景/图标素材（11）、库导入导出与扫描（4） |
+| 新共享模块 | `aurora/ui/bridge/shared.py`（98 行）：`_public()` 投影、`_resolve_note`、`NOTES`、`IMAGE_EXTS`、`LAUNCHABLE_EXTS` —— 它们是 mixin 之间的公共依赖，留在 `api.py` 会造成循环 import |
+| `gl/api.py` | 1808 → **1292 行**（累计 2232 → 1292，-42%），类内剩余 70 个方法 |
+| `Api` 基类 | `Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridgeMixin)` |
+| 契约 | 公开方法 **106** / 前端调用点 96 / 事件 14，零差异 |
+| 验收 | `pytest` 26 passed、`run_all` 6/6；运行时冒烟：**33 个被搬方法逐一调用，零异常** |
+
+**做法上的一条经验**：第一版用「行号 + 偏移」批量剪切，偏移算错（净减 83 行却按 87 算）把 `_emit`
+的 `def` 行切掉了——虽然文件仍能解析，但方法静默消失。改成**按原文精确文本删除**（`str.replace(text, "", 1)`
+并断言 `def _emit` 仍在）后一次通过。P3.4 继续搬时沿用这个做法。
+
+**P3.4 待办**：`metadata`（搜索 / 匹配 / 简介翻译）、`launch`（启动、会话、恢复）、`vntext`（翻译面板 /
+钩子查找 / 悬浮窗动作）、`downloads`、`bootstrap` 聚合；再加 `TaskRunner` + `EventBus` 收掉 20 个具名线程，
+并把桥接层对 `gl` 的临时依赖（config / process / vntext / downloads / locale / netproxy）收口。
+
 ## Risks or tradeoffs
 
 | 风险 | 说明 | 缓解 |

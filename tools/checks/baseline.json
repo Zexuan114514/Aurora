@@ -82,8 +82,16 @@
       "lines": 6
     },
     {
+      "path": "aurora/ui/bridge/library.py",
+      "lines": 490
+    },
+    {
       "path": "aurora/ui/bridge/settings.py",
       "lines": 222
+    },
+    {
+      "path": "aurora/ui/bridge/shared.py",
+      "lines": 98
     },
     {
       "path": "aurora/ui/bridge/shell.py",
@@ -99,7 +107,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 1808
+      "lines": 1292
     },
     {
       "path": "gl/config.py",
@@ -508,6 +516,27 @@
           1808
         ]
       }
+    },
+    {
+      "phase": "P3.3",
+      "date": "2026-09-20",
+      "note": "游戏库/分类/素材/导入导出 37 个方法搬进 aurora/ui/bridge/library.py；_public 等投影移到 shared.py",
+      "moves": [
+        {
+          "from": "gl/api.py（37 个库方法）",
+          "to": "aurora/ui/bridge/library.py"
+        },
+        {
+          "from": "gl/api.py（模块级 _public/_resolve_note/常量）",
+          "to": "aurora/ui/bridge/shared.py"
+        }
+      ],
+      "drift": {
+        "gl/api.py": [
+          1808,
+          1292
+        ]
+      }
     }
   ],
   "modules_added_in_p2": [
@@ -528,5 +557,9 @@
   ],
   "modules_added_in_p3_2": [
     "aurora/ui/bridge/settings.py"
+  ],
+  "modules_added_in_p3_3": [
+    "aurora/ui/bridge/library.py",
+    "aurora/ui/bridge/shared.py"
   ]
 }

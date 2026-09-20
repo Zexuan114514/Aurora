@@ -58,6 +58,8 @@
 | P3.2 其余 mixin + 服务化 + TaskRunner | 待开始 | 同上文档「还没做的」小节列出了范围 |
 | P3.2 设置类方法（settings mixin） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节：19 个方法 / 223 行搬出，契约仍 106 方法 |
 | P3.3 library / metadata / launch / vntext / downloads + TaskRunner | 待开始 | 同上 |
+| P3.3 游戏库类方法（library mixin） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节：37 个方法 / 491 行搬出，`api.py` → 1292 行，契约仍 106 方法 |
+| P3.4 metadata / launch / vntext / downloads + TaskRunner/EventBus | 待开始 | 同上 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions
