@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3120
+      "lines": 2995
     },
     {
       "path": "gl/web/index.html",
@@ -407,7 +407,7 @@
     },
     {
       "path": "gl/web/app/views/game.js",
-      "lines": 236
+      "lines": 375
     }
   ],
   "threads": [
@@ -1489,6 +1489,25 @@
         {
           "from": "app.js: imgHtml",
           "to": "gl/web/app/core/dom.js"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-m",
+      "date": "2026-09-21",
+      "note": "换封面面板（renderCoverPanel/coverCandidates）与手动匹配（renderMatches/renderMatchLinks/renderQuickQueries/matchHintText/openCandidates）进 views/game.js，sourceName 也一并归位；面板开合仍由主模块经 ctx.openPanel 注入；第一次 e2e 抓到 ctx.sourceName 残留（27/46），修复后 90/90、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: renderCoverPanel + coverCandidates",
+          "to": "gl/web/app/views/game.js: createGameView.renderCoverPanel"
+        },
+        {
+          "from": "app.js: renderMatches/renderMatchLinks/renderQuickQueries/matchHintText/openCandidates",
+          "to": "gl/web/app/views/game.js: createGameView"
+        },
+        {
+          "from": "app.js: sourceName",
+          "to": "gl/web/app/views/game.js: createGameView（模块内）"
         }
       ]
     }

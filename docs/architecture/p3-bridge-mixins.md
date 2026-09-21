@@ -605,3 +605,37 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 （`renderMatches` / `openCandidates` / `renderQuickQueries`）—— 这两块与后端调用耦合更紧，
 每块单独一刀，仍以 `e2e`（更换封面 / 手动匹配 / 候选应用）+ `visual` 收口。
 
+### P4.3-m 换封面面板与手动匹配进 views/game.js（2026-09-21 11:40）
+
+游戏页面板里最后两块（都在「⋯」菜单后面）：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/game.js` | `renderCoverPanel` + `coverCandidates`（封面候选链）；`renderMatches` / `renderMatchLinks` / `renderQuickQueries` / `matchHintText` / `openCandidates`（手动匹配那套） |
+| `views/game.js` | `sourceName`（资料源显示名）也一并归位 —— 它只被游戏页与候选列表用 |
+
+面板的开合仍是主模块的事：`openCandidates` 里那一下 `openPanel(el.matchPanel)` 走
+`ctx.openPanel(node)` 注入（`openPanel` / `closePanel` / `closeAll` 留到面板管路那一刀再搬）。
+主模块保留的调用是 `openMatchPanel` / `doSearch` / `researchGame` / 封面三个按钮 / 事件推送里的
+`metadata:notfound`，全部改成 `gameView.*`。
+
+**这一刀踩到的坑（e2e 当场拦住）**：`sourceName` 搬进视图后，`renderGameContent` 里还有一处
+`ctx.sourceName(...)` 没跟着改 —— 主模块已经不再注入这个回调，于是每次渲染游戏页都抛
+`TypeError: ctx.sourceName is not a function`。因为 `renderGameContent` 在
+`setFocus` → `render()` → `scheduleBackground()` 的链路上，症状看起来是「背景不应用、
+方向键不动、设置和分类打不开」这种四处漏风的样子：e2e 第一次跑出 **27/46**。
+
+定位方式：`_sandbox/p43m_probe.py` 真机开窗后挂 `window.onerror` 再点齿轮/封面，直接读到
+`Uncaught TypeError: ctx.sourceName is not a function @app/views/game.js:130`。
+改成模块内的 `sourceName(...)` 后 e2e 回到 **90/90**。
+**教训**：搬函数时除了改调用点，还要把「被搬走的函数在别处被 `ctx.` 引用过」这种残留一起搜干净
+（`rg 'ctx\.' views/*.js` 与 ctx 注入表对一遍）。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**（更多菜单里的「更换封面…」、
+「手动匹配…」、候选列表按匹配度排序、点候选才应用、重新搜索仍自动采纳全过）、
+`visual` `errors=[]` 且 ring 判据不变。`app.js` 3120 → 2995 行，`views/game.js` 236 → 375 行。
+
+**下一刀（P4.3-n）**：`app.js` 里剩下的两块 —— 面板管路（`openPanel`/`closePanel`/`closeAll`
+与各面板的开关）与资料源管理 / Steam 扫描 / 获取游戏（`renderSources` / `renderSteamList` /
+`renderSites` 这一组），之后 P4 只剩设置页内部的渲染。
+

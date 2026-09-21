@@ -47,12 +47,19 @@ export function detailBody(g) {
  * ctx = {
  *   currentGame(),        // 当前焦点游戏（主模块的 currentGame）
  *   startLiveTicker(),    // 运行中的秒表（主模块）
- *   sourceName(id),       // 资料源显示名（主模块）
  *   statusOrder(),        // 游玩状态的顺序（主模块的 STATUS_ORDER）
  *   statusLabel(),        // 游玩状态的文案（主模块的 STATUS_LABEL）
+ *   openPanel(node),      // 面板开合还是主模块的事（P4.3-m 只搬渲染）
  * }
  */
 export function createGameView(ctx) {
+  /** 资料源显示名：列表里有就用列表里的名字，没有就用 id 本身。 */
+  function sourceName(id) {
+    const row = (state.sources || []).find((s) => s.id === id);
+    if (row) return row.name;
+    return id ? id : "";
+  }
+
   /* 背景缩放 UI 与状态同步 */
   function syncBgZoomUi(game) {
     const g = game || ctx.currentGame();
@@ -120,7 +127,7 @@ export function createGameView(ctx) {
     if (g.data_source || g.match_source) {
       el.pillSource.hidden = false;
       const parts = [];
-      if (g.data_source) parts.push(ctx.sourceName(g.data_source));
+      if (g.data_source) parts.push(sourceName(g.data_source));
       parts.push(g.match_source === "manual" ? "手动匹配" : "自动匹配");
       if (g.match_score != null) parts.push(`${Math.round(g.match_score * 100)}%`);
       el.pillSource.textContent = parts.join(" · ");
@@ -172,7 +179,7 @@ export function createGameView(ctx) {
 
     const STATUS_ORDER = ctx.statusOrder();
     const STATUS_LABEL = ctx.statusLabel();
-    const srcName = ctx.sourceName(g.data_source);
+    const srcName = sourceName(g.data_source);
     const rows = [
       ["可执行文件", `<span title="${esc(g.exe)}">${esc(g.exe_name)}</span>`],
       ["所在目录", `<span title="${esc(g.dir)}">${esc(g.dir)}</span>`],
@@ -232,5 +239,137 @@ export function createGameView(ctx) {
        ${shotWall}`;
   }
 
-  return { renderGameContent, renderBgPanel, syncBgZoomUi, renderDetail };
+  /* 封面候选：手动封面 > 封面链 > 全部图片 */
+  function coverCandidates(game) {
+    const out = [];
+    const seen = new Set();
+    const push = (url, label) => {
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      out.push({ url, label: label || "" });
+    };
+    push(game.custom_cover, "当前封面");
+    push(game.cover, "默认封面");
+    (game.cover_sources || []).forEach((u) => push(u, "封面候选"));
+    (game.images || []).forEach((img) => push(img.url, img.label || ""));
+    return out.slice(0, 24);
+  }
+
+  /* 换封面面板：一排候选，点一张就换（打开与关闭仍由主模块的面板管路负责） */
+  function renderCoverPanel() {
+    const g = ctx.currentGame();
+    if (!g) return;
+    const list = coverCandidates(g);
+    if (!list.length) {
+      el.coverGrid.innerHTML = `<div class="list-empty" style="grid-column:1/-1">
+        还没有可用图片，可以先用「从本地选择图片」。</div>`;
+      return;
+    }
+    el.coverGrid.innerHTML = list.map((row) => `
+      <button class="bg-item${row.url === g.custom_cover ? " active" : ""}"
+              data-cover="${esc(row.url)}" title="${esc(row.label)}">
+        <span class="bg-thumb">${imgHtml("", [row.url])}<i>无法预览</i></span>
+        <span class="bg-label">${esc(row.label)}</span>
+      </button>`).join("");
+  }
+
+  /* ---------------------------------------------------------- 手动匹配 */
+  const matchHintText = (text) => { el.matchHint.textContent = text || ""; };
+
+  /* 快捷词：文件名推断出来的关键词 + 资料源给的各个名字，点一下就换个写法再搜 */
+  function renderQuickQueries(g) {
+    const seen = new Set();
+    const out = [];
+    const push = (value) => {
+      const text = String(value || "").trim();
+      if (!text || seen.has(text.toLowerCase())) return;
+      seen.add(text.toLowerCase());
+      out.push(text);
+    };
+    (g && g.queries || []).forEach(push);
+    push(g && g.name_original);
+    push(g && g.name_cn);
+    push(g && g.name);
+    const list = out.slice(0, 5);
+    el.matchQuick.hidden = !list.length;
+    el.matchQuick.innerHTML = list.map((q) =>
+      `<button class="quick-chip" data-q="${esc(q)}">${esc(q)}</button>`).join("");
+  }
+
+  /* 候选列表：后端已按匹配度从高到低排好，点一条就应用（不自动采纳） */
+  function renderMatches(candidates, query) {
+    el.matchQuery.value = query || "";
+    renderMatchLinks(query);
+    const rows = candidates || [];
+    const g = ctx.currentGame();
+    // 当前已应用的那一条：新记录有 data_source/source_id，老记录用 appid / 详情页地址兜底
+    const curUrl = String((g && (g.store_url || g.source_url)) || "");
+    const curSource = (g && g.data_source)
+      || (/steampowered|steamstatic/.test(curUrl) ? "steam"
+        : /vndb\.org/.test(curUrl) ? "vndb"
+          : /bgm\.tv/.test(curUrl) ? "bangumi" : "");
+    const curId = String((g && (g.source_id || g.appid))
+      || curUrl.replace(/\/+$/, "").split("/").pop() || "");
+    const isCurrent = (c) => Boolean(curId && c.source === curSource
+      && String(c.source_id) === curId);
+    if (!rows.length) {
+      el.matchList.innerHTML =
+        `<div class="list-empty">没有找到候选，换个关键词试试，或检查设置里的资料源。</div>`;
+      return;
+    }
+    el.matchList.innerHTML = rows.map((c, index) => `
+      <button class="match-item${index === 0 && rows.length > 1 ? " best" : ""}"
+              data-source="${esc(c.source)}"
+              data-source-id="${esc(c.source_id)}" data-name="${esc(c.name)}">
+        ${c.thumb ? `<img src="${esc(c.thumb)}" alt="" loading="lazy">` : `<img alt="">`}
+        <div>
+          <div class="mi-name">${esc(c.name)}${
+            isCurrent(c) ? '<span class="mi-cur">当前</span>' : ""}${
+            index === 0 && rows.length > 1 ? '<span class="mi-best">匹配度最高</span>' : ""}</div>
+          <div class="mi-sub">
+            <span class="src-badge">${esc(sourceName(c.source))}</span>
+            <span>${esc(c.source_id)}</span>
+          </div>
+        </div>
+        <span class="match-score">${Math.round((c.score || 0) * 100)}%</span>
+      </button>`).join("");
+  }
+
+  /* 只跳转搜索的源（如 TouchGal），点一下用浏览器打开 */
+  function renderMatchLinks(query) {
+    const links = (state.sources || []).filter((s) => s.kind === "link" && s.enabled);
+    const text = (query || el.matchQuery.value || "").trim();
+    if (!links.length || !text) {
+      el.matchLinks.innerHTML = "";
+      return;
+    }
+    el.matchLinks.innerHTML = links.map((s) => `
+      <button class="link-chip" data-link-source="${esc(s.id)}">
+        <svg viewBox="0 0 24 24" class="ic" style="width:13px;height:13px">
+          <path d="M14 5h5v5M19 5l-8 8M9 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-3"/>
+        </svg>
+        在 ${esc(s.name)} 搜索
+      </button>`).join("");
+  }
+
+  /* 打开候选面板：候选按匹配度从高到低摆出来，等用户自己点（不自动采纳） */
+  function openCandidates(rows, query, note) {
+    renderQuickQueries(ctx.currentGame());
+    renderMatches(rows, query);
+    ctx.openPanel(el.matchPanel);
+    if (rows && rows.length) {
+      const best = Math.round((rows[0].score || 0) * 100);
+      matchHintText(`共 ${rows.length} 条候选，按匹配度从高到低排列` +
+        `（最高 ${best}%）——点一条就应用。`);
+      $("matchRetry").hidden = true;
+    } else {
+      matchHintText(note || "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。");
+      $("matchRetry").hidden = !/网络/.test(note || "");
+    }
+    return Boolean(rows && rows.length);
+  }
+
+  return { renderGameContent, renderBgPanel, syncBgZoomUi, renderDetail,
+           renderCoverPanel, matchHintText, renderQuickQueries, renderMatches,
+           openCandidates };
 }

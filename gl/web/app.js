@@ -249,21 +249,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     return list;
   }
 
-  /* 封面候选：手动封面 > 封面链 > 全部图片 */
-  function coverCandidates(game) {
-    const out = [];
-    const seen = new Set();
-    const push = (url, label) => {
-      if (!url || seen.has(url)) return;
-      seen.add(url);
-      out.push({ url, label: label || "" });
-    };
-    push(game.custom_cover, "当前封面");
-    push(game.cover, "默认封面");
-    (game.cover_sources || []).forEach((u) => push(u, "封面候选"));
-    (game.images || []).forEach((img) => push(img.url, img.label || ""));
-    return out.slice(0, 24);
-  }
+  /* coverCandidates（封面候选链）在 ./app/views/game.js（P4.3-m） */
 
   /* ---------------------------------------------------------- 大厅 */
   const ADD_KEY = "__add__";
@@ -469,9 +455,9 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   const gameView = createGameView({
     currentGame: () => currentGame(),
     startLiveTicker: () => startLiveTicker(),
-    sourceName: (id) => sourceName(id),
     statusOrder: () => STATUS_ORDER,
     statusLabel: () => STATUS_LABEL,
+    openPanel: (node) => openPanel(node),
   });
 
   function render() {
@@ -1227,26 +1213,11 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   /* 详情面板在 ./app/views/game.js（P4.3-l） */
 
   /* ---------------------------------------------------------- 封面面板 */
-  function renderCoverPanel() {
-    const g = currentGame();
-    if (!g) return;
-    const list = coverCandidates(g);
-    if (!list.length) {
-      el.coverGrid.innerHTML = `<div class="list-empty" style="grid-column:1/-1">
-        还没有可用图片，可以先用「从本地选择图片」。</div>`;
-      return;
-    }
-    el.coverGrid.innerHTML = list.map((row) => `
-      <button class="bg-item${row.url === g.custom_cover ? " active" : ""}"
-              data-cover="${esc(row.url)}" title="${esc(row.label)}">
-        <span class="bg-thumb">${imgHtml("", [row.url])}<i>无法预览</i></span>
-        <span class="bg-label">${esc(row.label)}</span>
-      </button>`).join("");
-  }
+  /* 换封面面板的渲染在 ./app/views/game.js（P4.3-m） */
 
   function openCoverPanel() {
     closeAll();
-    renderCoverPanel();
+    gameView.renderCoverPanel();
     openPanel(el.coverPanel);
   }
 
@@ -1421,67 +1392,8 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   }
 
   /* ---------------------------------------------------------- 候选匹配 */
-  function sourceName(id) {
-    const row = (state.sources || []).find((s) => s.id === id);
-    if (row) return row.name;
-    return id ? id : "";
-  }
-
-  /* 候选列表：后端已按匹配度从高到低排好，点一条就应用（不自动采纳） */
-  function renderMatches(candidates, query) {
-    el.matchQuery.value = query || "";
-    renderMatchLinks(query);
-    const rows = candidates || [];
-    const g = currentGame();
-    // 当前已应用的那一条：新记录有 data_source/source_id，老记录用 appid / 详情页地址兜底
-    const curUrl = String((g && (g.store_url || g.source_url)) || "");
-    const curSource = (g && g.data_source)
-      || (/steampowered|steamstatic/.test(curUrl) ? "steam"
-        : /vndb\.org/.test(curUrl) ? "vndb"
-          : /bgm\.tv/.test(curUrl) ? "bangumi" : "");
-    const curId = String((g && (g.source_id || g.appid))
-      || curUrl.replace(/\/+$/, "").split("/").pop() || "");
-    const isCurrent = (c) => Boolean(curId && c.source === curSource
-      && String(c.source_id) === curId);
-    if (!rows.length) {
-      el.matchList.innerHTML =
-        `<div class="list-empty">没有找到候选，换个关键词试试，或检查设置里的资料源。</div>`;
-      return;
-    }
-    el.matchList.innerHTML = rows.map((c, index) => `
-      <button class="match-item${index === 0 && rows.length > 1 ? " best" : ""}"
-              data-source="${esc(c.source)}"
-              data-source-id="${esc(c.source_id)}" data-name="${esc(c.name)}">
-        ${c.thumb ? `<img src="${esc(c.thumb)}" alt="" loading="lazy">` : `<img alt="">`}
-        <div>
-          <div class="mi-name">${esc(c.name)}${
-            isCurrent(c) ? '<span class="mi-cur">当前</span>' : ""}${
-            index === 0 && rows.length > 1 ? '<span class="mi-best">匹配度最高</span>' : ""}</div>
-          <div class="mi-sub">
-            <span class="src-badge">${esc(sourceName(c.source))}</span>
-            <span>${esc(c.source_id)}</span>
-          </div>
-        </div>
-        <span class="match-score">${Math.round((c.score || 0) * 100)}%</span>
-      </button>`).join("");
-  }
-
-  /* 只跳转搜索的源（如 TouchGal），点一下用浏览器打开 */
-  function renderMatchLinks(query) {
-    const links = (state.sources || []).filter((s) => s.kind === "link" && s.enabled);
-    const text = (query || el.matchQuery.value || "").trim();
-    if (!links.length || !text) {
-      el.matchLinks.innerHTML = "";
-      return;
-    }
-    el.matchLinks.innerHTML = links.map((s) => `
-      <button class="link-chip" data-link-source="${esc(s.id)}">
-        <svg viewBox="0 0 24 24" class="ic" style="width:13px;height:13px">
-          <path d="M14 5h5v5M19 5l-8 8M9 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-3"/>
-        </svg>
-        在 ${esc(s.name)} 搜索
-      </button>`).join("");
-  }
+  /* sourceName / 候选列表（renderMatches）/ 跳转搜索（renderMatchLinks）
+     在 ./app/views/game.js（P4.3-m） */
 
   /* ---------------------------------------------------------- 资料源管理 */
   function renderSources() {
@@ -1662,45 +1574,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     toast("已应用本地背景图");
   }
 
-  /* ---------------------------------------------------------- 手动匹配 */
-  const matchHintText = (text) => { el.matchHint.textContent = text || ""; };
-
-  /* 快捷词：文件名推断出来的关键词 + 资料源给的各个名字，点一下就换个写法再搜 */
-  function renderQuickQueries(g) {
-    const seen = new Set();
-    const out = [];
-    const push = (value) => {
-      const text = String(value || "").trim();
-      if (!text || seen.has(text.toLowerCase())) return;
-      seen.add(text.toLowerCase());
-      out.push(text);
-    };
-    (g && g.queries || []).forEach(push);
-    push(g && g.name_original);
-    push(g && g.name_cn);
-    push(g && g.name);
-    const list = out.slice(0, 5);
-    el.matchQuick.hidden = !list.length;
-    el.matchQuick.innerHTML = list.map((q) =>
-      `<button class="quick-chip" data-q="${esc(q)}">${esc(q)}</button>`).join("");
-  }
-
-  /* 打开候选面板：候选按匹配度从高到低摆出来，等用户自己点（不自动采纳） */
-  function openCandidates(rows, query, note) {
-    renderQuickQueries(currentGame());
-    renderMatches(rows, query);
-    openPanel(el.matchPanel);
-    if (rows && rows.length) {
-      const best = Math.round((rows[0].score || 0) * 100);
-      matchHintText(`共 ${rows.length} 条候选，按匹配度从高到低排列` +
-        `（最高 ${best}%）——点一条就应用。`);
-      $("matchRetry").hidden = true;
-    } else {
-      matchHintText(note || "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。");
-      $("matchRetry").hidden = !/网络/.test(note || "");
-    }
-    return Boolean(rows && rows.length);
-  }
+  /* 手动匹配的三块渲染（快捷词 / 候选列表 / 提示文案）在 ./app/views/game.js（P4.3-m） */
 
   /* 「⋯ → 手动匹配…」：预填名字（匹配过的用当前名字，没匹配的用文件名推断词）开面板并搜一次 */
   async function openMatchPanel() {
@@ -1710,15 +1584,15 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     // 已经匹配上的用当前名字搜（最准）；没匹配上的用文件名推断出的关键词
     const query = (g.metadata_state === "ok" && g.name)
       ? g.name : ((g.queries || [])[0] || g.name || "");
-    renderQuickQueries(g);
-    renderMatches([], query);
+    gameView.renderQuickQueries(g);
+    gameView.renderMatches([], query);
     el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
-    matchHintText(query ? `正在按「${query}」搜索…` : "");
+    gameView.matchHintText(query ? `正在按「${query}」搜索…` : "");
     $("matchRetry").hidden = true;
     openPanel(el.matchPanel);
     if (query) await doSearch(query);
     else {
-      matchHintText("输入游戏名（中文 / 日文原名 / 英文名都行）再点搜索。");
+      gameView.matchHintText("输入游戏名（中文 / 日文原名 / 英文名都行）再点搜索。");
       el.matchQuery.focus();
     }
   }
@@ -1731,11 +1605,11 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     const btn = $("matchGo");
     btn.disabled = true;
     el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
-    matchHintText(q ? `正在搜索「${q}」…` : "正在按文件名推断的关键词搜索…");
+    gameView.matchHintText(q ? `正在搜索「${q}」…` : "正在按文件名推断的关键词搜索…");
     try {
       const res = await call("search", g.id, q || null);
       const asked = q || (res.queries || [])[0] || "";
-      if (!openCandidates(res.candidates, asked, res.reason === "network"
+      if (!gameView.openCandidates(res.candidates, asked, res.reason === "network"
           ? "网络不通，没能拿到候选；可以点「重试」再来一次。"
           : "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。")) {
         toast("没有找到匹配结果");
@@ -1743,7 +1617,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     } catch (e) {
       el.matchList.innerHTML =
         `<div class="list-empty">搜索出错，可以换个关键词重试。</div>`;
-      matchHintText("搜索出错：" + e.message);
+      gameView.matchHintText("搜索出错：" + e.message);
       $("matchRetry").hidden = false;
     } finally {
       btn.disabled = false;
@@ -1765,8 +1639,8 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
         return;
       }
       closeAll();
-      openCandidates(res.candidates, (res.queries || [])[0] || "",
-                     "匹配置信度不足，请手动选择");
+      gameView.openCandidates(res.candidates, (res.queries || [])[0] || "",
+                              "匹配置信度不足，请手动选择");
       toast("匹配置信度不足，请手动选择");
     } catch (e) {
       toast("搜索失败：" + e.message);
@@ -2619,7 +2493,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (!g) return;
       const res = await call("set_cover", g.id, item.dataset.cover);
       if (res.game) Object.assign(g, res.game);
-      renderCoverPanel();
+      gameView.renderCoverPanel();
       render();
       toast("已更换封面");
     });
@@ -2630,7 +2504,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (!res || res.cancelled) return;
       if (!res.ok) { toast("选择失败：" + ((res && res.error) || "")); return; }
       Object.assign(g, res.game);
-      renderCoverPanel();
+      gameView.renderCoverPanel();
       render();
       toast("已应用本地封面");
     };
@@ -2639,7 +2513,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (!g) return;
       const res = await call("clear_custom_cover", g.id);
       if (res.game) Object.assign(g, res.game);
-      renderCoverPanel();
+      gameView.renderCoverPanel();
       render();
       toast("已恢复默认封面");
     };
@@ -2951,7 +2825,8 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
           // 大厅里、以及设置页里都只提示一句，别把面板盖到别的界面上
           if (state.focus === payload.id && state.page === "game" && !payload.quiet
               && !state.settingsOpen) {
-            openCandidates(payload.candidates, "", payload.note || "没有找到匹配结果");
+            gameView.openCandidates(payload.candidates, "",
+                                    payload.note || "没有找到匹配结果");
             toast(payload.note || "没有找到匹配结果");
           } else if (g && !payload.quiet) {
             toast(`${g.name}：${payload.note || "没有找到匹配结果"}`, 3600);
