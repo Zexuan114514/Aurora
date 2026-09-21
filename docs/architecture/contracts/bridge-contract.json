@@ -15,8 +15,8 @@
   "channels": {
     "main": {
       "js_api": "gl.api.Api",
-      "method_count": 148,
-      "public_method_count": 106,
+      "method_count": 150,
+      "public_method_count": 108,
       "internal_method_count": 42,
       "frontend_call_count": 97,
       "excluded_members": [
@@ -1091,6 +1091,14 @@
           "called_by_frontend": true
         },
         {
+          "name": "list_plugins",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
           "name": "list_shelves",
           "params": [],
           "returns": "dict",
@@ -1465,6 +1473,14 @@
           "kind": "command",
           "internal": false,
           "called_by_frontend": true
+        },
+        {
+          "name": "rescan_plugins",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": false
         },
         {
           "name": "reset_name",

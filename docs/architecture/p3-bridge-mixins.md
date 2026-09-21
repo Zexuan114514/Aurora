@@ -1006,3 +1006,35 @@ ADR-0008 落地：实测 hook 码从「写死在 Python 常量里」变成「一
 界面上的插件状态与「重新扫描」）—— 契约已冻结在 [`contracts/plugin-api-v1.md`](../architecture/contracts/plugin-api-v1.md)、
 决策见 [ADR-0009](../adr/ADR-0009-plugin-api-v1.md)。
 
+## P6.2 插件加载器（2026-09-21 18:05）
+
+ADR-0009 的加载器部分落地（**接入注册表与界面留到 P6.3**）：
+
+| 改动 | 内容 |
+| --- | --- |
+| `aurora/infra/plugins.py`（新） | 发现 `data/plugins/{sources,translators}/<id>/`；manifest 门禁（`api_version` 主版本必须一致、次版本不得更高、`kind` 与目录种类匹配、`id` 正则且等于目录名、`name`/`version`/`entry` 必填、`permissions`/`settings` 类型检查）；`importlib.util.spec_from_file_location` 加载（**不改 `sys.path`**）；找入口类（manifest `class` 缺省时取模块里的插件类）→ 构造 → 注入 `HostContext`（`get` / `log` / `http()` 带宿主代理 / `now()`），可选 `bind_host()` |
+| 同上 | `PluginStatus`：kind/id/name/version/path/state/detail/permissions/settings/failures，`state ∈ {ok, manifest-error, incompatible, load-error, init-error, duplicate, disabled}`；**单插件失败只影响它自己**（同目录里的好插件照常加载） |
+| 同上 | `CallGuard`：包住插件调用，异常计数，**连续 3 次失败自动禁用**（状态改 `disabled`，之后直接抛 `PluginDisabled`），成功一次清零 —— 对应契约的「逐次调用异常隔离」 |
+| `aurora/app/services/plugins.py`（新） | 桥接层背后的服务（分层守卫不许 bridge import infra）：`list()` 懒加载 / `rescan()` 重扫 / `statuses()` 给内部注册用 |
+| `aurora/ui/bridge/settings.py` | 新增两个桥接方法 `list_plugins()` / `rescan_plugins()`（薄转发）；契约快照随之更新（148 → 150 个方法） |
+| `docs/plugins.md`（新） | 面向贡献者的最小示例：资料源、翻译引擎、引擎规则包三份骨架 + 约束表 + 排错命令 |
+
+**验收**：
+
+| 项 | 结果 |
+| --- | --- |
+| `pytest` | **75 passed**（新增 `tests/test_plugins.py` **17 个**：发现并注册、`bind_host` 注入、7 类非法 manifest 逐个拒绝、目录名≠id、入口导入炸裂被隔离、缺 manifest/入口、**三连失败自动禁用**、成功清零、`load_all()` 默认目录、服务层与桥接层转发） |
+| `run_all` | **10/10**（依赖白名单与分层守卫一度拦下两处设计问题 —— 见下） |
+| `e2e` | **90/90（0 skipped）** |
+| 契约快照 | `update_contract.py --write`：桥接方法 148 → 150（`list_plugins` / `rescan_plugins`），快照与代码一致 |
+
+**守卫当场拦下的两处**（正是它们该做的事）：
+1. 我先在桥接层里直接 `from aurora.infra import plugins` → `check_layers` 报
+   「桥接层不得直接 import infra（改用 app 端口）」→ 改成 `PluginsService`（app 层）。
+2. 测试里 `from gl.api import Api` → 依赖白名单报「引用了 gl.api（模块顶端 import webview）」→ 改成
+   直接测 `PluginsService` 与 `SettingsBridgeMixin`（不拉整棵 Api）。
+
+**P6 还剩（P6.3）**：把插件真正接入资料源 / 翻译引擎注册表（让 `search/fetch/translate` 生效），
+并在设置页加「插件」区展示状态、权限与来源，配一个「重新扫描插件」按钮 —— ADR-0009 明确要求
+「加载失败 / 版本不兼容 / 自动禁用必须有界面呈现」。
+

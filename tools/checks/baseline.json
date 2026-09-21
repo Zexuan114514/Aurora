@@ -207,7 +207,7 @@
     },
     {
       "path": "aurora/ui/bridge/settings.py",
-      "lines": 189
+      "lines": 202
     },
     {
       "path": "aurora/ui/bridge/shared.py",
@@ -235,7 +235,15 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 181
+      "lines": 184
+    },
+    {
+      "path": "aurora/infra/plugins.py",
+      "lines": 264
+    },
+    {
+      "path": "aurora/app/services/plugins.py",
+      "lines": 37
     },
     {
       "path": "gl/config.py",
@@ -1800,6 +1808,21 @@
         {
           "from": "aurora/infra/vntext.py: willplus_hook_code 直接读常量",
           "to": "经 aurora/infra/rules.py 加载规则包（内置 + 用户覆盖）"
+        }
+      ]
+    },
+    {
+      "phase": "P6.2",
+      "date": "2026-09-21",
+      "note": "插件加载器（ADR-0009 前半）：新增 aurora/infra/plugins.py（发现 data/plugins/<kind>/<id>/、manifest 门禁、importlib 加载不改 sys.path、HostContext 注入、逐插件状态、连续 3 次失败自动禁用 CallGuard）；新增 aurora/app/services/plugins.py（分层守卫要求桥接不碰 infra）；桥接新增 list_plugins/rescan_plugins（契约 148 → 150）；贡献者文档 docs/plugins.md；pytest 58 → 75（新增 17 个插件用例）、run_all 10/10、e2e 90/90（0 skipped）",
+      "moves": [
+        {
+          "from": "（无——新扩展点）",
+          "to": "aurora/infra/plugins.py + aurora/app/services/plugins.py + data/plugins/**（运行期）"
+        },
+        {
+          "from": "桥接层无插件相关方法",
+          "to": "aurora/ui/bridge/settings.py: list_plugins / rescan_plugins"
         }
       ]
     }

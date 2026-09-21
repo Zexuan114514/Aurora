@@ -28,6 +28,7 @@ from aurora.app.services.metadata import MetadataService
 from aurora.app.services.translation import TranslationService
 from aurora.app.services.vntext import VnTextService
 from aurora.app.services.settings import SettingsService
+from aurora.app.services.plugins import PluginsService
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
 
@@ -53,6 +54,8 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._pm = process.ProcessManager()
         self._sources = SourceManager(self._library)
         self._settings = SettingsService(self._library, self._sources)
+        #: P6.2：插件目录（data/plugins/**）的加载与状态查询
+        self._plugins_service = PluginsService(config.DATA_DIR, logger=config.log)
         self._library_service = LibraryService(self._library, self._pm,
                                              auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
                                              apply_window_icon=self.apply_window_icon)
