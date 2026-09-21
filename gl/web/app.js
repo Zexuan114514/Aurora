@@ -3,7 +3,7 @@
  */
 import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
-import { createSettingsView } from "./app/views/settings.js";
+import { createSettingsView, LE_URL } from "./app/views/settings.js";
 import { createRing, layoutReadout, hallKeysOf } from "./app/views/hall.js";
 import { createGameView } from "./app/views/game.js";
 import { createSourcesView } from "./app/views/sources.js";
@@ -570,14 +570,19 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   /* 事件绑定（面板按钮 / hook 查找器 / 设置栏 / 术语表）在 ./app/views/vntext.js（P4.3-p） */
 
   /* ---------------------------------------------------------- 设置页 */
-  /* P4.3-c：设置页导航搬进 ./app/views/settings.js（依赖注入 ctx）
-     ctx 里用箭头延迟取值：这些 helper 有些是 const（定义在本行之后），
+  /* 设置页整块（P4.3-c 开刀、P4.3-t 收口）在 ./app/views/settings.js。
+     ctx 里一律用箭头延迟取值：这些 helper 有些是 const（定义在本行之后），
      直接传引用会在模块初始化时踩 TDZ（实测整页挂掉，e2e 3/13）。 */
   const settingsView = createSettingsView({
     render: (...a) => render(...a),
-    applySettingsToUi: (...a) => applySettingsToUi(...a),
-    refreshNetworkPane: (...a) => refreshNetworkPane(...a),
-    refreshLocalePane: (...a) => refreshLocalePane(...a),
+    toast: (...a) => toast(...a),
+    ringApplyLayout: () => ring.applyLayout(),
+    applyKenBurns: (...a) => background.applyKenBurns(...a),
+    openSourcePanel: (...a) => sourcesView.openSourcePanel(...a),
+    openSteamPanel: (...a) => sourcesView.openSteamPanel(...a),
+    startRefreshAll: (...a) => startRefreshAll(...a),
+    startTranslateAll: (...a) => startTranslateAll(...a),
+    refreshLibrary: (...a) => refreshLibrary(...a),
     refreshVntext: (...a) => vntextView.refresh(...a),
     renderGlossary: (...a) => vntextView.renderGlossary(...a),
   });
@@ -672,7 +677,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     if (state.focus && state.focus !== ADD_KEY && !currentGame()) {
       state.focus = state.games[0]?.id || ADD_KEY;
     }
-    applySettingsToUi();
+    settingsView.applySettingsToUi();
     sourcesView.renderSources();
     sourcesView.applySourcesHint();
     await refreshShelves();
@@ -802,140 +807,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
 
   /* ---------------------------------------------------------- 设置 UI */
   /* ---------------------------------------------------------- 设置：网络 */
-  async function refreshNetworkPane() {
-    try {
-      const net = await call("get_network_status");
-      if (!net || !net.ok) return;
-      $("setProxyMode").value = net.mode || "auto";
-      $("setProxyUrl").value = net.url || "";
-      $("setProxyFallback").checked = net.fallback !== false;
-      el.netStatus.textContent = net.proxy
-        ? `当前生效：${net.proxy}（来源：${net.source}）`
-        : `当前生效：直连（来源：${net.source || "系统设置"}）`;
-    } catch (err) {
-      el.netStatus.textContent = "读取代理设置失败：" + err.message;
-    }
-  }
-
-  function renderNetResults(rows) {
-    el.netResults.innerHTML = (rows || []).map((row) => `
-      <div class="net-line${row.ok ? " ok" : ""}">
-        <i class="dot"></i><span class="name">${esc(row.name)}</span>
-        <span class="detail">${esc(row.detail || "")}</span>
-      </div>`).join("");
-  }
-
-  async function testNetwork() {
-    const btn = $("netTest");
-    btn.disabled = true;
-    el.netResults.innerHTML = '<div class="net-line"><i class="dot"></i><span class="name">正在测试…</span></div>';
-    try {
-      const res = await call("test_network");
-      renderNetResults((res && res.results) || []);
-      if (res && res.proxy) {
-        el.netStatus.textContent = `当前生效：${res.proxy}（来源：${res.source}）`;
-      }
-    } catch (err) {
-      renderNetResults([{ name: "测试失败", ok: false, detail: err.message }]);
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  /* ---------------------------------------------------------- 设置：转区启动 */
-  const LE_URL = "https://github.com/xupefei/Locale-Emulator/releases";
-
-  /* ---------------------------------------------------------- 主题与配色 */
-  const PALETTES = [
-    { key: "aurora", name: "极光蓝", accent: "#0A84FF", accent2: "#4FA9FF" },
-    { key: "lime", name: "薄荷青", accent: "#26C6A8", accent2: "#6FE0C8" },
-    { key: "sakura", name: "樱花粉", accent: "#FF5C8A", accent2: "#FF9AB6" },
-    { key: "amber", name: "琥珀橙", accent: "#FF9F0A", accent2: "#FFC46B" },
-  ];
-  const lightQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
-
-  function effectiveTheme() {
-    const mode = state.settings.theme_mode || "dark";
-    if (mode === "auto") return lightQuery && lightQuery.matches ? "light" : "dark";
-    return mode === "light" ? "light" : "dark";
-  }
-
-  /* 主题只负责 data-theme / data-palette 与窗口外框；强调色跟着设置走 */
-  function applyTheme() {
-    const theme = effectiveTheme();
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.dataset.palette = state.settings.palette || "aurora";
-    try { call("apply_window_theme", theme === "light").catch(() => {}); } catch (_) { /* 离线 */ }
-  }
-
-  function renderPaletteRow() {
-    const active = state.settings.palette || "aurora";
-    $("setPalettes").innerHTML = PALETTES.map((p) => `
-      <button type="button" class="palette-chip${active === p.key ? " on" : ""}"
-              data-palette="${p.key}" title="${p.name}">
-        <i style="background:${p.accent}"></i><span>${p.name}</span>
-      </button>`).join("")
-      + `<span class="palette-custom${active === "custom" ? " on" : ""}">自定义</span>`;
-  }
-
-  function bindTheme() {
-    $("setTheme").onchange = async (e) => {
-      await saveSetting("theme_mode", e.target.value);
-      applyTheme();
-      toast(e.target.value === "light" ? "已切换到浅色主题"
-        : (e.target.value === "auto" ? "主题跟随系统" : "已切换到深色主题"));
-    };
-    $("setHallLayout").onchange = async (e) => {
-      await saveSetting("hall_layout", e.target.value);
-      ring.applyLayout();
-      toast(e.target.value === "flat" ? "主页布局：平铺横滑（NS 大厅）"
-                                       : "主页布局：环形队列");
-    };
-    $("setPalettes").onclick = async (e) => {
-      const chip = e.target.closest("[data-palette]");
-      if (!chip) return;
-      const preset = PALETTES.find((p) => p.key === chip.dataset.palette);
-      if (!preset) return;
-      state.settings.palette = preset.key;
-      state.settings.accent = preset.accent;
-      applySettingsToUi();
-      renderPaletteRow();
-      await call("set_setting", "palette", preset.key);
-      await call("set_setting", "accent", preset.accent);
-      toast(`已应用配色：${preset.name}`);
-    };
-    if (lightQuery) {
-      const onChange = () => { if ((state.settings.theme_mode || "dark") === "auto") applyTheme(); };
-      if (lightQuery.addEventListener) lightQuery.addEventListener("change", onChange);
-      else if (lightQuery.addListener) lightQuery.addListener(onChange);
-    }
-  }
-
-  async function refreshLocalePane() {
-    try {
-      const st = await call("get_locale_status");
-      state.locale = st || {};
-      const proc = (st && st.proc) || "";
-      $("setLePath").value = proc;
-      $("setLocaleDefault").checked = !!(st && st.default_enabled);
-      if (st && st.available) {
-        el.leStatus.textContent = `已检测到 Locale Emulator：${proc}`;
-      } else if (proc) {
-        el.leStatus.textContent = "指定的 LEProc.exe 不可用（缺少运行时文件），请重新选择。";
-      } else {
-        el.leStatus.textContent = "未检测到 Locale Emulator。装好后点「重新检测」，或手动指定 LEProc.exe。";
-      }
-      const profiles = (st && st.profiles) || [];
-      el.leProfiles.innerHTML = profiles.length
-        ? profiles.map((row) => `<span class="src-badge">${esc(row.name || row.guid)}</span>`).join("")
-        : (st && st.available
-            ? '<span class="hint">没有读到 LEConfig.xml 里的全局配置，转区时会用 LE 的默认配置。</span>'
-            : "");
-    } catch (err) {
-      el.leStatus.textContent = "检测失败：" + err.message;
-    }
-  }
-
+  /* 设置页那几栏（网络 / 转区 / 主题配色 / 外观回填）在 ./app/views/settings.js（P4.3-t） */
   /* ---------------------------------------------------------- 转区启动面板（单个游戏） */
   async function renderLocalePanel(game) {
     const g = game || currentGame();
@@ -990,46 +862,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       : "已关闭转区启动");
   }
 
-  function applySettingsToUi() {
-    const s = state.settings;
-    document.documentElement.style.setProperty("--blur", (s.blur ?? 30) + "px");
-    document.documentElement.style.setProperty("--sat", (s.saturation ?? 190) + "%");
-    document.documentElement.style.setProperty("--scrim", String(s.scrim ?? 42) / 100);
-    if (s.accent) document.documentElement.style.setProperty("--accent", s.accent);
-    applyTheme();
-
-    $("setBlur").value = s.blur ?? 30;
-    $("setScrim").value = s.scrim ?? 42;
-    $("setAccent").value = s.accent || "#0A84FF";
-    $("setSat").value = s.saturation ?? 190;
-    $("setKen").checked = !!s.ken_burns;
-    $("setLang").value = s.lang || "schinese";
-    $("setMerge").checked = s.sources ? s.sources.merge_images !== false : true;
-    $("setTray").checked = !!s.close_to_tray;
-    $("setTransEnabled").checked = s.translate_enabled !== false;
-    $("setTransProvider").value = s.translate_provider || "auto";
-    $("setTransBase").value = s.translate_base_url || "";
-    $("setTransKey").value = s.translate_api_key || "";
-    $("setTransModel").value = s.translate_model || "";
-    $("setShowOriginal").checked = !!s.show_original;
-    $("setTheme").value = s.theme_mode || "dark";
-    $("setHallLayout").value = s.hall_layout === "flat" ? "flat" : "ring";
-    ring.applyLayout();
-    renderPaletteRow();
-    $("setVnEngine").value = s.vntext_engine || "auto";
-    $("setBlurVal").textContent = (s.blur ?? 30) + "px";
-    $("setScrimVal").textContent = (s.scrim ?? 42) + "%";
-    $("setSatVal").textContent = (s.saturation ?? 190) + "%";
-  }
-
-  async function saveSetting(key, value) {
-    state.settings[key] = value;
-    applySettingsToUi();
-    if (key === "ken_burns") {
-      background.applyKenBurns(value);
-    }
-    await call("set_setting", key, value);
-  }
+  /* applySettingsToUi / saveSetting 在 ./app/views/settings.js（P4.3-t） */
 
   /* ---------------------------------------------------------- 窗口拖拽 / 缩放 */
   /* 窗口控制（拖动 / 缩放 / 最小化最大化 / 失焦清理）在 ./app/core/window.js（P4.3-s） */
@@ -1212,46 +1045,9 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       }
     });
 
-    // 设置
-    // 齿轮是开关：点开、再点一次（或用「← 返回」）都能退出设置
-    $("btnSettings").onclick = () => (state.settingsOpen ? closeSettings() : openSettings());
-    $("setBack").onclick = closeSettings;
-    el.setNav.addEventListener("click", (e) => {
-      const tab = e.target.closest(".set-tab");
-      if (tab) setSettingsTab(tab.dataset.pane);
-    });
-
-    // 设置 → 网络
-    $("setProxyMode").onchange = async (e) => {
-      await call("set_proxy_option", "proxy_mode", e.target.value);
-      toast(e.target.value === "direct" ? "已切换为直连" : "代理设置已保存");
-      refreshNetworkPane();
-    };
-    $("setProxyUrl").onchange = async (e) => {
-      const res = await call("set_proxy_option", "proxy_url", e.target.value.trim());
-      if (res && res.ok === false) toast("代理地址无效：" + (res.error || ""));
-      refreshNetworkPane();
-    };
-    $("setProxyFallback").onchange = async (e) => {
-      await call("set_proxy_option", "proxy_fallback", e.target.checked);
-    };
-    $("netTest").onclick = testNetwork;
-
-    // 设置 → 转区启动
-    $("setLocaleDefault").onchange = async (e) => {
-      await call("set_locale_option", "locale_default", e.target.checked);
-      toast(e.target.checked ? "新导入的游戏默认开启转区" : "已关闭默认转区");
-    };
-    $("setLePick").onclick = async () => {
-      const res = await call("pick_locale_proc");
-      if (!res || res.cancelled) return;
-      if (!res.ok) { toast("这个路径不可用：" + ((res && res.error) || "")); return; }
-      await refreshLocalePane();
-      toast("已设置 Locale Emulator 路径");
-    };
-    $("setLeRefresh").onclick = refreshLocalePane;
-    $("setLeDownload").onclick = () => call("open_url", LE_URL);
-    $("btnOpenData").onclick = () => call("open_data_dir");
+    // 设置页整块（页签 / 网络 / 转区 / 外观 / 翻译 / 资料源 / 备份）
+    // 在 ./app/views/settings.js（P4.3-t）
+    settingsView.bind();
 
     // 转区启动面板（单个游戏）
     $("locClose").onclick = () => closePanel(el.localePanel);
@@ -1265,92 +1061,6 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       toast("已设置 Locale Emulator 路径");
     };
     $("locDownload").onclick = () => call("open_url", LE_URL);
-
-    $("setBlur").oninput = (e) => {
-      state.settings.blur = Number(e.target.value);
-      applySettingsToUi();
-    };
-    $("setBlur").onchange = (e) => saveSetting("blur", Number(e.target.value));
-    $("setScrim").oninput = (e) => {
-      state.settings.scrim = Number(e.target.value);
-      applySettingsToUi();
-    };
-    $("setScrim").onchange = (e) => saveSetting("scrim", Number(e.target.value));
-    $("setAccent").oninput = (e) => {
-      state.settings.accent = e.target.value;
-      applySettingsToUi();
-    };
-    $("setAccent").onchange = async (e) => {
-      await saveSetting("accent", e.target.value);
-      await saveSetting("palette", "custom");     // 手选颜色 = 自定义配色
-      renderPaletteRow();
-    };
-    $("setSat").oninput = (e) => {
-      state.settings.saturation = Number(e.target.value);
-      applySettingsToUi();
-    };
-    $("setSat").onchange = (e) => saveSetting("saturation", Number(e.target.value));
-    $("setKen").onchange = (e) => saveSetting("ken_burns", e.target.checked);
-    $("setLang").onchange = (e) => saveSetting("lang", e.target.value);
-    $("setMerge").onchange = async (e) => {
-      const res = await call("set_merge_sources", e.target.checked);
-      if (state.settings.sources) state.settings.sources.merge_images = res.merge_images;
-      toast(e.target.checked ? "已开启多源补图" : "已关闭多源补图");
-    };
-    $("btnSources").onclick = () => sourcesView.openSourcePanel();
-    $("setTray").onchange = async (e) => {
-      await saveSetting("close_to_tray", e.target.checked);
-      toast(e.target.checked
-        ? "已开启：关窗口时缩到托盘，游戏继续跑"
-        : "已关闭：关窗口即退出");
-    };
-    $("btnSteamScan").onclick = () => sourcesView.openSteamPanel();
-    $("btnRefreshAll").onclick = startRefreshAll;
-    $("btnTranslateAll").onclick = startTranslateAll;
-    $("setTransEnabled").onchange = (e) => saveSetting("translate_enabled", e.target.checked);
-    $("setTransProvider").onchange = (e) => saveSetting("translate_provider", e.target.value);
-    $("setTransBase").onchange = (e) => saveSetting("translate_base_url", e.target.value.trim());
-    $("setTransKey").onchange = (e) => saveSetting("translate_api_key", e.target.value.trim());
-    $("setTransModel").onchange = (e) => saveSetting("translate_model", e.target.value.trim());
-    $("setShowOriginal").onchange = async (e) => { await saveSetting("show_original", e.target.checked); render(); };
-    $("transTest").onclick = async () => {
-      const status = $("transStatus");
-      status.textContent = "测试中…";
-      const res = await call("test_translation", {
-        translate_provider: $("setTransProvider").value,
-        translate_base_url: $("setTransBase").value.trim(),
-        translate_api_key: $("setTransKey").value.trim(),
-        translate_model: $("setTransModel").value.trim(),
-      });
-      if (res && res.ok) {
-        status.textContent = `可用（${res.provider}）：${res.text}`;
-        toast("翻译接口可用");
-      } else {
-        status.textContent = "不可用：" + ((res && res.error) || "未知错误");
-        toast("翻译接口不可用");
-      }
-    };
-    $("btnShowOriginal").onclick = async () => {
-      await saveSetting("show_original", !state.settings.show_original);
-      render();
-    };
-    $("btnExport").onclick = async () => {
-      const res = await call("export_library");
-      if (!res || res.cancelled) return;
-      if (!res.ok) { toast("导出失败：" + ((res && res.error) || "")); return; }
-      toast(`已导出 ${res.games} 个游戏到 ${res.path.split("\\").pop()}`, 4200);
-    };
-    $("btnImportLib").onclick = async () => {
-      const res = await call("import_library");
-      if (!res || res.cancelled) return;
-      if (!res.ok) {
-        toast(res && res.error === "bad-file" ? "这个文件不是 Aurora 导出的游戏库" : "导入失败");
-        return;
-      }
-      await refreshLibrary();
-      render();
-      toast(`导入完成：新增 ${res.added} 个，跳过 ${res.skipped} 个`);
-    };
 
     // 视图切换：主页 / 分类
     el.viewSwitch.addEventListener("click", (e) => {
@@ -1470,7 +1180,6 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     el.detailBody.addEventListener("change", (e) => {
       if (e.target.id === "detailStatus") setGameStatus(e.target.dataset.id, e.target.value);
     });
-    bindTheme();
     vntextView.bind();
 
     // 封面面板

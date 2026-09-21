@@ -795,3 +795,33 @@ ring 判据与 `zoom` 判据（滑杆 180 → `scale(1.8)`）不变；探针跑�
 `bind()`，再把「游戏动作」（启动 / 结束 / 导入 / 批量）收进 `views/game.js` 或新的
 `core/actions.js`，之后 P4 只剩打包清单与文档同步收尾。
 
+### P4.3-t 设置页整块收口（2026-09-21 13:10）
+
+P4.3-c 只搬了设置页的页签导航，这次把**整页**都收进 `views/settings.js`：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/settings.js` | 主题与配色：`PALETTES` / `lightQuery` / `effectiveTheme` / `applyTheme` / `renderPaletteRow`，以及 `bindTheme` 的内容（主题、主页布局、配色、跟随系统） |
+| 同上 | 设置页各栏：网络（`refreshNetworkPane` / `renderNetResults` / `testNetwork`）、转区（`refreshLocalePane`）、`LE_URL` |
+| 同上 | 外观回填与落盘：`applySettingsToUi`（含 `--blur`/`--sat`/`--scrim`/`--accent` 与各控件回填）、`saveSetting`（写 state → 回填 → Ken Burns 生效 → 落盘） |
+| 同上 | `bind()`：页签 / 网络 / 转区 / 外观滑杆 / 简介翻译（含接口测试）/ 显示原文 / 资料源与 Steam / 批量重抓与翻译 / 备份导出与导入 |
+
+主模块只留**单个游戏的转区面板**（`renderLocalePanel` / `openLocalePanel` / `saveGameLocale`
+与那几个按钮）—— 它属于游戏页那边的面板，下一刀跟着走。`LE_URL` 由设置视图导出，
+两处共用一份。`ctx` 注入变成：`render` / `toast` / `ringApplyLayout` / `applyKenBurns` /
+`openSourcePanel` / `openSteamPanel` / `startRefreshAll` / `startTranslateAll` /
+`refreshLibrary` / `refreshVntext` / `renderGlossary`；`refreshLibrary` 里的回填改走
+`settingsView.applySettingsToUi()`。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90（0 skipped）**——设置页那组全过
+（能打开且盖住大厅、切到网络页读到代理状态、网络测试列出五个端点、切到转区页、切到翻译页识别
+TextractorCLI、浅色主题生效、配色预设切换、切回深色+默认配色、设置页里滚轮/方向键不串台、
+最小窗口下不溢出、返回按钮退出）；`visual` `errors=[]` 且 ring 判据不变；探针跑完各界面
+（含设置页打开后的渲染）无未捕获异常。`app.js` 1862 → **1571 行**，`views/settings.js` 54 → 379 行。
+
+**下一刀（P4.3-u）**：`app.js` 只剩「游戏动作 + 拼装」了 —— `importGames` / `refreshLibrary` /
+`togglePlay` / `startRefreshAll` / `startTranslateAll` / 单个游戏的转区面板 / 匹配流程
+（`openMatchPanel` / `doSearch` / `researchGame` / `applyCandidate`）/ 更多菜单的绑定，
+以及 `boot()` 与全局快捷键。建议把「游戏动作」收进 `core/actions.js`、转区面板与匹配流程
+收进 `views/game.js`，最后一刀只剩 `boot()`。
+

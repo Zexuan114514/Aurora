@@ -95,6 +95,7 @@
 | P4.3-q 筛选/排序/作用域（`core/query.js`）+ 工具条（`views/toolbar.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-q 小节：`app.js` 2366 → 2233 行；中途漏 import `inScope` 被 e2e 拦下，补齐后 `e2e` 90/90（0 skipped） |
 | P4.3-r 推送事件分发（`core/events.js`，14 个主题） | ✅ 已完成（2026-09-21） | 同上 P4.3-r 小节：`app.js` 2233 → 2121 行；探针直接推 `games:imported` 验证；`e2e` 90/90（0 skipped） |
 | P4.3-s 窗口外壳（`core/window.js`）与背景层（`views/background.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-s 小节：`app.js` 2121 → 1862 行；窗口/背景两组 e2e 判据全过、`visual` 判据不变 |
+| P4.3-t 设置页整块收口（`views/settings.js`：主题/网络/转区/外观/备份 + 绑定） | ✅ 已完成（2026-09-21） | 同上 P4.3-t 小节：`app.js` 1862 → 1571 行；设置页那组 e2e 判据全过、`visual` 判据不变 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions
