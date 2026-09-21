@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 2774
+      "lines": 2366
     },
     {
       "path": "gl/web/index.html",
@@ -383,7 +383,7 @@
     },
     {
       "path": "gl/web/app/core/store.js",
-      "lines": 89
+      "lines": 92
     },
     {
       "path": "gl/web/app/core/dom.js",
@@ -411,11 +411,15 @@
     },
     {
       "path": "gl/web/app/views/game.js",
-      "lines": 375
+      "lines": 383
     },
     {
       "path": "gl/web/app/views/sources.js",
-      "lines": 234
+      "lines": 243
+    },
+    {
+      "path": "gl/web/app/views/vntext.js",
+      "lines": 452
     }
   ],
   "threads": [
@@ -1554,6 +1558,25 @@
         {
           "from": "app.js: btnSources 里的 closeAll + refreshSources + openPanel",
           "to": "gl/web/app/views/sources.js: createSourcesView.openSourcePanel"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-p",
+      "date": "2026-09-21",
+      "note": "游戏内翻译整块（面板/设置栏/术语表/OCR 框选/钩子查找器与 bindVntext）进 views/vntext.js；ADD_KEY 抽到 core/store.js；主模块推送事件走 vntextView.{renderPanel,onHookSearch,refresh,renderGlossary}；e2e 90/90、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: VN_ERROR_LABEL/vnErrorText/renderVntextPanel/renderVntextSettings/refreshVntext",
+          "to": "gl/web/app/views/vntext.js: createVntextView"
+        },
+        {
+          "from": "app.js: renderGlossary/setGlossary/openVntextPanel/frameRect/openFraming/bindFraming/bindVntext",
+          "to": "gl/web/app/views/vntext.js: createVntextView"
+        },
+        {
+          "from": "app.js: const ADD_KEY",
+          "to": "gl/web/app/core/store.js: ADD_KEY"
         }
       ]
     }

@@ -35,6 +35,9 @@ export const state = {
   devExpand: false,
 };
 
+/* 「＋ 导入游戏」那一格的占位键：大厅环上它也算一格，主模块与各视图共用。 */
+export const ADD_KEY = "__add__";
+
 /** 按 id 找一个游戏（找不到返回 undefined）。 */
 export const findGame = (id) => state.games.find((g) => g.id === id);
 

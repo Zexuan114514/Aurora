@@ -687,3 +687,30 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 `bindVntext`，约 250 行）—— 它是 `app.js` 里剩下最大的一块，玩法照旧：渲染进视图、
 后端调用留在视图、事件绑定按需一起搬。
 
+### P4.3-p 游戏内翻译整块进 views/vntext.js（2026-09-21 12:05）
+
+`app.js` 里剩下的最大一块（约 420 行）整块搬走，包括它的**事件绑定**：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/vntext.js`（新） | `renderVntextPanel` / `renderVntextSettings`（面板 + 设置页那一栏）、`VN_ERROR_LABEL` + `vnErrorText`（错误码人话化）、`refresh` |
+| 同上 | 术语表：`renderGlossary` / `setGlossary` |
+| 同上 | OCR 框选：`openVntextPanel` / `openFraming` / `bindFraming`（截图 → 拖框 → 存归一化区域） |
+| 同上 | 钩子查找器与全部按钮绑定：`bind()`（含 `PHASE_LABEL`、轮询计时器、候选点击、线程锁定、引擎/字体/透明度等设置项） |
+| `core/store.js` | 顺带把 `ADD_KEY`（「＋ 导入游戏」占位键）从主模块搬出来 —— 视图也要用它判断「当前不是游戏」 |
+
+视图对外只留五个口子：`bind()` / `refresh()` / `renderGlossary()` /
+`renderPanel(status)` / `onHookSearch(payload)`；主模块的推送事件（`vntext:status` /
+`hooksearch:status` / `vntext:line`）与设置页 ctx（`refreshVntext` / `renderGlossary`）都改走它们。
+查找器的轮询计时器与「一直没抓到文本」的计时器现在是视图内的私有状态（以前挂在主模块顶层）。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**（设置页「游戏内翻译」页签与 TextractorCLI 识别、
+钩子模式开启、假钩子日文翻成中文并进面板、面板状态与线程、专用 hook 码存取、乱填被拒、停止翻译收起悬浮窗
+—— 这一组全过）、`visual` `errors=[]` 且 ring 判据不变；真机探针另外确认面板打开后
+`vnState` = 「未开启 · 已译 0 句」、OCR 说明与 hook 说明都渲染出来。
+`app.js` 2774 → **2366 行**，`views/vntext.js` 452 行。
+
+**下一刀（P4.3-q）**：`app.js` 剩下的主要是控制层了 —— 窗口/背景绑定、工具条（搜索/排序/作用域）、
+推送事件分发与 `boot()`。可以先把「工具条 + 作用域」拆成 `views/toolbar.js`，
+再看推送分发要不要单独成 `core/events.js`。
+
