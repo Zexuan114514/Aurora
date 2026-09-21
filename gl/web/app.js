@@ -17,9 +17,8 @@ import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
 import { hours } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
-         replaceShelves, ADD_KEY } from "./app/core/store.js";
+         ADD_KEY } from "./app/core/store.js";
 import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
-         searchHit, sortGames, inScope, scopeName, scopeCount,
          visibleGames } from "./app/core/query.js";
 
 /* ============================================================
@@ -304,6 +303,12 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     statusLabel: () => STATUS_LABEL,
     render: (...a) => render(...a),
     toast: (...a) => toast(...a),
+    modal: (...a) => modal(...a),
+    chooseBackground: (...a) => background.chooseBackground(...a),
+    setGameStatus: (...a) => categories.setGameStatus(...a),
+    refreshLibrary: (...a) => actions.refreshLibrary(...a),
+    closeGame: (...a) => closeGame(...a),
+    leUrl: LE_URL,
   });
 
   /* 游戏动作（导入 / 整库刷新 / 启动结束 / 批量 / 秒表）在 ./app/core/actions.js（P4.3-u） */
@@ -376,6 +381,13 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   const toolbar = createToolbarView({
     render: (...a) => render(...a),
     ringUpdate: () => { if (state.view === "home") ring.update(); },
+    renderHall: (...a) => renderHall(...a),
+    setView: (...a) => setView(...a),
+    refreshShelves: (...a) => categories.refreshShelves(...a),
+    setFocus: (...a) => setFocus(...a),
+    openGame: (...a) => openGame(...a),
+    currentGame: () => currentGame(),
+    toast: (...a) => toast(...a),
   });
 
   /* 分类工作区的渲染、动作与绑定都在 ./app/views/categories.js（P4.3-b / P4.3-v） */
@@ -460,6 +472,9 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   /* 资料源 / Steam / 获取游戏三块面板在 ./app/views/sources.js（P4.3-n） */
   const sourcesView = createSourcesView({
     toast: (...a) => toast(...a),
+    importGames: (...a) => actions.importGames(...a),
+    refreshLibrary: (...a) => actions.refreshLibrary(...a),
+    render: (...a) => render(...a),
   });
 
   /* 动作（导入 / 整库刷新 / 启动结束 / 秒表）在 ./app/core/actions.js（P4.3-u） */
@@ -515,385 +530,23 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
 
     /* 背景面板（按钮 / 缩略图 / 缩放滑杆）在 ./app/views/background.js（P4.3-s） */
 
-    $("btnDetails").onclick = () => {
-      const opening = !el.detailPanel.classList.contains("open");
-      closeAll();
-      if (opening) { gameView.renderDetail(); openPanel(el.detailPanel); }
-    };
-    $("detailClose").onclick = () => closePanel(el.detailPanel);
-    el.detailBody.addEventListener("click", (e) => {
-      const link = e.target.closest("a[data-url]");
-      if (link) { call("open_url", link.dataset.url); return; }
-      const shot = e.target.closest(".shot");
-      if (shot) {
-        background.chooseBackground(shot.dataset.shot, shot.dataset.kind || "screenshot");
-        toast("已设为背景");
-      }
-    });
-
-    $("matchClose").onclick = () => closePanel(el.matchPanel);
-    $("matchGo").onclick = () => gameView.doSearch(el.matchQuery.value.trim());
-    el.matchQuery.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") gameView.doSearch(el.matchQuery.value.trim());
-    });
-    el.matchList.addEventListener("click", (e) => {
-      const item = e.target.closest(".match-item");
-      if (item) gameView.applyCandidate(item);
-    });
-    el.matchQuick.addEventListener("click", (e) => {
-      const chip = e.target.closest("[data-q]");
-      if (chip) gameView.doSearch(chip.dataset.q);
-    });
-    el.matchLinks.addEventListener("click", (e) => {
-      const chip = e.target.closest("[data-link-source]");
-      if (!chip) return;
-      const query = el.matchQuery.value.trim();
-      if (!query) { toast("先输入要搜索的名字"); return; }
-      call("open_source_search", query, chip.dataset.linkSource).then((res) => {
-        if (!res || !res.ok) toast("打不开搜索页：" + ((res && res.error) || ""));
-      });
-    });
-
-    // 更多菜单
-    $("btnMore").onclick = () => {
-      const hidden = el.moreMenu.hidden;
-      closeAll();
-      const g = currentGame();
-      $("menuIconReset").hidden = !(g && g.custom_icon);
-      $("menuNameReset").hidden = !(g && g.name_locked);
-      $("menuFavorite").textContent = g && g.favorite ? "取消收藏" : "加入收藏";
-      $("menuLocale").textContent = g && g.locale_enabled
-        ? "转区设置（已开启）…" : "转区启动…";
-      el.moreMenu.hidden = !hidden;
-    };
-    el.moreMenu.addEventListener("click", async (e) => {
-      const btn = e.target.closest("button[data-act]");
-      if (!btn) return;
-      const g = currentGame();
-      el.moreMenu.hidden = true;
-      if (!g) return;
-      const act = btn.dataset.act;
-      if (act === "reveal") { call("reveal", g.id); }
-      else if (act === "favorite") {
-        const res = await call("toggle_favorite", g.id);
-        if (res.game) Object.assign(g, res.game);
-        render();
-        toast(res.favorite ? "已加入收藏" : "已取消收藏");
-      }
-      else if (act === "rename") {
-        const value = await modal({
-          title: "重命名", body: "只改启动器里显示的名字，不动游戏文件。",
-          input: true, value: g.name, okText: "保存",
-        });
-        if (value === null) return;
-        if (!value) { toast("名字不能为空"); return; }
-        const res = await call("rename_game", g.id, value);
-        if (res.game) Object.assign(g, res.game);
-        render();
-        toast("已重命名");
-      }
-      else if (act === "name-reset") {
-        const res = await call("reset_name", g.id);
-        if (res.game) Object.assign(g, res.game);
-        render();
-        toast("已恢复自动命名，正在重新搜索…");
-      }
-      else if (act === "cover") { gameView.openCoverPanel(); }
-      else if (act === "icon") {
-        const res = await call("pick_custom_icon", g.id);
-        if (!res || res.cancelled) return;
-        if (!res.ok) { toast("设置图标失败：" + (res.error || "")); return; }
-        Object.assign(g, res.game);
-        render();
-        toast("已设置自定义图标");
-      } else if (act === "icon-reset") {
-        const res = await call("clear_custom_icon", g.id);
-        if (res.game) Object.assign(g, res.game);
-        render();
-        toast("已恢复默认图标");
-      } else if (act === "store") {
-        if (g.source_url) call("open_url", g.source_url);
-        else toast("还没有匹配到条目");
-      } else if (act === "research") { gameView.researchGame(); }
-      else if (act === "match") { gameView.openMatchPanel(); }
-      else if (act === "locale") { gameView.openLocalePanel(); }
-      else if (act === "translate") {
-        const res = await call("translate_game", g.id);
-        if (!res || !res.ok) { toast("翻译启动失败"); return; }
-        toast("正在翻译简介…");
-      }
-      else if (act === "args") {
-        const value = await modal({
-          title: "启动参数", body: "会追加在可执行文件之后，点下面的常用参数可快速加入。",
-          input: true, value: g.launch_args || "", okText: "保存",
-          presets: ["-windowed", "-fullscreen", "-dx11", "-dx12", "-novid", "-high"],
-        });
-        if (value !== null) {
-          g.launch_args = value;
-          await call("set_launch_args", g.id, value);
-          toast("已保存启动参数");
-        }
-      } else if (act === "remove") {
-        const ok = await modal({
-          title: "移除游戏",
-          body: `确定把「${g.name}」从库中移除吗？不会删除磁盘上的文件。`,
-          okText: "移除",
-        });
-        if (!ok) return;
-        await call("remove_game", g.id);
-        await actions.refreshLibrary();
-        if (state.focus === g.id) {
-          state.focus = state.games[0]?.id || ADD_KEY;
-          if (state.page === "game") closeGame();
-        }
-        render();
-        toast("已移除");
-      }
-    });
+    // 详情 / 候选匹配 / 更多菜单 / 转区 / 换封面：./app/views/game.js（P4.3-w）
+    gameView.bind();
 
     // 设置页整块（页签 / 网络 / 转区 / 外观 / 翻译 / 资料源 / 备份）
     // 在 ./app/views/settings.js（P4.3-t）
     settingsView.bind();
 
-    // 转区启动面板（单个游戏）
-    $("locClose").onclick = () => closePanel(el.localePanel);
-    $("locSwitch").onchange =
-      (e) => gameView.saveGameLocale(e.target.checked, $("locProfile").value);
-    $("locProfile").onchange =
-      (e) => gameView.saveGameLocale($("locSwitch").checked, e.target.value);
-    $("locPick").onclick = async () => {
-      const res = await call("pick_locale_proc");
-      if (!res || res.cancelled) return;
-      if (!res.ok) { toast("这个路径不可用：" + ((res && res.error) || "")); return; }
-      await gameView.renderLocalePanel();
-      toast("已设置 Locale Emulator 路径");
-    };
-    $("locDownload").onclick = () => call("open_url", LE_URL);
-
-    // 视图切换：主页 / 分类
-    el.viewSwitch.addEventListener("click", (e) => {
-      const btn = e.target.closest(".vs-btn");
-      if (!btn || btn.disabled) return;
-      if (btn.dataset.view === "categories") {
-        setView("categories");
-        categories.refreshShelves();
-      } else {
-        setView("home");
-      }
-    });
-    $("scopePick").onclick = () => toolbar.toggleScopeMenu();
-    $("scopeClear").onclick = () => {
-      el.scopeMenu.hidden = true;
-      toolbar.setScope("all");
-      toast("已显示全部游戏");
-    };
-    el.scopeMenu.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-scope-type]");
-      if (!btn) return;
-      el.scopeMenu.hidden = true;
-      toolbar.setScope(btn.dataset.scopeType, btn.dataset.scopeValue || "");
-    });
+    // 视图切换 / 作用域菜单 / 搜索 / 排序：./app/views/toolbar.js（P4.3-w）
+    toolbar.bind();
 
     // 分类工作区（左栏 / 封面墙 / 批量条 / 搜索排序同步）在
     // ./app/views/categories.js（P4.3-b / P4.3-v）
     categories.bind();
-    el.detailBody.addEventListener("change", (e) => {
-      if (e.target.id === "detailStatus") {
-        categories.setGameStatus(e.target.dataset.id, e.target.value);
-      }
-    });
     vntextView.bind();
 
-    // 封面面板
-    $("coverClose").onclick = () => closePanel(el.coverPanel);
-    el.coverGrid.addEventListener("click", async (e) => {
-      const item = e.target.closest("[data-cover]");
-      if (!item) return;
-      const g = currentGame();
-      if (!g) return;
-      const res = await call("set_cover", g.id, item.dataset.cover);
-      if (res.game) Object.assign(g, res.game);
-      gameView.renderCoverPanel();
-      render();
-      toast("已更换封面");
-    });
-    $("btnLocalCover").onclick = async () => {
-      const g = currentGame();
-      if (!g) return;
-      const res = await call("pick_local_cover", g.id);
-      if (!res || res.cancelled) return;
-      if (!res.ok) { toast("选择失败：" + ((res && res.error) || "")); return; }
-      Object.assign(g, res.game);
-      gameView.renderCoverPanel();
-      render();
-      toast("已应用本地封面");
-    };
-    $("btnCoverReset").onclick = async () => {
-      const g = currentGame();
-      if (!g) return;
-      const res = await call("clear_custom_cover", g.id);
-      if (res.game) Object.assign(g, res.game);
-      gameView.renderCoverPanel();
-      render();
-      toast("已恢复默认封面");
-    };
-
-    // Steam 面板
-    $("steamClose").onclick = () => closePanel(el.steamPanel);
-    $("steamAll").onclick = () => {
-      (state.steam || []).forEach((row) => { if (!row.already) state.picked.add(row.exe); });
-      sourcesView.renderSteamList();
-    };
-    $("steamNone").onclick = () => { state.picked.clear(); sourcesView.renderSteamList(); };
-    $("steamImport").onclick = () => sourcesView.importSteam();
-    el.steamList.addEventListener("change", (e) => {
-      const box = e.target.closest("input[data-exe]");
-      if (!box) return;
-      if (box.checked) state.picked.add(box.dataset.exe);
-      else state.picked.delete(box.dataset.exe);
-      sourcesView.updateSteamHint();
-    });
-    // 重试按输入框里的词再搜一次（手动面板里用户可能刚改过关键词）
-    $("matchRetry").onclick = () => gameView.doSearch(el.matchQuery.value.trim() || null);
-
-    // 获取游戏（下载大厅）
-    $("btnGetGames").onclick = () => sourcesView.openGetPanel();
-    $("getClose").onclick = () => closePanel(el.getPanel);
-    $("getChangeDir").onclick = async () => {
-      const res = await call("pick_download_dir");
-      if (!res || res.cancelled) return;
-      if (!res.ok) { toast("设置失败：" + ((res && res.error) || "")); return; }
-      await sourcesView.refreshDownloadSettings();
-      toast("下载目录已更新");
-    };
-    $("getOpenDir").onclick = () => call("open_download_dir");
-    $("getWatch").onchange = async (e) => {
-      await call("set_download_option", "download_watch", e.target.checked);
-      await sourcesView.refreshDownloadSettings();
-      toast(e.target.checked ? "已开启下载目录监听" : "已暂停下载目录监听");
-    };
-    $("getExtract").onchange = async (e) => {
-      await call("set_download_option", "download_extract", e.target.checked);
-      await sourcesView.refreshDownloadSettings();
-    };
-    $("getScan").onclick = async () => {
-      const res = await call("scan_downloads");
-      await sourcesView.refreshDownloadSettings();
-      if (!res || !res.ok) { toast("扫描失败"); return; }
-      const n = res.imported || 0;
-      toast(n ? `扫描完成：导入 ${n} 个游戏` : "扫描完成：没有发现新的游戏");
-      if (n) { await actions.refreshLibrary(); render(); }
-    };
-    $("getAddSite").onclick = () => {
-      el.getSiteForm.hidden = false;
-      $("getSiteName").value = "";
-      $("getSiteUrl").value = "";
-      $("getSiteName").focus();
-    };
-    $("getSiteCancel").onclick = () => { el.getSiteForm.hidden = true; };
-    $("getSiteSave").onclick = () => sourcesView.addSite();
-    $("getSiteUrl").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") sourcesView.addSite();
-    });
-    el.getSites.addEventListener("click", async (e) => {
-      const open = e.target.closest("button[data-site]");
-      if (open) { sourcesView.openSite(open.dataset.site); return; }
-      const del = e.target.closest("button[data-del]");
-      if (!del) return;
-      const res = await call("remove_site", del.dataset.del);
-      state.sites = (res && res.sites) || [];
-      sourcesView.renderSites();
-      toast("已删除该资源站");
-    });
-    el.addMenu.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-add-act]");
-      if (!btn) return;
-      el.addMenu.hidden = true;
-      if (btn.dataset.addAct === "import") actions.importGames();
-      else sourcesView.openGetPanel();
-    });
-
-    // 资料源管理
-    $("sourceClose").onclick = () => closePanel(el.sourcePanel);
-    $("srcAdd").onclick = () => {
-      el.sourceForm.hidden = false;
-      $("srcName").value = "";
-      $("srcUrl").value = "";
-      $("srcResults").value = "";
-      $("srcFields").value = "";
-      $("srcKind").value = "api";
-      sourcesView.syncSourceForm();
-      $("srcName").focus();
-    };
-    $("srcCancel").onclick = () => { el.sourceForm.hidden = true; };
-    $("srcKind").onchange = () => sourcesView.syncSourceForm();
-    $("srcSave").onclick = () => sourcesView.addCustomSource();
-    el.sourceList.addEventListener("click", async (e) => {
-      const row = e.target.closest(".src-row");
-      if (!row) return;
-      const id = row.dataset.id;
-      const arrow = e.target.closest("[data-move]");
-      if (arrow) {
-        const res = await call("move_source", id, Number(arrow.dataset.move));
-        state.sources = res.sources || state.sources;
-        sourcesView.renderSources();
-        return;
-      }
-      const act = e.target.closest("[data-act]");
-      if (!act) return;
-      if (act.dataset.act === "test") {
-        act.textContent = "测试中";
-        const res = await call("test_source", id);
-        act.textContent = "测试";
-        if (res.kind === "link") toast("这是跳转型源，点击候选面板里的按钮使用");
-        else if (res.ok) toast(`可用：${res.count} 个结果 · ${res.elapsed}s · ${(res.sample || []).join(" / ")}`);
-        else toast("没有返回结果：" + (res.error || ""));
-      } else if (act.dataset.act === "remove") {
-        const res = await call("remove_custom_source", id);
-        state.sources = res.sources || state.sources;
-        sourcesView.renderSources();
-        sourcesView.applySourcesHint();
-        toast("已删除");
-      }
-    });
-    el.sourceList.addEventListener("change", async (e) => {
-      const toggle = e.target.closest("[data-act='toggle']");
-      if (!toggle) return;
-      const row = toggle.closest(".src-row");
-      const res = await call("toggle_source", row.dataset.id, toggle.checked);
-      state.sources = res.sources || state.sources;
-      sourcesView.renderSources();
-      sourcesView.applySourcesHint();
-    });
-
-    // 搜索过滤
-    el.search.oninput = (e) => {
-      state.filter = e.target.value;
-      el.searchClear.hidden = !state.filter;
-      if (el.catQuery.value !== state.filter) el.catQuery.value = state.filter;   // 两处搜索同步
-      renderHall();
-    };
-    el.searchClear.onclick = () => {
-      el.search.value = ""; state.filter = ""; el.searchClear.hidden = true; renderHall();
-    };
-    el.search.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        const first = visibleGames()[0];
-        if (first) { setFocus(first.id); openGame(first.id); }
-      }
-    });
-
-    // 排序（工具条图标 → 菜单）在 ./app/views/toolbar.js（P4.3-q）
-    $("btnSort").onclick = () => toolbar.toggleSortMenu();
-    el.sortMenu.addEventListener("click", (e) => {
-      const btn = e.target.closest("button[data-sort]");
-      if (!btn) return;
-      state.sort = btn.dataset.sort;
-      el.sortMenu.hidden = true;
-      renderHall();
-      const game = currentGame();
-      if (game) setFocus(game.id);
-    });
+    // Steam / 获取游戏 / 资料源管理 / 末尾方块菜单：./app/views/sources.js（P4.3-w）
+    sourcesView.bind();
 
     // 全局
     document.addEventListener("click", (e) => {

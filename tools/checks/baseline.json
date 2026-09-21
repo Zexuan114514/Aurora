@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 1093
+      "lines": 746
     },
     {
       "path": "gl/web/index.html",
@@ -427,11 +427,11 @@
     },
     {
       "path": "gl/web/app/views/game.js",
-      "lines": 526
+      "lines": 730
     },
     {
       "path": "gl/web/app/views/sources.js",
-      "lines": 243
+      "lines": 376
     },
     {
       "path": "gl/web/app/views/vntext.js",
@@ -439,7 +439,7 @@
     },
     {
       "path": "gl/web/app/views/toolbar.js",
-      "lines": 118
+      "lines": 178
     },
     {
       "path": "gl/web/app/views/background.js",
@@ -1723,6 +1723,25 @@
         {
           "from": "tools/checks/update_contract.py 只扫 app.js",
           "to": "扫 app.js + gl/web/app/**（与 check_contract 同口径）"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-w",
+      "date": "2026-09-21",
+      "note": "把剩下的事件绑定交还给各自的视图：详情/匹配/更多菜单/转区/封面进 views/game.js 的 bind()，Steam/获取游戏/资料源管理/末尾方块菜单进 views/sources.js 的 bind()，视图切换/作用域菜单/搜索/排序进 views/toolbar.js 的 bind()；主模块 bindUi 只剩顶栏按钮、环绑定、resize 观察与全局快捷键；探针抓到两个新绑定用的 closePanel 没 import（game.js 与 sources.js），补上后 e2e 90/90（0 skipped）",
+      "moves": [
+        {
+          "from": "app.js bindUi：详情 / 候选匹配 / 更多菜单 / 转区面板 / 换封面面板绑定",
+          "to": "gl/web/app/views/game.js: createGameView.bind"
+        },
+        {
+          "from": "app.js bindUi：Steam / 获取游戏 / 资料源管理 / addMenu 绑定",
+          "to": "gl/web/app/views/sources.js: createSourcesView.bind"
+        },
+        {
+          "from": "app.js bindUi：视图切换 / 作用域菜单 / 搜索 / 排序绑定",
+          "to": "gl/web/app/views/toolbar.js: createToolbarView.bind"
         }
       ]
     }

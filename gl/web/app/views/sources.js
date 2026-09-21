@@ -5,12 +5,12 @@
  *   - Steam 扫描导入（`openSteamPanel` / `renderSteamList` / `importSteam`）
  *   - 获取游戏（`openGetPanel` / `renderSites` / 下载目录设置）
  *
- * 与其它视图同规矩：只 import core；面板开合与提示仍由主模块注入
- * （提示 `toast` 由主模块注入），面板开合走 core/panels.js，事件绑定留在主模块。
+ * 与其它视图同规矩：只 import core；提示与主模块动作（`toast` / `importGames` /
+ * `refreshLibrary` / `render`）由 ctx 注入，面板开合走 core/panels.js。
  */
 import { call } from "../core/api.js";
 import { $, el, esc } from "../core/dom.js";
-import { closeAll, openPanel } from "../core/panels.js";
+import { closeAll, closePanel, openPanel } from "../core/panels.js";
 import { state } from "../core/store.js";
 
 export function createSourcesView(ctx) {
@@ -234,7 +234,140 @@ export function createSourcesView(ctx) {
     openPanel(el.sourcePanel);
   }
 
+  /* ------------------------------------------------------------ 事件绑定 */
+  function bind() {
+    // Steam 面板
+    $("steamClose").onclick = () => closePanel(el.steamPanel);
+    $("steamAll").onclick = () => {
+      (state.steam || []).forEach((row) => { if (!row.already) state.picked.add(row.exe); });
+      renderSteamList();
+    };
+    $("steamNone").onclick = () => { state.picked.clear(); renderSteamList(); };
+    $("steamImport").onclick = () => importSteam();
+    el.steamList.addEventListener("change", (e) => {
+      const box = e.target.closest("input[data-exe]");
+      if (!box) return;
+      if (box.checked) state.picked.add(box.dataset.exe);
+      else state.picked.delete(box.dataset.exe);
+      updateSteamHint();
+    });
+
+    // 获取游戏（下载大厅）
+    $("btnGetGames").onclick = () => openGetPanel();
+    $("getClose").onclick = () => closePanel(el.getPanel);
+    $("getChangeDir").onclick = async () => {
+      const res = await call("pick_download_dir");
+      if (!res || res.cancelled) return;
+      if (!res.ok) { ctx.toast("设置失败：" + ((res && res.error) || "")); return; }
+      await refreshDownloadSettings();
+      ctx.toast("下载目录已更新");
+    };
+    $("getOpenDir").onclick = () => call("open_download_dir");
+    $("getWatch").onchange = async (e) => {
+      await call("set_download_option", "download_watch", e.target.checked);
+      await refreshDownloadSettings();
+      ctx.toast(e.target.checked ? "已开启下载目录监听" : "已暂停下载目录监听");
+    };
+    $("getExtract").onchange = async (e) => {
+      await call("set_download_option", "download_extract", e.target.checked);
+      await refreshDownloadSettings();
+    };
+    $("getScan").onclick = async () => {
+      const res = await call("scan_downloads");
+      await refreshDownloadSettings();
+      if (!res || !res.ok) { ctx.toast("扫描失败"); return; }
+      const n = res.imported || 0;
+      ctx.toast(n ? `扫描完成：导入 ${n} 个游戏` : "扫描完成：没有发现新的游戏");
+      if (n) { await ctx.refreshLibrary(); ctx.render(); }
+    };
+    $("getAddSite").onclick = () => {
+      el.getSiteForm.hidden = false;
+      $("getSiteName").value = "";
+      $("getSiteUrl").value = "";
+      $("getSiteName").focus();
+    };
+    $("getSiteCancel").onclick = () => { el.getSiteForm.hidden = true; };
+    $("getSiteSave").onclick = () => addSite();
+    $("getSiteUrl").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addSite();
+    });
+    el.getSites.addEventListener("click", async (e) => {
+      const open = e.target.closest("button[data-site]");
+      if (open) { openSite(open.dataset.site); return; }
+      const del = e.target.closest("button[data-del]");
+      if (!del) return;
+      const res = await call("remove_site", del.dataset.del);
+      state.sites = (res && res.sites) || [];
+      renderSites();
+      ctx.toast("已删除该资源站");
+    });
+
+    // 末尾方块的二选一菜单：导入本地 / 获取游戏
+    el.addMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-add-act]");
+      if (!btn) return;
+      el.addMenu.hidden = true;
+      if (btn.dataset.addAct === "import") ctx.importGames();
+      else openGetPanel();
+    });
+
+    // 资料源管理
+    $("sourceClose").onclick = () => closePanel(el.sourcePanel);
+    $("srcAdd").onclick = () => {
+      el.sourceForm.hidden = false;
+      $("srcName").value = "";
+      $("srcUrl").value = "";
+      $("srcResults").value = "";
+      $("srcFields").value = "";
+      $("srcKind").value = "api";
+      syncSourceForm();
+      $("srcName").focus();
+    };
+    $("srcCancel").onclick = () => { el.sourceForm.hidden = true; };
+    $("srcKind").onchange = () => syncSourceForm();
+    $("srcSave").onclick = () => addCustomSource();
+    el.sourceList.addEventListener("click", async (e) => {
+      const row = e.target.closest(".src-row");
+      if (!row) return;
+      const id = row.dataset.id;
+      const arrow = e.target.closest("[data-move]");
+      if (arrow) {
+        const res = await call("move_source", id, Number(arrow.dataset.move));
+        state.sources = res.sources || state.sources;
+        renderSources();
+        return;
+      }
+      const act = e.target.closest("[data-act]");
+      if (!act) return;
+      if (act.dataset.act === "test") {
+        act.textContent = "测试中";
+        const res = await call("test_source", id);
+        act.textContent = "测试";
+        if (res.kind === "link") ctx.toast("这是跳转型源，点击候选面板里的按钮使用");
+        else if (res.ok) {
+          ctx.toast(`可用：${res.count} 个结果 · ${res.elapsed}s · ${(res.sample || []).join(" / ")}`);
+        } else ctx.toast("没有返回结果：" + (res.error || ""));
+      } else if (act.dataset.act === "remove") {
+        const res = await call("remove_custom_source", id);
+        state.sources = res.sources || state.sources;
+        renderSources();
+        applySourcesHint();
+        ctx.toast("已删除");
+      }
+    });
+    el.sourceList.addEventListener("change", async (e) => {
+      const toggle = e.target.closest("[data-act='toggle']");
+      if (!toggle) return;
+      const row = toggle.closest(".src-row");
+      const res = await call("toggle_source", row.dataset.id, toggle.checked);
+      state.sources = res.sources || state.sources;
+      renderSources();
+      applySourcesHint();
+    });
+  }
+
   return {
+    bind,
     renderSteamList, updateSteamHint, openSteamPanel, importSteam,
     renderSites, refreshSites, openSite, addSite, refreshDownloadSettings, openGetPanel,
     renderSources, refreshSources, applySourcesHint, syncSourceForm, addCustomSource,

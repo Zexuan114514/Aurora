@@ -5,7 +5,10 @@
  *   - 作用域胶囊的文案与「清除」按钮可见性
  *   - 作用域菜单（范围 / 自定义分类 / 按状态 / 按开发商）与它的定位
  *   - 排序菜单的选中态与定位
- *   - 改作用域后的焦点修正与重绘（`render` / `ringUpdate` 由主模块注入）
+ *   - 事件绑定：视图切换、作用域菜单、搜索框与排序菜单
+ *
+ * ctx = { render, ringUpdate, renderHall, setView, refreshShelves,
+ *         setFocus, openGame, currentGame, toast }
  */
 import { $, el, esc } from "../core/dom.js";
 import { closeAll } from "../core/panels.js";
@@ -113,6 +116,63 @@ export function createToolbarView(ctx) {
     syncSortMenu();
   }
 
+  /* ------------------------------------------------------------ 事件绑定 */
+  function bind() {
+    // 视图切换：主页 / 分类
+    el.viewSwitch.addEventListener("click", (e) => {
+      const btn = e.target.closest(".vs-btn");
+      if (!btn || btn.disabled) return;
+      if (btn.dataset.view === "categories") {
+        ctx.setView("categories");
+        ctx.refreshShelves();
+      } else {
+        ctx.setView("home");
+      }
+    });
+    $("scopePick").onclick = () => toggleScopeMenu();
+    $("scopeClear").onclick = () => {
+      el.scopeMenu.hidden = true;
+      setScope("all");
+      ctx.toast("已显示全部游戏");
+    };
+    el.scopeMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-scope-type]");
+      if (!btn) return;
+      el.scopeMenu.hidden = true;
+      setScope(btn.dataset.scopeType, btn.dataset.scopeValue || "");
+    });
+
+    // 搜索过滤
+    el.search.oninput = (e) => {
+      state.filter = e.target.value;
+      el.searchClear.hidden = !state.filter;
+      if (el.catQuery.value !== state.filter) el.catQuery.value = state.filter;   // 两处搜索同步
+      ctx.renderHall();
+    };
+    el.searchClear.onclick = () => {
+      el.search.value = ""; state.filter = ""; el.searchClear.hidden = true;
+      ctx.renderHall();
+    };
+    el.search.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const first = visibleGames()[0];
+        if (first) { ctx.setFocus(first.id); ctx.openGame(first.id); }
+      }
+    });
+
+    // 排序（工具条图标 → 菜单）
+    $("btnSort").onclick = () => toggleSortMenu();
+    el.sortMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-sort]");
+      if (!btn) return;
+      state.sort = btn.dataset.sort;
+      el.sortMenu.hidden = true;
+      ctx.renderHall();
+      const game = ctx.currentGame();
+      if (game) ctx.setFocus(game.id);
+    });
+  }
+
   return { syncScopePill, setScope, renderScopeMenu, openScopeMenu, toggleScopeMenu,
-           syncSortMenu, toggleSortMenu };
+           syncSortMenu, toggleSortMenu, bind };
 }

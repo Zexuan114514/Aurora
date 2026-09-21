@@ -886,3 +886,34 @@ e2e 第一次跑出 61/64/65 三项失败。因为它是 async 函数里的报�
 建议把更多菜单与匹配/详情那几组绑定搬进 `views/game.js` 的 `bind()`，之后 `app.js`
 就只剩工厂装配、`__aurora` 测试面与 `boot()` —— P4 的「拆视图」部分即可收口。
 
+### P4.3-w 事件绑定交还给视图（2026-09-21 17:00）
+
+最后一刀把 `bindUi` 里剩下的绑定按归属分给三个视图，主模块只留全局外壳：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/game.js`（+ `bind()`） | 详情面板（`btnDetails` / `detailClose` / 截图设为背景 / `detailStatus` 改状态）、候选匹配面板（`matchClose` / `matchGo` / 回车 / 候选点击 / 快捷词 / 跳转源搜索 / `matchRetry`）、更多菜单（`btnMore` 的可见项与文案 + 14 个动作：收藏 · 重命名 · 恢复命名 · 换封面 · 换图标 · 打开来源 · 重新搜索 · 手动匹配 · 转区 · 翻译简介 · 启动参数 · 移除）、转区面板（开关 / 配置 / 指定 LEProc / 下载页）、换封面面板（选图 / 本地图 / 恢复默认） |
+| `views/sources.js`（+ `bind()`） | Steam 面板（关闭 / 全选 / 清空 / 导入 / 勾选联动）、获取游戏面板（关闭 / 改目录 / 打开目录 / 监听 / 解压 / 扫描 / 站点增删与搜索跳转）、末尾方块的二选一菜单、资料源管理（关闭 / 新增表单 / 来源上下移 / 测试 / 删除 / 启停开关） |
+| `views/toolbar.js`（+ `bind()`） | 视图切换（主页 ↔ 分类）、作用域胶囊与菜单、搜索框（输入 / 清除 / 回车进第一项）、排序菜单 |
+
+`ctx` 相应补齐：`gameView` 加 `modal` / `chooseBackground` / `setGameStatus` / `refreshLibrary` /
+`closeGame` / `leUrl`；`sourcesView` 加 `importGames` / `refreshLibrary` / `render`；
+`toolbar` 加 `renderHall` / `setView` / `refreshShelves` / `setFocus` / `openGame` / `currentGame` / `toast`。
+主模块的 `bindUi` 现在只剩：顶栏三个按钮、「窗口尺寸变化后重新摆位」的两个观察器、
+六行 `xxxView.bind()`，以及全局的 click-outside / 快捷键 / 右键 / 拖放提示。
+
+**探针又立功一次**：新绑定里用了 `closePanel`，但 `views/game.js` 与 `views/sources.js` 的
+import 列表里只有 `closeAll, openPanel`（以前它们不开面板，用不到 `closePanel`）—— 三处
+`ReferenceError: closePanel is not defined`（点关闭按钮时）。因为这次是同步点击处理器，
+`window.onerror` 一次抓齐，补 import 后探针 `errors=[]`。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90（0 skipped）**、
+`visual` `errors=[]` 且 ring 判据不变；探针跑完全部界面（设置 / 资料源 / 获取 /
+换封面 24 个候选 / 翻译面板 / 工具条 / 分类屏 / 事件推送）无未捕获异常。
+`app.js` 1093 → **746 行**；`views/game.js` 526 → 730、`views/sources.js` 243 → 376、
+`views/toolbar.js` 118 → 178。
+
+**P4 拆视图到此收口**：`app.js` 只剩工厂装配、`__aurora` 测试面、`boot()` 与全局外壳，
+15 个模块各司其职。下一步可选：把 `bindUi` 里最后的全局快捷键/拖放提示也整理成
+`core/shell.js`（纯搬家，无行为变化），或转到路线图的下一项（打包清单与文档同步收尾）。
+

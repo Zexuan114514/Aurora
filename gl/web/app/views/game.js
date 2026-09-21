@@ -9,7 +9,7 @@
  */
 import { call } from "../core/api.js";
 import { $, el, esc, imgHtml } from "../core/dom.js";
-import { closeAll, openPanel } from "../core/panels.js";
+import { closeAll, closePanel, openPanel } from "../core/panels.js";
 import { state } from "../core/store.js";
 import { hours, clock, sessionSeconds, stamp } from "../core/time.js";
 
@@ -53,6 +53,12 @@ export function detailBody(g) {
  *   statusLabel(),        // 游玩状态的文案（主模块的 STATUS_LABEL）
  *   render(),             // 整页重绘（主模块）
  *   toast(msg, ms),       // 提示
+ *   modal(opts),          // 输入/确认对话框（主模块）
+ *   chooseBackground(url, kind),  // 截图设为背景（views/background.js）
+ *   setGameStatus(id, status),    // 详情面板改游玩状态（views/categories.js）
+ *   refreshLibrary(),     // 移除游戏后刷新（core/actions.js）
+ *   closeGame(),          // 回大厅（主模块）
+ *   leUrl,                // Locale Emulator 下载页（views/settings.js 导出）
  * }
  */
 export function createGameView(ctx) {
@@ -517,10 +523,208 @@ export function createGameView(ctx) {
       : "已关闭转区启动");
   }
 
+  /* ------------------------------------------------------------ 事件绑定 */
+  function bind() {
+    // 详情面板
+    $("btnDetails").onclick = () => {
+      const opening = !el.detailPanel.classList.contains("open");
+      closeAll();
+      if (opening) { renderDetail(); openPanel(el.detailPanel); }
+    };
+    $("detailClose").onclick = () => closePanel(el.detailPanel);
+    el.detailBody.addEventListener("click", (e) => {
+      const link = e.target.closest("a[data-url]");
+      if (link) { call("open_url", link.dataset.url); return; }
+      const shot = e.target.closest(".shot");
+      if (shot) {
+        ctx.chooseBackground(shot.dataset.shot, shot.dataset.kind || "screenshot");
+        ctx.toast("已设为背景");
+      }
+    });
+    el.detailBody.addEventListener("change", (e) => {
+      if (e.target.id === "detailStatus") {
+        ctx.setGameStatus(e.target.dataset.id, e.target.value);
+      }
+    });
+
+    // 候选匹配面板
+    $("matchClose").onclick = () => closePanel(el.matchPanel);
+    $("matchGo").onclick = () => doSearch(el.matchQuery.value.trim());
+    el.matchQuery.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doSearch(el.matchQuery.value.trim());
+    });
+    el.matchList.addEventListener("click", (e) => {
+      const item = e.target.closest(".match-item");
+      if (item) applyCandidate(item);
+    });
+    el.matchQuick.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-q]");
+      if (chip) doSearch(chip.dataset.q);
+    });
+    el.matchLinks.addEventListener("click", (e) => {
+      const chip = e.target.closest("[data-link-source]");
+      if (!chip) return;
+      const query = el.matchQuery.value.trim();
+      if (!query) { ctx.toast("先输入要搜索的名字"); return; }
+      call("open_source_search", query, chip.dataset.linkSource).then((res) => {
+        if (!res || !res.ok) ctx.toast("打不开搜索页：" + ((res && res.error) || ""));
+      });
+    });
+    // 重试按输入框里的词再搜一次（手动面板里用户可能刚改过关键词）
+    $("matchRetry").onclick = () => doSearch(el.matchQuery.value.trim() || null);
+
+    // 更多菜单
+    $("btnMore").onclick = () => {
+      const hidden = el.moreMenu.hidden;
+      closeAll();
+      const g = ctx.currentGame();
+      $("menuIconReset").hidden = !(g && g.custom_icon);
+      $("menuNameReset").hidden = !(g && g.name_locked);
+      $("menuFavorite").textContent = g && g.favorite ? "取消收藏" : "加入收藏";
+      $("menuLocale").textContent = g && g.locale_enabled
+        ? "转区设置（已开启）…" : "转区启动…";
+      el.moreMenu.hidden = !hidden;
+    };
+    el.moreMenu.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn) return;
+      const g = ctx.currentGame();
+      el.moreMenu.hidden = true;
+      if (!g) return;
+      const act = btn.dataset.act;
+      if (act === "reveal") { call("reveal", g.id); }
+      else if (act === "favorite") {
+        const res = await call("toggle_favorite", g.id);
+        if (res.game) Object.assign(g, res.game);
+        ctx.render();
+        ctx.toast(res.favorite ? "已加入收藏" : "已取消收藏");
+      }
+      else if (act === "rename") {
+        const value = await ctx.modal({
+          title: "重命名", body: "只改启动器里显示的名字，不动游戏文件。",
+          input: true, value: g.name, okText: "保存",
+        });
+        if (value === null) return;
+        if (!value) { ctx.toast("名字不能为空"); return; }
+        const res = await call("rename_game", g.id, value);
+        if (res.game) Object.assign(g, res.game);
+        ctx.render();
+        ctx.toast("已重命名");
+      }
+      else if (act === "name-reset") {
+        const res = await call("reset_name", g.id);
+        if (res.game) Object.assign(g, res.game);
+        ctx.render();
+        ctx.toast("已恢复自动命名，正在重新搜索…");
+      }
+      else if (act === "cover") { openCoverPanel(); }
+      else if (act === "icon") {
+        const res = await call("pick_custom_icon", g.id);
+        if (!res || res.cancelled) return;
+        if (!res.ok) { ctx.toast("设置图标失败：" + (res.error || "")); return; }
+        Object.assign(g, res.game);
+        ctx.render();
+        ctx.toast("已设置自定义图标");
+      } else if (act === "icon-reset") {
+        const res = await call("clear_custom_icon", g.id);
+        if (res.game) Object.assign(g, res.game);
+        ctx.render();
+        ctx.toast("已恢复默认图标");
+      } else if (act === "store") {
+        if (g.source_url) call("open_url", g.source_url);
+        else ctx.toast("还没有匹配到条目");
+      } else if (act === "research") { researchGame(); }
+      else if (act === "match") { openMatchPanel(); }
+      else if (act === "locale") { openLocalePanel(); }
+      else if (act === "translate") {
+        const res = await call("translate_game", g.id);
+        if (!res || !res.ok) { ctx.toast("翻译启动失败"); return; }
+        ctx.toast("正在翻译简介…");
+      }
+      else if (act === "args") {
+        const value = await ctx.modal({
+          title: "启动参数", body: "会追加在可执行文件之后，点下面的常用参数可快速加入。",
+          input: true, value: g.launch_args || "", okText: "保存",
+          presets: ["-windowed", "-fullscreen", "-dx11", "-dx12", "-novid", "-high"],
+        });
+        if (value !== null) {
+          g.launch_args = value;
+          await call("set_launch_args", g.id, value);
+          ctx.toast("已保存启动参数");
+        }
+      } else if (act === "remove") {
+        const ok = await ctx.modal({
+          title: "移除游戏",
+          body: `确定把「${g.name}」从库中移除吗？不会删除磁盘上的文件。`,
+          okText: "移除",
+        });
+        if (!ok) return;
+        await call("remove_game", g.id);
+        await ctx.refreshLibrary();
+        if (state.focus === g.id) {
+          state.focus = state.games[0]?.id || ADD_KEY;
+          if (state.page === "game") ctx.closeGame();
+        }
+        ctx.render();
+        ctx.toast("已移除");
+      }
+    });
+
+    // 单个游戏的转区面板
+    $("locClose").onclick = () => closePanel(el.localePanel);
+    $("locSwitch").onchange =
+      (e) => saveGameLocale(e.target.checked, $("locProfile").value);
+    $("locProfile").onchange =
+      (e) => saveGameLocale($("locSwitch").checked, e.target.value);
+    $("locPick").onclick = async () => {
+      const res = await call("pick_locale_proc");
+      if (!res || res.cancelled) return;
+      if (!res.ok) { ctx.toast("这个路径不可用：" + ((res && res.error) || "")); return; }
+      await renderLocalePanel();
+      ctx.toast("已设置 Locale Emulator 路径");
+    };
+    $("locDownload").onclick = () => call("open_url", ctx.leUrl);
+
+    // 换封面面板
+    $("coverClose").onclick = () => closePanel(el.coverPanel);
+    el.coverGrid.addEventListener("click", async (e) => {
+      const item = e.target.closest("[data-cover]");
+      if (!item) return;
+      const g = ctx.currentGame();
+      if (!g) return;
+      const res = await call("set_cover", g.id, item.dataset.cover);
+      if (res.game) Object.assign(g, res.game);
+      renderCoverPanel();
+      ctx.render();
+      ctx.toast("已更换封面");
+    });
+    $("btnLocalCover").onclick = async () => {
+      const g = ctx.currentGame();
+      if (!g) return;
+      const res = await call("pick_local_cover", g.id);
+      if (!res || res.cancelled) return;
+      if (!res.ok) { ctx.toast("选择失败：" + ((res && res.error) || "")); return; }
+      Object.assign(g, res.game);
+      renderCoverPanel();
+      ctx.render();
+      ctx.toast("已应用本地封面");
+    };
+    $("btnCoverReset").onclick = async () => {
+      const g = ctx.currentGame();
+      if (!g) return;
+      const res = await call("clear_custom_cover", g.id);
+      if (res.game) Object.assign(g, res.game);
+      renderCoverPanel();
+      ctx.render();
+      ctx.toast("已恢复默认封面");
+    };
+  }
+
   return { renderGameContent, renderBgPanel, syncBgZoomUi, renderDetail,
            renderCoverPanel, openCoverPanel,
            matchHintText, renderQuickQueries, renderMatches,
            openCandidates,
            openMatchPanel, doSearch, researchGame, applyCandidate,
-           renderLocalePanel, openLocalePanel, saveGameLocale };
+           renderLocalePanel, openLocalePanel, saveGameLocale,
+           bind };
 }
