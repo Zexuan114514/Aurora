@@ -18,7 +18,7 @@
       "method_count": 148,
       "public_method_count": 106,
       "internal_method_count": 42,
-      "frontend_call_count": 96,
+      "frontend_call_count": 97,
       "excluded_members": [
         "__init__"
       ],
@@ -1153,7 +1153,7 @@
           "returns": "dict",
           "kind": "command",
           "internal": false,
-          "called_by_frontend": false
+          "called_by_frontend": true
         },
         {
           "name": "move_source",

@@ -51,7 +51,12 @@ def classify(name: str) -> str:
 
 def build() -> dict:
     current = load_json("docs/architecture/contracts/bridge-contract.json")
-    calls = frontend_calls(APP_JS)
+    # P4 起前端是模块树：app.js + gl/web/app/**（与 check_contract 的口径一致）
+    frontend_js = [APP_JS] + sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "gl/web/app").rglob("*.js")
+        if "__pycache__" not in path.parts)
+    calls = frontend_calls(*frontend_js)
 
     main_methods = []
     live_main = class_methods(API, "Api")

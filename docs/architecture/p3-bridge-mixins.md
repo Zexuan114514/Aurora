@@ -856,3 +856,33 @@ e2e 第一次跑出 61/64/65 三项失败。因为它是 async 函数里的报�
 `renderCategories` / `applyShelfPayload` / `refreshShelves`，约 180 行）搬进 `views/categories.js`，
 再把 `bindUi` 里分类与更多菜单的绑定交给各自的 `bind()`，最后 `app.js` 只剩 `boot()` 与拼装。
 
+### P4.3-v 分类工作区整块收口（2026-09-21 16:50）
+
+`views/categories.js` 从「只有动作」变成「整屏都在这里」（118 → 415 行）：
+
+| 搬进 / 合并 | 内容 |
+| --- | --- |
+| 渲染 | `DEV_LIMIT` / `catList` / `catItem` / `renderCatRoots` / `renderCatShelves` / `renderCatStatus` / `renderCatDevs` / `renderCatHead` / `renderCatWall` / `renderCatBar` / `renderCategories` |
+| 数据收尾 | `applyShelfPayload`（货架 + 受影响游戏 + 解绑）与 `refreshShelves` |
+| 绑定 | `bind()`：`categoriesView` 的事件委托（范围 / 开发商更多 / 分类上移下移重命名删除 / 批量条 / 卡片）、`catNew` / `catCancel` / `catCreate` 提交、以及分类屏与主页共用的搜索 / 排序同步 |
+| 视图 ctx | `render` / `renderHall` / `setScope` / `syncSortMenu` / `renderDetail` / `setFocus` / `openPanel` / `coverSources` / `toast` / `modal` / `cssEscape`（`STATUS_LABEL` 改为视图内 import `core/query.js`） |
+
+**顺手修掉一个潜伏 bug**：分类左栏的 ↑ / ↓ 按钮绑的是 `moveShelf(...)`，但**这个函数从来没定义过** ——
+点一下就是 `ReferenceError: moveShelf is not defined`（e2e 没覆盖分类排序，所以一直没暴露）。
+这次按后端既有契约 `move_shelf(shelf_id, delta)` 补上实现（`applyShelfPayload` 收尾），
+并把 `move_shelf` 作为前端调用点补登进契约快照（96 → 97）。
+
+**工具也跟着修**：`tools/checks/update_contract.py` 之前只扫 `gl/web/app.js`（P4.3-a 之前的口径），
+搬进视图的调用点它看不见，于是快照更新是空的、`check_contract` 却报「新增调用」。
+现在它与 `check_contract` 同口径扫 `app.js + gl/web/app/**`。
+
+验收：`run_all` 8/8（契约：前端调用点 97 个全部有后端实现）、`pytest` 51 passed、
+`e2e` **90/90（0 skipped）**——分类那条链全过（打开分类界面、新建分类并自动切过去、
+整理模式勾选、多选归类写库、批量收藏、主页按分类过滤、作用域菜单、已收藏当分类、清除筛选、
+重命名、删除只解绑）；`visual` `errors=[]` 且 ring 判据不变；探针确认分类屏渲染正常。
+`app.js` 1355 → **1093 行**，`views/categories.js` 118 → 415 行。
+
+**下一刀（P4.3-w，P4 收尾）**：`app.js` 只剩「更多菜单绑定 + 全局快捷键 + boot() + 拼装」。
+建议把更多菜单与匹配/详情那几组绑定搬进 `views/game.js` 的 `bind()`，之后 `app.js`
+就只剩工厂装配、`__aurora` 测试面与 `boot()` —— P4 的「拆视图」部分即可收口。
+

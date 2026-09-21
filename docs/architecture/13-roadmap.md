@@ -97,6 +97,7 @@
 | P4.3-s 窗口外壳（`core/window.js`）与背景层（`views/background.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-s 小节：`app.js` 2121 → 1862 行；窗口/背景两组 e2e 判据全过、`visual` 判据不变 |
 | P4.3-t 设置页整块收口（`views/settings.js`：主题/网络/转区/外观/备份 + 绑定） | ✅ 已完成（2026-09-21） | 同上 P4.3-t 小节：`app.js` 1862 → 1571 行；设置页那组 e2e 判据全过、`visual` 判据不变 |
 | P4.3-u 游戏动作（`core/actions.js`）+ 匹配/转区面板（`views/game.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-u 小节：`app.js` 1571 → 1355 行；中途漏 import `call` 被 e2e+探针抓下，修复后 `e2e` 90/90（0 skipped） |
+| P4.3-v 分类工作区整块收口（`views/categories.js`：渲染 + 绑定 + `moveShelf` 补实现） | ✅ 已完成（2026-09-21） | 同上 P4.3-v 小节：`app.js` 1355 → 1093 行；契约调用点 96 → 97、`update_contract.py` 改扫模块树；`e2e` 90/90（0 skipped） |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

@@ -316,7 +316,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     applySettingsToUi: (...a) => settingsView.applySettingsToUi(...a),
     renderSources: (...a) => sourcesView.renderSources(...a),
     applySourcesHint: (...a) => sourcesView.applySourcesHint(...a),
-    refreshShelves: (...a) => refreshShelves(...a),
+    refreshShelves: (...a) => categories.refreshShelves(...a),
   });
 
   /* 背景层与背景面板在 ./app/views/background.js（P4.3-s） */
@@ -347,7 +347,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       el.hall.hidden = true;
       el.view.hidden = true;
       el.empty.hidden = true;
-      if (showCategories) renderCategories();
+      if (showCategories) categories.renderCategories();
       return;
     }
     // 回到主页：按 page 决定显示大厅还是游戏页（进来时可能被上面藏过）
@@ -359,9 +359,6 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     }
   }
 
-  /* ---------------------------------------------------------- 分类工作区 */
-  const DEV_LIMIT = 12;
-
   function setView(name) {
     const next = name === "categories" ? "categories" : "home";
     state.view = next;
@@ -372,186 +369,8 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     render();
     if (next === "home") ring.update();
   }
-
-  function catList() {
-    let list = state.games.filter(inScope);
-    const q = state.filter.trim().toLowerCase();
-    if (q) list = list.filter((g) => searchHit(g, q));
-    return sortGames(list);
-  }
-
-  function catItem(active, attrs, label, count, ops = "") {
-    return `<button class="cat-item${active ? " on" : ""}" ${attrs}>
-      <span>${esc(label)}</span>
-      <small>${count}</small>${ops}</button>`;
-  }
-
-  function renderCatRoots() {
-    const total = state.shelfStats.total ?? state.games.length;
-    const unfiled = state.shelfStats.unfiled ?? 0;
-    const favorite = state.games.filter((g) => g.favorite).length;
-    el.catRoots.innerHTML =
-      catItem(state.scope.type === "all", 'data-scope="all"', "全部游戏", total)
-      + catItem(state.scope.type === "unfiled", 'data-scope="unfiled"', "未分类", unfiled)
-      + catItem(state.scope.type === "fav", 'data-scope="fav"', "已收藏", favorite);
-  }
-
-  function renderCatShelves() {
-    if (!state.shelves.length) {
-      el.catShelves.innerHTML =
-        '<p class="cat-hint" style="color:var(--text-3)">还没有分类，点右上角 ＋ 新建一个。</p>';
-      return;
-    }
-    el.catShelves.innerHTML = state.shelves.map((shelf, index) => {
-      const active = state.scope.type === "shelf" && state.scope.value === shelf.id;
-      // 注意：按钮不能嵌套按钮（浏览器会把内层摊平），所以外面再包一层行容器
-      return `<div class="cat-row${active ? " on" : ""}">
-        <button class="cat-item${active ? " on" : ""}" data-scope="shelf"
-                data-id="${esc(shelf.id)}">
-          <span>${esc(shelf.name)}</span><small>${shelf.count ?? 0}</small>
-        </button>
-        <span class="cat-ops">
-          <button data-shelf-move="${esc(shelf.id)}" data-delta="-1" title="上移"${
-            index === 0 ? " disabled" : ""}>↑</button>
-          <button data-shelf-move="${esc(shelf.id)}" data-delta="1" title="下移"${
-            index === state.shelves.length - 1 ? " disabled" : ""}>↓</button>
-          <button data-shelf-rename="${esc(shelf.id)}" title="重命名">✎</button>
-          <button class="danger" data-shelf-del="${esc(shelf.id)}" title="删除分类">✕</button>
-        </span>
-      </div>`;
-    }).join("");
-  }
-
-  function renderCatStatus() {
-    el.catStatusList.innerHTML = STATUS_ORDER.map((value) => {
-      const count = state.games.filter((g) => (g.status || "") === value).length;
-      const active = state.scope.type === "status" && state.scope.value === value;
-      return catItem(active, `data-scope="status" data-id="${esc(value)}"`,
-                     STATUS_LABEL[value], count);
-    }).join("");
-  }
-
-  function renderCatDevs() {
-    const counts = new Map();
-    for (const game of state.games) {
-      for (const dev of (game.developers || [])) {
-        if (dev) counts.set(dev, (counts.get(dev) || 0) + 1);
-      }
-    }
-    const rows = [...counts.entries()]
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh"));
-    const shown = state.devExpand ? rows : rows.slice(0, DEV_LIMIT);
-    el.catDevs.innerHTML = shown.map(([name, count]) => catItem(
-      state.scope.type === "dev" && state.scope.value === name,
-      `data-scope="dev" data-id="${esc(name)}"`, name, count)).join("")
-      + (rows.length > DEV_LIMIT
-          ? `<button class="cat-item" data-dev-more="1"><span>${
-              state.devExpand ? "收起" : `更多（${rows.length - DEV_LIMIT}）`}</span></button>`
-          : "");
-  }
-
-  function renderCatHead() {
-    const list = catList();
-    el.catTitle.textContent = scopeName();
-    el.catSub.textContent = `${list.length} 部`
-      + (state.filter.trim() ? `（筛选自 ${scopeCount()} 部）` : "");
-    const shelf = state.scope.type === "shelf"
-      ? state.shelves.find((s) => s.id === state.scope.value) : null;
-    const actions = [];
-    if (state.organizing) {
-      actions.push('<button class="mini-btn on" data-cat="organize">完成整理</button>');
-    } else {
-      actions.push('<button class="mini-btn" data-cat="organize">批量归类</button>');
-      if (shelf) {
-        actions.push('<button class="mini-btn" data-cat="rename">重命名</button>');
-        actions.push('<button class="mini-btn" data-cat="delete">删除分类</button>');
-      }
-    }
-    el.catActions.innerHTML = actions.join("");
-  }
-
-  function renderCatWall() {
-    const list = catList();
-    if (!list.length) {
-      el.catWall.innerHTML = `<div class="cat-empty">${
-        state.filter.trim() ? "这个范围里没有匹配的游戏。" : "这个范围里还没有游戏。"}</div>`;
-      return;
-    }
-    el.catWall.innerHTML = list.map((game) => {
-      const picked = state.selected.has(game.id);
-      const sub = (game.developers || [])[0] || STATUS_LABEL[game.status || ""] || "";
-      return `<button class="cat-card${picked ? " on" : ""}" data-id="${esc(game.id)}"
-                      title="${esc(game.name)}">
-        <span class="cat-art">${imgHtml("", coverSources(game))}
-          <b>${esc((game.name || "?").trim().charAt(0).toUpperCase())}</b>
-          ${state.organizing ? `<i class="cat-mark">${picked ? "✓" : ""}</i>` : ""}
-        </span>
-        <span class="cat-name">${esc(game.name)}</span>
-        <span class="cat-dev">${esc(sub)}</span>
-      </button>`;
-    }).join("");
-  }
-
-  function renderCatBar() {
-    if (!state.organizing) {
-      el.catBar.hidden = true;
-      el.catBar.innerHTML = "";
-      return;
-    }
-    const inShelf = state.scope.type === "shelf" ? state.scope.value : "";
-    el.catBar.hidden = false;
-    el.catBar.innerHTML = `
-      <b>已选 ${state.selected.size} 部</b>
-      <button class="mini-btn" data-catbar="all">全选当前结果</button>
-      <button class="mini-btn" data-catbar="none">清空</button>
-      <select id="catTarget"><option value="">选择目标分类</option>${
-        state.shelves.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("")}
-      </select>
-      <button class="mini-btn" data-catbar="add">加入分类</button>
-      ${inShelf ? '<button class="mini-btn" data-catbar="remove">移出当前分类</button>' : ""}
-      <button class="mini-btn" data-catbar="fav">收藏</button>
-      <button class="mini-btn" data-catbar="unfav">取消收藏</button>
-      <span class="hint">点封面勾选</span>`;
-  }
-
-  function renderCategories() {
-    renderCatRoots();
-    renderCatShelves();
-    renderCatStatus();
-    renderCatDevs();
-    renderCatHead();
-    renderCatWall();
-    renderCatBar();
-    if (el.catQuery.value !== state.filter) el.catQuery.value = state.filter;
-    if (el.catSort.value !== state.sort) el.catSort.value = state.sort;
-  }
-
-  /* 分类接口统一收尾：合并货架列表与受影响的游戏 */
-  function applyShelfPayload(res) {
-    if (!res) return;
-    if (Array.isArray(res.shelves)) replaceShelves(res.shelves);
-    if (typeof res.unfiled === "number") {
-      state.shelfStats = { unfiled: res.unfiled, total: res.total ?? state.games.length };
-    }
-    if (Array.isArray(res.games)) {
-      for (const row of res.games) {
-        const index = state.games.findIndex((g) => g.id === row.id);
-        if (index >= 0) state.games[index] = { ...state.games[index], ...row };
-      }
-    }
-    if (res.removed) {
-      for (const game of state.games) {
-        game.bookshelf_ids = (game.bookshelf_ids || []).filter((x) => x !== res.removed);
-      }
-    }
-    render();
-  }
-
-  async function refreshShelves() {
-    try {
-      applyShelfPayload(await call("list_shelves"));
-    } catch (_) { /* 离线时保留现有状态 */ }
-  }
+  /* 分类工作区（左栏 / 标题 / 封面墙 / 批量条 + 事件绑定）
+     在 ./app/views/categories.js（P4.3-b / P4.3-v） */
 
   /* 作用域胶囊 / 作用域菜单 / 排序菜单在 ./app/views/toolbar.js（P4.3-q） */
   const toolbar = createToolbarView({
@@ -559,15 +378,20 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     ringUpdate: () => { if (state.view === "home") ring.update(); },
   });
 
-  /* P4.3-b：书架/多选/状态整块搬进 ./app/views/categories.js（视图只依赖 core）；
-     这里注入主模块的渲染与提示函数，调用点名字保持不变 */
+  /* 分类工作区的渲染、动作与绑定都在 ./app/views/categories.js（P4.3-b / P4.3-v） */
   const categories = createCategoriesView({
-    render, renderCatBar, applyShelfPayload,
+    render: (...a) => render(...a),
+    renderHall: (...a) => renderHall(...a),
     setScope: (...a) => toolbar.setScope(...a),
+    syncSortMenu: (...a) => toolbar.syncSortMenu(...a),
     renderDetail: (...a) => gameView.renderDetail(...a),
-    toast, modal, cssEscape, STATUS_LABEL,
+    setFocus: (...a) => setFocus(...a),
+    openPanel: (node) => openPanel(node),
+    coverSources: (...a) => coverSources(...a),
+    toast: (...a) => toast(...a),
+    modal: (...a) => modal(...a),
+    cssEscape: (...a) => cssEscape(...a),
   });
-  const { setOrganizing, togglePick, createShelf, renameShelfFlow, deleteShelfFlow, assignSelected, removeSelectedFromScope, favoriteSelected, setGameStatus } = categories;
 
 
   /* ---------------------------------------------------------- 游戏内翻译 */
@@ -852,7 +676,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       if (!btn || btn.disabled) return;
       if (btn.dataset.view === "categories") {
         setView("categories");
-        refreshShelves();
+        categories.refreshShelves();
       } else {
         setView("home");
       }
@@ -870,99 +694,13 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       toolbar.setScope(btn.dataset.scopeType, btn.dataset.scopeValue || "");
     });
 
-    // 分类工作区（事件委托，界面重绘后依然有效）
-    el.categoriesView.addEventListener("click", async (e) => {
-      const scopeBtn = e.target.closest("[data-scope]");
-      if (scopeBtn) {
-        toolbar.setScope(scopeBtn.dataset.scope, scopeBtn.dataset.id || "");
-        return;
-      }
-      if (e.target.closest("[data-dev-more]")) {
-        state.devExpand = !state.devExpand;
-        renderCatDevs();
-        return;
-      }
-      const move = e.target.closest("[data-shelf-move]");
-      if (move && !move.disabled) {
-        await moveShelf(move.dataset.shelfMove, Number(move.dataset.delta));
-        return;
-      }
-      const ren = e.target.closest("[data-shelf-rename]");
-      if (ren) { await renameShelfFlow(ren.dataset.shelfRename); return; }
-      const del = e.target.closest("[data-shelf-del]");
-      if (del) { await deleteShelfFlow(del.dataset.shelfDel); return; }
-      const act = e.target.closest("[data-cat]");
-      if (act) {
-        if (act.dataset.cat === "organize") setOrganizing(!state.organizing);
-        else if (act.dataset.cat === "rename") renameShelfFlow(state.scope.value);
-        else if (act.dataset.cat === "delete") deleteShelfFlow(state.scope.value);
-        return;
-      }
-      const bar = e.target.closest("[data-catbar]");
-      if (bar) {
-        const kind = bar.dataset.catbar;
-        if (kind === "all") {
-          state.selected = new Set(catList().map((g) => g.id));
-          renderCatWall();
-          renderCatBar();
-        } else if (kind === "none") {
-          state.selected.clear();
-          renderCatWall();
-          renderCatBar();
-        } else if (kind === "add") {
-          const target = $("catTarget");
-          assignSelected(target ? target.value : "");
-        } else if (kind === "remove") removeSelectedFromScope();
-        else if (kind === "fav") favoriteSelected(true);
-        else if (kind === "unfav") favoriteSelected(false);
-        return;
-      }
-      const card = e.target.closest(".cat-card");
-      if (card) {
-        const id = card.dataset.id;
-        if (state.organizing) {
-          togglePick(id);
-        } else {
-          setFocus(id);
-          gameView.renderDetail();
-          openPanel(el.detailPanel);
-        }
-      }
-    });
-
-    $("catNew").onclick = () => {
-      el.catCreate.hidden = false;
-      el.catHint.textContent = "";
-      el.catName.focus();
-    };
-    $("catCancel").onclick = () => {
-      el.catCreate.hidden = true;
-      el.catHint.textContent = "";
-    };
-    el.catCreate.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const shelf = await createShelf(el.catName.value.trim());
-      if (shelf) toolbar.setScope("shelf", shelf.id);
-    });
-
-    // 分类工作区与主页共用同一份搜索 / 排序
-    el.catQuery.addEventListener("input", (e) => {
-      state.filter = e.target.value;
-      el.search.value = state.filter;
-      el.searchClear.hidden = !state.filter;
-      renderHall();
-      renderCatHead();
-      renderCatWall();
-    });
-    el.catSort.onchange = (e) => {
-      state.sort = e.target.value;
-      toolbar.syncSortMenu();
-      renderHall();
-      renderCatHead();
-      renderCatWall();
-    };
+    // 分类工作区（左栏 / 封面墙 / 批量条 / 搜索排序同步）在
+    // ./app/views/categories.js（P4.3-b / P4.3-v）
+    categories.bind();
     el.detailBody.addEventListener("change", (e) => {
-      if (e.target.id === "detailStatus") setGameStatus(e.target.dataset.id, e.target.value);
+      if (e.target.id === "detailStatus") {
+        categories.setGameStatus(e.target.dataset.id, e.target.value);
+      }
     });
     vntextView.bind();
 

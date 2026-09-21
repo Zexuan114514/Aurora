@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 1355
+      "lines": 1093
     },
     {
       "path": "gl/web/index.html",
@@ -415,7 +415,7 @@
     },
     {
       "path": "gl/web/app/views/categories.js",
-      "lines": 118
+      "lines": 415
     },
     {
       "path": "gl/web/app/views/settings.js",
@@ -1700,6 +1700,29 @@
         {
           "from": "app.js: renderLocalePanel/openLocalePanel/saveGameLocale",
           "to": "gl/web/app/views/game.js: createGameView"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-v",
+      "date": "2026-09-21",
+      "note": "分类工作区整块（左栏渲染 CAT_ROOTS/SHELVES/STATUS/DEVS、标题与批量条、封面墙、applyShelfPayload/refreshShelves、以及 categoriesView 事件委托与搜索排序同步）进 views/categories.js，与既有的书架/多选动作合成同一个视图；顺带补上缺失的 moveShelf（分类 ↑/↓ 以前点了会 ReferenceError）；契约快照补登 move_shelf 调用点（96 → 97），update_contract.py 改成扫前端模块树；e2e 90/90（0 skipped）、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: DEV_LIMIT/catList/catItem/renderCatRoots/renderCatShelves/renderCatStatus/renderCatDevs/renderCatHead/renderCatWall/renderCatBar/renderCategories",
+          "to": "gl/web/app/views/categories.js: createCategoriesView"
+        },
+        {
+          "from": "app.js: applyShelfPayload/refreshShelves",
+          "to": "gl/web/app/views/categories.js: createCategoriesView"
+        },
+        {
+          "from": "app.js bindUi 里的分类工作区绑定（事件委托 / catNew / catCreate / catQuery / catSort）",
+          "to": "gl/web/app/views/categories.js: createCategoriesView.bind"
+        },
+        {
+          "from": "tools/checks/update_contract.py 只扫 app.js",
+          "to": "扫 app.js + gl/web/app/**（与 check_contract 同口径）"
         }
       ]
     }
