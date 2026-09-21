@@ -73,7 +73,11 @@ class LineTranslator:
         self._context: list[str] = []
         self._pending: list[dict] = []         # 待翻队列（旧 → 新）
         self._token = 0
-        self._worker: threading.Thread | None = None
+        #: 同时跑几个翻译请求。**不能只有 1 个**：实测 LLM 单句 40~60 秒，单 worker 时
+        #: 「翻页 → 开始翻译」要等上一句翻译完（用户反馈的「明显间隔」，引擎级钩子的游戏
+        #: 尤其明显，因为它们出文更快、翻页更密）。两个 worker 让新句子立刻开始，
+        #: 队列仍然保留语义（不掐断在飞请求，避免「一句有一句没有」）。
+        self._workers: list[threading.Thread] = []
         self._paused = False
         self._streaming = True
 
@@ -90,11 +94,13 @@ class LineTranslator:
             # 永远没有译文（表现为「一句有一句没有」）。队列只留最近几条，
             # 保证每句都翻到、同时不会越堆越久。
             self._pending.append({"text": text, "game_id": game_id, "source": source,
-                                  "token": self._token})
+                                  "token": self._token, "at": time.time()})
             del self._pending[:-self.MAX_QUEUE]
-            if self._worker is None or not self._worker.is_alive():
-                self._worker = default_runner().spawn("linetrans.queue", self._loop,
-                                                      thread_name="aurora-linetrans")
+            self._workers = [row for row in self._workers if row.is_alive()]
+            while len(self._workers) < self.MAX_WORKERS:
+                self._workers.append(
+                    default_runner().spawn("linetrans.queue", self._loop,
+                                           thread_name="aurora-linetrans"))
         self._fire("queued", {"text": text, "source": source})
 
     def retranslate_last(self) -> dict:
@@ -106,6 +112,8 @@ class LineTranslator:
         return {"ok": True, "text": last["text"]}
 
     MAX_QUEUE = 4
+    #: 并发翻译请求数（见 `_workers` 的说明）
+    MAX_WORKERS = 2
 
     def set_paused(self, paused: bool) -> dict:
         with self._lock:
@@ -221,6 +229,9 @@ class LineTranslator:
 
     def _finish(self, job: dict, out: str, provider: str, fallback_from: str = "") -> None:
         text = job["text"]
+        # 留一行耗时：排错时要量「翻页 → 看到译文」到底卡在排队还是请求
+        waited = time.time() - float(job.get("at") or time.time())
+        config.log(f"linetrans done [{provider}] {text[:22]!r} ({waited:.1f}s)")
         with self._lock:
             self._context.append(text)
             del self._context[:-12]

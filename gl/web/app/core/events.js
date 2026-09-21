@@ -166,7 +166,7 @@ export function createEventRouter(ctx) {
 
     "vntext:line": () => {
       if (state.settingsOpen && state.settingsTab === "vntext") ctx.vntext.renderGlossary();
-      if (el.vntextPanel.classList.contains("open")) ctx.vntext.refresh();
+      if (el.vntextPanel.classList.contains("open")) ctx.vntext.refreshSoon();
     },
 
     "downloads:status": (payload) => {

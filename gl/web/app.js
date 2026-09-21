@@ -576,6 +576,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       onHookSearch: (...a) => vntextView.onHookSearch(...a),
       renderGlossary: (...a) => vntextView.renderGlossary(...a),
       refresh: (...a) => vntextView.refresh(...a),
+      refreshSoon: (...a) => vntextView.refreshSoon(...a),
     },
   });
 

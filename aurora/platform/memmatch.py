@@ -61,6 +61,22 @@ _LEADING_BRACKET = "「『（(【〈《"
 _CACHE: dict[int, dict] = {}
 _LOCK = threading.RLock()
 
+#: 已补好的句子缓存（键 = 进程 + 缺字版）。同一句会被钩子反复吐（逐字重绘），
+#: 不缓存的话每次都要重扫一遍内存 —— 实测单次全量扫描 44~68 秒。
+_DONE: dict[tuple[int, str], str] = {}
+_DONE_MAX = 256
+
+#: OCR 吸附结果缓存（键 = 进程 + OCR 文本），同一屏不重复扫内存
+_SNAP_DONE: dict[tuple[int, str], str] = {}
+
+#: 同一句的后台补全只允许一个在跑（避免每行都起一个扫描线程）
+_RUNNING: set[tuple[int, str]] = set()
+
+#: 全局扫描闸：同一时间只允许**一个**内存扫描。实测（DRACU RIOT / Cafe Stella 现场）
+#: 每来一句就新起一个线程去扫 GB 级内存，十几个扫描并行抢 GIL，取词/翻译/界面全被拖死，
+#: 表现就是「翻页后半天不出文本、按下停止翻译才一股脑涌出来」。
+_SCAN_SLOT = threading.Semaphore(1)
+
 #: 汉字 / 数字 / 拉丁字母（用来跳过注音假名再比对）
 _IDEOGRAPH_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uff10-\uff19\uff21-\uff3a0-9A-Za-z]")
 
@@ -173,16 +189,34 @@ def lcs_span(probe: str, text: str) -> tuple[tuple[int, int], float]:
 
 
 def trim_sentence(text: str, span: tuple[int, int], *, left: int = 20,
-                  right: int = 80) -> str:
+                  right: int = 80, probe: str = "") -> str:
     """把窗口补成一句完整的话。
 
     缺字版常常在句子中间就没了（`家近離心倒` ← `家が近所で、…面倒を見てもらっていた。`），
     所以右边要一直吃到句读；左边略微回退一点，别把句首的引号落下。
+
+    两条止损（实测：补全曾把 `耀`/`䐀耀` 这类缓冲垃圾挂到句首，输出
+    `耀「理由はいくつかあるが……」`，把本来正确的台词替换成错的）：
+      * 碰到句读就停；
+      * 碰到左引号/括号 → **收进来就停**（那是句首，再往前就是上一个缓冲的尾巴）；
+    另外用 `probe` 兜一次「窗口开头多出汉字」的情况：缺字版首字就是这句的首字，
+    所以窗口开头若多出一两个**非假名**的字，那是上一段缓冲的尾巴，丢掉
+    （假名不能丢 —— 实测 `つの物思耽で` ← `いつのまにか…`，那个「い」属于本句）。
     """
     start, end = span
     limit = max(0, start - left)
     while start > limit and text[start - 1] not in "。！？!?…‥」』":
+        previous = text[start - 1]
+        if previous in _LEADING_BRACKET:
+            start -= 1                      # 引号属于这句，收进来后立刻停
+            break
         start -= 1
+    if probe:
+        # 窗口开头若多出一两个「非假名」的字，多半是上一段缓冲的尾巴，丢掉
+        guard = min(len(text), start + 2)
+        while start < guard and text[start] != probe[0] \
+                and not re.match(r"[\u3040-\u30ff\u3000-\u303f]", text[start]):
+            start += 1
     while end < len(text) and (end - start) < right:
         ch = text[end]
         end += 1
@@ -230,7 +264,7 @@ def _scan(handle, regions, probe: str, *, max_len: int) -> tuple[dict[str, int],
                         rank = 0
                         if not span:
                             continue
-                window = trim_sentence(candidate, span)
+                window = trim_sentence(candidate, span, probe=probe)
                 if len(window) <= len(probe):
                     continue
                 if found.get(window, -1) < rank:
@@ -259,7 +293,13 @@ def candidates_ranked(pid: int, fragment: str, *, full: bool = False) -> dict[st
         hot_list = [row for row in everything if row[0] in state["hot"]] or everything
         max_len = max(80, len(probe) * 4 + 40)
         found, hot = _scan(handle, hot_list, probe, max_len=max_len)
+        if hot_list is everything:
+            state["at"] = time.time()
         if not found and hot_list is not everything:
+            # 全量扫描前重新枚举区域：进程可能在两次扫描之间新分配了内存
+            # （自检里先扫描、后 plant 的用例就是这么漏的）
+            state["regions"] = _regions(handle)
+            everything = state["regions"]
             found, hot = _scan(handle, everything, probe, max_len=max_len)
             state["at"] = time.time()
         if hot:
@@ -303,6 +343,11 @@ def complete(pid: int, fragment: str) -> str:
     会误判成「都不像」，这时靠「唯一性」兜住。
     """
     probe = re.sub(r"\s+", "", str(fragment or ""))
+    key = (int(pid or 0), probe)
+    with _LOCK:
+        cached = _DONE.get(key)
+    if cached is not None:
+        return cached                    # 同一句反复吐 → 直接给上次的结果，不再扫内存
     picked = _pick(pid, fragment, probe)
     if not picked:
         return ""
@@ -324,7 +369,60 @@ def complete(pid: int, fragment: str) -> str:
         return ""
     config.log(f"memmatch: {fragment[:20]!r} -> {best[:40]!r} "
                f"(候选 {len(scored)} 条, 等级 {best_key[1]})")
+    with _LOCK:
+        _DONE[key] = best
+        while len(_DONE) > _DONE_MAX:
+            _DONE.pop(next(iter(_DONE)))
     return best
+
+
+def complete_async(pid: int, fragment: str, *, wait: float = 2.5) -> str:
+    """`complete()` 的非阻塞版：最多等 `wait` 秒，超时就先放行、扫描挪到后台。
+
+    为什么要这样：全量扫描在真实进程上实测 44~68 秒，而缺字补全跑在**取词热路径**上
+    （WillPlus/AdvHD 每句都要补）—— 用户看到的就是「一句要等很久才出来」。
+    现在：
+
+    * 命中 `_DONE` 缓存 → 立刻返回（同一句会被钩子反复吐，第二次开始都是秒回）；
+    * 没命中 → 后台扫描，最多等 `wait` 秒；超时就先让缺字版照常发射，
+      扫描继续跑并把结果写进缓存，这句再出现时就能补全（已有的「缺字变体并合」
+      会把两份并成一条）。
+    """
+    probe = re.sub(r"\s+", "", str(fragment or ""))
+    if not pid or len(probe) < 3:
+        return ""
+    key = (int(pid), probe)
+    with _LOCK:
+        cached = _DONE.get(key)
+        if cached is not None:
+            return cached
+        if key in _RUNNING:
+            return ""              # 同一句已经有人在扫，别重复开线程
+        _RUNNING.add(key)
+    box: dict[str, str] = {}
+    done = threading.Event()
+
+    def job() -> None:
+        # 排队拿扫描闸：拿不到就放弃这一句（它已经作为缺字版正常发射了），
+        # 绝不能让多个扫描并行去抢 GIL
+        if not _SCAN_SLOT.acquire(timeout=20.0):
+            with _LOCK:
+                _RUNNING.discard(key)
+            done.set()
+            return
+        try:
+            box["text"] = complete(pid, fragment)
+        except Exception as exc:                       # noqa: BLE001
+            config.log(f"memmatch async failed: {exc}")
+        finally:
+            _SCAN_SLOT.release()
+            with _LOCK:
+                _RUNNING.discard(key)
+            done.set()
+
+    threading.Thread(target=job, daemon=True, name="aurora-memmatch").start()
+    done.wait(max(0.05, float(wait)))
+    return box.get("text", "")
 
 
 def reset(pid: int = 0) -> None:
@@ -332,8 +430,14 @@ def reset(pid: int = 0) -> None:
     with _LOCK:
         if pid:
             _CACHE.pop(int(pid), None)
+            for key in [row for row in _DONE if row[0] == int(pid)]:
+                _DONE.pop(key, None)
+            for key in [row for row in _SNAP_DONE if row[0] == int(pid)]:
+                _SNAP_DONE.pop(key, None)
         else:
             _CACHE.clear()
+            _DONE.clear()
+            _SNAP_DONE.clear()
 
 
 # --------------------------------------------------------------------------- #
@@ -420,3 +524,51 @@ def snap(pid: int, text: str, *, min_ratio: float = 0.72, margin: float = 0.08) 
         return ""                       # 和 OCR 一样，不用动
     config.log(f"memmatch snap: {text[:26]!r} -> {best[:40]!r} ({best_ratio:.2f})")
     return best
+
+
+def snap_async(pid: int, text: str, *, wait: float = 2.5) -> str:
+    """`snap()` 的限时版：最多等 `wait` 秒，超时就先按 OCR 原文走、扫描挪后台。
+
+    与 `complete_async` 同一套思路：OCR 循环每认出一句都要吸附一次，而热区没命中时
+    会全量扫进程内存（实测 44~68 秒），同步等会把 OCR 取词整条堵住。
+    """
+    probe = re.sub(r"\s+", "", str(text or ""))
+    if not pid or len(probe) < 3:
+        return ""
+    key = (int(pid), f"snap:{probe[:64]}")
+    cache_key = key
+    with _LOCK:
+        cached = _SNAP_DONE.get(cache_key)
+        if cached is not None:
+            return cached
+        if key in _RUNNING:
+            return ""
+        _RUNNING.add(key)
+    box: dict[str, str] = {}
+    done = threading.Event()
+
+    def job() -> None:
+        if not _SCAN_SLOT.acquire(timeout=20.0):
+            with _LOCK:
+                _RUNNING.discard(key)
+            done.set()
+            return
+        try:
+            fixed = snap(pid, text)
+            if fixed:
+                with _LOCK:
+                    _SNAP_DONE[cache_key] = fixed
+                    while len(_SNAP_DONE) > _DONE_MAX:
+                        _SNAP_DONE.pop(next(iter(_SNAP_DONE)))
+            box["text"] = fixed
+        except Exception as exc:                       # noqa: BLE001
+            config.log(f"memmatch snap async failed: {exc}")
+        finally:
+            _SCAN_SLOT.release()
+            with _LOCK:
+                _RUNNING.discard(key)
+            done.set()
+
+    threading.Thread(target=job, daemon=True, name="aurora-memmatch-snap").start()
+    done.wait(max(0.05, float(wait)))
+    return box.get("text", "")

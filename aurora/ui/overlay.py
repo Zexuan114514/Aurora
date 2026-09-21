@@ -4,6 +4,7 @@ from __future__ import annotations
 from aurora.infra.tasks import default_runner
 
 import ctypes
+import json
 import threading
 import time
 from ctypes import wintypes
@@ -64,6 +65,14 @@ class OverlayBridge:
 
 
 class Overlay:
+    #: 更新合并窗口。文本密的时候悬浮窗一秒钟要被更新几十次（每个流式增量一次），
+    #: 而每次 `evaluate_js` 都是一次 GUI 往返 —— 实测窗口未就绪时**单次要 20 秒**
+    #: （pywebview 的 `events.wait(20)`），会把翻译线程整条堵死。这里改成
+    #: 「只留最新一份 + 后台单线程按 120ms 推」，调用方永远不阻塞。
+    UPDATE_MIN_INTERVAL = 0.12
+    #: 连续失败几次就停用悬浮窗：宁可不显示，也不能让每句译文都付 20 秒
+    MAX_FAILURES = 3
+
     def __init__(self, *, get_settings, set_option, on_action) -> None:
         self._get_settings = get_settings
         self._set_option = set_option
@@ -73,6 +82,11 @@ class Overlay:
         self._click_through = True
         self._visible = False
         self._resize_ready = False
+        self._pending: dict = {}
+        self._last_payload: dict = {}
+        self._update_worker = False
+        self._failures = 0
+        self._disabled = False
 
     # ------------------------------------------------------------------ #
     def _view(self) -> dict:
@@ -257,6 +271,8 @@ class Overlay:
         return bool(self._window is not None and self._visible)
 
     def show(self) -> dict:
+        self._disabled = False            # 用户/新会话主动开 → 给悬浮窗一次机会
+        self._failures = 0
         if not self.ensure():
             return {"ok": False, "error": "overlay-unavailable"}
         try:
@@ -269,7 +285,9 @@ class Overlay:
         except Exception:
             pass
         self._force_top()
-        self.update({})
+        with self._lock:
+            payload = dict(self._last_payload)
+        self.update(payload)
         return {"ok": True}
 
     def hide(self) -> dict:
@@ -281,6 +299,8 @@ class Overlay:
         except Exception:
             pass
         self._visible = False
+        with self._lock:
+            self._pending.clear()
         return {"ok": True}
 
     def close(self) -> dict:
@@ -358,18 +378,50 @@ class Overlay:
             return {"ok": False, "error": str(exc)}
 
     def update(self, payload: dict) -> None:
-        window = self._window
-        if window is None:
-            return
-        data = dict(payload or {})
-        data.setdefault("style", self._view())
-        data["click_through"] = self._click_through
-        try:
-            import json
+        """非阻塞更新：只记下最新一份，由后台单线程去推（见类注释）。"""
+        incoming = dict(payload or {})
+        with self._lock:
+            self._last_payload.update(incoming)
+            if self._window is None or self._disabled or not self._visible:
+                return                     # 隐藏/停用时完全不碰 GUI
+            self._pending.update(incoming)
+            if self._update_worker:
+                return
+            self._update_worker = True
+        default_runner().spawn("overlay.update", self._update_loop,
+                               thread_name="aurora-overlay-update")
 
-            window.evaluate_js(f"window.vnUpdate && window.vnUpdate({json.dumps(data, ensure_ascii=False)})")
-        except Exception as exc:
-            config.log(f"overlay update failed: {exc}")
+    def _update_loop(self) -> None:
+        while True:
+            time.sleep(self.UPDATE_MIN_INTERVAL)
+            with self._lock:
+                payload, self._pending = self._pending, {}
+                window = self._window
+                if not payload or window is None or not self._visible:
+                    self._update_worker = False
+                    return
+            data = dict(payload)
+            data.setdefault("style", self._view())
+            data["click_through"] = self._click_through
+            try:
+                window.evaluate_js(
+                    f"window.vnUpdate && window.vnUpdate({json.dumps(data, ensure_ascii=False)})")
+                self._failures = 0
+            except Exception as exc:
+                self._failures += 1
+                if self._failures == 1:
+                    config.log(f"overlay update failed: {exc}")
+                if self._failures >= self.MAX_FAILURES:
+                    # 实测这种状态下每次更新要 20 秒：停用悬浮窗，翻译继续跑
+                    config.log("overlay 连续更新失败，已停用悬浮窗"
+                               "（重新开启翻译或点「悬浮窗」按钮会重建）")
+                    with self._lock:
+                        self._disabled = True
+                        self._pending.clear()
+                        self._update_worker = False
+                        self._window = None
+                        self._visible = False
+                    return
 
 
 def _screen_size() -> tuple[int, int]:

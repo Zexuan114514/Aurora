@@ -7,6 +7,15 @@ stdin/stdout 协议（UTF-16LE、`[handle:pid:addr:ctx:ctx2:线程名:hook码] �
 """
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 import http.server
 import io
 import json
@@ -163,7 +172,10 @@ def main() -> int:
 
     write("\n[噪声过滤]")
     cases = [("セーブ", True), ("12345", True), ("……", True), ("あ", True),
-             ("彼女は静かに微笑んだ。", False), ("「また明日ね」と小さく呟いて、", False)]
+             ("彼女は静かに微笑んだ。", False), ("「また明日ね」と小さく呟いて、", False),
+             # 真机样本（DRACU RIOT）：驱动提示被当台词翻过，加了「系统提示」规则
+             ("モードのオーバーレイをデバイスがサポートしていません。", True),
+             ("デバイスって何のこと？", False)]
     for text, want_noise in cases:
         got = vntext.looks_like_noise(text)
         check(f"{'过滤' if want_noise else '保留'}：{text[:16]}", got == want_noise, str(got))
@@ -738,9 +750,11 @@ def main() -> int:
     engine2 = vntext.VnTextEngine(settings_getter=lambda: bad_settings, on_line=lambda row: None)
     state2 = engine2.start("bits", 1234, "hook", exe=str(win / "SysWOW64" / "ping.exe"))
     engine2.stop()
-    check("显式指定错位数时明确报 wrong-bitness",
-          state2.get("error") == "wrong-bitness" and state2.get("cli_bits") == 64
-          and state2.get("target_bits") == 32,
+    # 老实现「显式保存的路径优先于位数」→ 选到 x64 → attach 不上 → 静默掉进 OCR
+    # （用户实测「启动后一段时间完全没有注入行为」）。现在位数优先：自动换成 x86。
+    check("显式保存错位数时自动改用位数匹配的那份（不再静默失败）",
+          state2.get("cli_bits") == 32 and state2.get("target_bits") == 32
+          and state2.get("error") != "wrong-bitness",
           f"{state2.get('error')} cli={state2.get('cli_bits')} target={state2.get('target_bits')}")
 
     write("\n[OCR]")

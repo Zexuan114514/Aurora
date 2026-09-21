@@ -78,6 +78,9 @@ export function createVntextView(ctx) {
       detail = `这个游戏是 ${status.target_bits || "?"} 位，当前的 TextractorCLI 是 ${
         status.cli_bits || "?"} 位；请在 设置 → 游戏内翻译 里换成 ${
         status.target_bits === 32 ? "x86" : "x64"} 版`;
+    } else if (status.hook_skip) {
+      // auto 模式静默降级到 OCR 时，把原因说出来（以前用户只看到「没有任何注入行为」）
+      detail = `${status.hook_skip}；已自动改用 OCR。修好后点「停止翻译」再开启即可回到钩子模式`;
     }
     el.vnState.textContent = parts.join(" · ") + (detail ? ` · ${detail}` : "");
 
@@ -162,6 +165,18 @@ export function createVntextView(ctx) {
     }
     if (vnFindHooks.poll) vnFindHooks.poll();     // 面板重开时恢复查找器状态
     return status;
+  }
+
+  /* 文本一密的时候（实测峰值 19 行/秒）每条译文都来一次 refresh 就是每秒钟十几次
+     桥接往返 + 整面板重绘 —— 那正是「点了按钮没反应」的来源之一。这里合并成
+     最多每 300ms 一次，尾包保证最后一次一定刷到。 */
+  let refreshTimer = 0;
+  function refreshSoon(delay = 300) {
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(() => {
+      refreshTimer = 0;
+      refresh();
+    }, delay);
   }
 
   async function renderGlossary() {
@@ -449,5 +464,5 @@ export function createVntextView(ctx) {
     });
   }
 
-  return { bind, refresh, renderGlossary, renderPanel, onHookSearch };
+  return { bind, refresh, refreshSoon, renderGlossary, renderPanel, onHookSearch };
 }

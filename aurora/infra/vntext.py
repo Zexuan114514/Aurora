@@ -23,6 +23,21 @@ from gl import config, screencap
 CREATE_NO_WINDOW = 0x08000000
 CLI_NAME = "TextractorCLI.exe"
 TEXTRACTOR_URL = "https://github.com/Artikash/Textractor/releases"
+
+#: **不做**「缺字补全」的引擎：这些引擎由 Textractor 的引擎级钩子供文，正文本来就完整
+#: （实测：DRACU RIOT / RIDDLE JOKER 的 `INSERT KiriKiriZ`、白色相簿2 的 `INSERT Leaf`）。
+#:
+#: 血泪教训（2026-09-21 深夜）：这些游戏里同时挂着按字形抓的 GDI 钩子线程，补全被那些
+#: 线程误触发 —— 一句扫 70 秒（真实进程上量到 44~68 秒）、每来一句就新起一个扫描线程
+#: 并行抢 GIL，取词/翻译/界面全被拖死（「翻页后半天不出文本、按停止翻译才一股脑涌出来」，
+#: 悬浮窗拖动也一起卡），而且补出来的还是 `耀「理由は…` 这种带缓冲垃圾的错句，把本来
+#: 正确的台词替换成错的。
+#:
+#: 反过来，WillPlus/AdvHD（只能按字形抓，字形有缓存 → 真缺字）与 Artemis/Emote
+#: （用户钩子码给出的正文本身会缺字，实测 アマカノ３ 靠补全才完整）都必须保留补全。
+MEMORY_COMPLETION_SKIP_ENGINES = (
+    "TVP/KIRIKIRI", "Leaf", "BGI/Ethornell", "Escu:de", "Siglus", "CatSystem2/Ares",
+)
 # --------------------------------------------------------------------------- #
 # 纯规则与引擎规格已搬到 aurora.domain（P1 分层）；这里保留同名转发，
 # 老的调用点（gl/api.py、tools/）不需要改。
@@ -166,8 +181,20 @@ def module_names(pid: int, limit: int = 0) -> list[str]:
 
 
 
-def candidate_dirs() -> list[Path]:
-    """常见安装位置：环境变量目录 + 各盘常见路径 + PATH。"""
+#: 目录探测的缓存：`candidate_dirs()` 会碰每个盘符（外接/机械盘上单次上百毫秒），
+#: 而 `VnTextService` 每次取状态都会调一次 `find_cli()` —— 实测真机上
+#: `get_vntext_status()` 中位 301 ms，大头就是这里。缓存 30 秒足够新装也能发现。
+_DIRS_CACHE: tuple[float, list[Path]] | None = None
+_BUILDS_CACHE: dict[str, tuple[float, list[dict]]] = {}
+CACHE_SECONDS = 30.0
+
+
+def candidate_dirs(*, refresh: bool = False) -> list[Path]:
+    """常见安装位置：环境变量目录 + 各盘常见路径 + PATH（结果带 30 秒缓存）。"""
+    global _DIRS_CACHE
+    now = time.time()
+    if not refresh and _DIRS_CACHE and now - _DIRS_CACHE[0] < CACHE_SECONDS:
+        return list(_DIRS_CACHE[1])
     out: list[Path] = []
     for env_name in ("ProgramFiles", "ProgramFiles(x86)", "LOCALAPPDATA", "APPDATA", "USERPROFILE"):
         root = os.environ.get(env_name)
@@ -187,15 +214,22 @@ def candidate_dirs() -> list[Path]:
     found = shutil.which("TextractorCLI") or shutil.which(CLI_NAME)
     if found:
         out.insert(0, Path(found))
+    _DIRS_CACHE = (now, list(out))
     return out
 
 
-def cli_builds(saved: str = "") -> list[dict]:
+def cli_builds(saved: str = "", *, refresh: bool = False) -> list[dict]:
     """找到的所有 TextractorCLI 版本（x86 / x64 各算一个），带位数信息。
 
     Textractor 发布包里根目录是 x86 版，`x64\\` 是 64 位版；galgame 绝大多数是
     32 位，所以注入 32 位游戏必须用 x86 那份，选错会报「只能用 32 位」。
     """
+    now = time.time()
+    key = str(saved or "").lower()
+    if not refresh:
+        cached = _BUILDS_CACHE.get(key)
+        if cached and now - cached[0] < CACHE_SECONDS:
+            return [dict(row) for row in cached[1]]
     from gl import locale as locale_mod
 
     seen: list[str] = []
@@ -203,6 +237,13 @@ def cli_builds(saved: str = "") -> list[dict]:
     if saved:
         item = Path(saved)
         paths.append(item / CLI_NAME if item.is_dir() else item)
+        # 用户指定的那一份的**上下邻居**也要看：Textractor 发布包是
+        # `<root>\x86\TextractorCLI.exe` + `<root>\x64\TextractorCLI.exe`，
+        # 只有认出同族的另一份，才能在他选错位数时自动换过去（见 find_cli）
+        home = item if item.is_dir() else item.parent
+        paths += [home / "x86" / CLI_NAME, home / "x64" / CLI_NAME,
+                  home.parent / "x86" / CLI_NAME, home.parent / "x64" / CLI_NAME,
+                  home.parent / CLI_NAME]
     for root in candidate_dirs():
         if root.suffix.lower() == ".exe":
             paths += [root]
@@ -223,22 +264,57 @@ def cli_builds(saved: str = "") -> list[dict]:
         info = locale_mod.pe_bits(path)
         out.append({"path": str(path), "bits": int(info.get("bits") or 0),
                     "known": bool(info.get("ok"))})
+    _BUILDS_CACHE[key] = (now, [dict(row) for row in out])
     return out
 
 
+def _same_family(left: str, right: str) -> bool:
+    """两份 CLI 是不是「同一套安装」（如 `E:\\Textractor\\x86` 与 `…\\x64`）。"""
+    try:
+        first = Path(str(left)).resolve().parent
+        second = Path(str(right)).resolve().parent
+    except Exception:                                  # noqa: BLE001
+        return False
+    return first == second or first.parent == second.parent \
+        or first.parent == second or second.parent == first
+
+
 def find_cli(saved: str = "", bits: int = 0) -> str:
-    """按目标游戏位数挑一个 TextractorCLI.exe；找不到返回空串。"""
+    """按目标游戏位数挑一个 TextractorCLI.exe；找不到返回空串。
+
+    **位数优先于「已保存的路径」**（实测踩坑）：用户保存了 `x64\\TextractorCLI.exe`
+    而游戏是 32 位时，老实现会直接用 x64 → attach 不上 → `wrong-bitness` 静默掉进
+    OCR，表现为「启动后完全没有注入行为」。现在位数已知时先挑位数匹配的那份，
+    覆盖用户的显式选择时记一条日志（用户仍可在面板里看到实际用的是哪份）。
+    """
     builds = cli_builds(saved)
     if not builds:
         return ""
-    if saved:
-        exact = [b for b in builds if b["path"].lower() == str(saved).lower()]
-        if exact:
-            return exact[0]["path"]
+    exact_rows = [b for b in builds if b["path"].lower() == str(saved).lower()] \
+        if saved else []
+    exact = exact_rows[0] if exact_rows else None
     if bits:
         match = [b for b in builds if b["bits"] == bits]
-        if match:
+        if exact and int(exact.get("bits") or 0):
+            if int(exact["bits"]) == bits:
+                return exact["path"]
+            # 用户显式指定的是文件、而且位数已知但不匹配：只在**同一套安装**里
+            # （x86/ 与 x64/ 兄弟目录）找位数匹配的那份，保留「用哪个 Textractor」的意图。
+            # 位数未知（自检用的 .py 假 CLI）或同族里没有匹配的，一律尊重用户指定。
+            sibling = [row for row in match if _same_family(row["path"], exact["path"])]
+            if sibling:
+                config.log(f"vntext cli: 已保存的 {Path(exact['path']).name}"
+                           f"({exact['bits']} 位) 与目标 {bits} 位不符 → "
+                           f"改用同族的 {Path(sibling[0]['path']).name}")
+                return sibling[0]["path"]
+            config.log(f"vntext cli: 已保存的 {Path(exact['path']).name}"
+                       f"({exact['bits']} 位) 与目标 {bits} 位不符，但没有同族的匹配版本"
+                       f" → 仍按用户指定使用")
+            return exact["path"]
+        if match and not exact:
             return match[0]["path"]
+    if exact:
+        return exact["path"]
     # 没有位数信息（或没有匹配版本）时优先 x86：galgame 大多数是 32 位
     prefer = [b for b in builds if b["bits"] == 32] or \
              [b for b in builds if "/x86/" in b["path"].replace("\\", "/").lower()] or builds
@@ -368,12 +444,14 @@ class VnTextEngine:
         self._staged: list[dict] = []
         self._settle = VARIANT_SETTLE
         self._recent: list[tuple[str, float]] = []
-        self._recent_text: list[str] = []      # 最近几条「清洗后原文」（短句去重用）
+        #: 最近几条「清洗后原文」+ 到达时刻（短句/一字不差去重用，见 SHORT_DUP_SECONDS）
+        self._recent_text: list[tuple[str, float]] = []
         self._name_pending: dict | None = None
         self._merged = 0
         self._gated = 0
         self._completed = 0
         self._hook_code = ""
+        self._hook_skip = ""          # 为什么没走钩子（auto 掉进 OCR 的原因，给面板看）
         self._hook_auto = ""
         #: CLI 打印「管道已连接」才算 attach 真的生效（专用钩子码要等这一步之后再发）
         self._pipe_seen = threading.Event()
@@ -386,6 +464,7 @@ class VnTextEngine:
         #: 用户钩子码（每游戏可填；也可由我们实测过的 WillPlus 记录自动带出）
         self._hook_code = ""
         self._hook_auto = ""
+        self._hook_skip = ""
 
     # ------------------------------------------------------------------ #
     def status(self) -> dict:
@@ -413,6 +492,7 @@ class VnTextEngine:
                 "threads": threads[:12],
                 "region": dict(self._region),
                 "lang": self._lang,
+                "hook_skip": self._hook_skip,
                 "lines": self._lines,
                 "merged": self._merged,
                 "gated": self._gated,
@@ -429,7 +509,25 @@ class VnTextEngine:
                 "error": self._error,
             }
 
-    def _push_status(self) -> None:
+    #: 状态推送的最小间隔。文本密的时候一秒能有 19 行原始钩子输出，每行都推一次
+    #: 会走 `evaluate_js`（阻塞、必须落到 GUI 线程）——实测那正是「点了按钮没反应」
+    #: 的主因之一。这里合并成最多 4 次/秒；启停、锁线程、发码这类生命周期变化
+    #: 用 `force=True` 立刻推，不受节流影响。
+    STATUS_MIN_INTERVAL = 0.25
+
+    def _push_status(self, *, force: bool = False) -> None:
+        now = time.time()
+        with self._lock:
+            last = float(getattr(self, "_status_at", 0.0) or 0.0)
+            if not force and now - last < self.STATUS_MIN_INTERVAL:
+                if not getattr(self, "_status_timer", False):
+                    self._status_timer = True
+                    delay = max(0.05, self.STATUS_MIN_INTERVAL - (now - last))
+                    default_runner().spawn("vntext.status", self._push_status_later, delay,
+                                           thread_name="aurora-vntext-status")
+                return
+            self._status_timer = False
+            self._status_at = now
         state = self.status()
         if not self._on_status:
             default_bus().publish("engine.vntext_status", state)
@@ -439,8 +537,19 @@ class VnTextEngine:
         except Exception as exc:
             config.log(f"vntext status callback failed: {exc}")
 
+    def _push_status_later(self, delay: float) -> None:
+        """被节流时补一次尾包：保证「最后的状态」一定送到前端。"""
+        time.sleep(max(0.0, float(delay)))
+        if self._stop.is_set() and not self._mode:
+            return                     # 已经收工，别再推
+        self._push_status(force=True)
+
     #: Textractor 的伪线程：剪贴板/控制台里的内容不是游戏文本
     PSEUDO_THREAD_NAMES = ("剪贴板", "控制台", "默认")
+
+    #: 「一字不差的重复」抑制窗口（秒）。见 `_promote` 里的说明：白色相簿2 的
+    #: 文学重复（同一句剧情里再说一次）不能被吞掉。
+    SHORT_DUP_SECONDS = 10.0
 
     def hook_sample_for(self, code: str) -> str:
         """取「指定钩子码」那条线程当前的样例文本（找钩子验证专用）。
@@ -622,15 +731,37 @@ class VnTextEngine:
                                       or VARIANT_SETTLE))
         wanted_bits = {int(row.get("bits") or 0) for row in self._targets} - {0}
         started = False
+        hook_skip = ""                 # 「为什么没走钩子」的原因，面板与日志都要用
         # 显式指定的 CLI 与「所有」候选进程位数都不符时才报错
         mismatch = (saved and self._cli_bits and wanted_bits
                     and self._cli_bits not in wanted_bits)
+        # 启动决策留痕：用户报「开了翻译却没有任何注入 / 半天不出文本」时，
+        # 只看这一行就能判断是位数不匹配、CLI 没找到，还是 hook 起不来（见 README 排错）
+        target_brief = [(int(row.get("pid") or 0), int(row.get("bits") or 0))
+                        for row in (self._targets or [])][:4]
+        config.log(
+            f"vntext start: mode={mode} exe={Path(str(exe or '')).name or '-'} "
+            f"target_bits={self._target_bits} cli={Path(str(self._cli or '')).name or '-'}"
+            f"({self._cli_bits}) wanted={sorted(wanted_bits)} mismatch={bool(mismatch)} "
+            f"targets={target_brief}")
         if mismatch:
             self._error = "wrong-bitness"
-        elif mode in ("auto", "hook") and self._cli and self._pid:
+            hook_skip = (f"已保存的 TextractorCLI 是 {self._cli_bits} 位，"
+                         f"目标进程是 {sorted(wanted_bits)} 位")
+        elif mode in ("auto", "hook") and not self._cli:
+            hook_skip = "没找到 TextractorCLI.exe（可在设置里手动指定）"
+        elif mode in ("auto", "hook") and not self._pid:
+            hook_skip = "没有拿到游戏进程号"
+        elif mode in ("auto", "hook"):
             started = self._start_hook()
-            if not started and mode == "hook":
-                self._error = "textractor-failed"
+            if not started:
+                hook_skip = "Textractor 注入没起来"
+                if mode == "hook":
+                    self._error = "textractor-failed"
+        self._hook_skip = hook_skip
+        if hook_skip and mode == "auto":
+            # 静默降级过（实测：用户只看到「启动后完全没有注入行为」）→ 必须留痕
+            config.log(f"vntext hook unavailable → OCR: {hook_skip}")
         if not started and mode in ("auto", "ocr"):
             started = self._start_ocr()
             if not started:
@@ -642,7 +773,9 @@ class VnTextEngine:
             self._error = "no-textractor" if not self._cli else "hook-failed"
         elif started:
             self._error = ""
-        self._push_status()
+        config.log(f"vntext start result: mode={self._mode or '-'} started={bool(started)} "
+                   f"error={self._error or '-'}")
+        self._push_status(force=True)          # 启停是生命周期变化，别被节流吞掉
         return self.status()
 
     def stop(self) -> dict:
@@ -1114,11 +1247,17 @@ class VnTextEngine:
         return self._resolve_staged(force=True)
 
     def _complete_from_memory(self, fragment: str) -> str:
-        """把 GDI 钩子吐的缺字版补成完整台词（见 aurora/platform/memmatch.py）。"""
+        """把 GDI 钩子吐的缺字版补成完整台词（见 aurora/platform/memmatch.py）。
+
+        用**限时等待**的版本：全量扫描实测 44~68 秒，而这里在取词热路径上（每句都要补），
+        同步等于是「一句要等几十秒」。现在最多等 2.5 秒，超时就先让缺字版发射，
+        扫描在后台继续、结果进缓存 —— 同一句再出现时补全版秒出，交给已有的
+        「缺字变体并合」并成一条。
+        """
         try:
             from aurora.platform import memmatch
 
-            fixed = memmatch.complete(self._pid, fragment)
+            fixed = memmatch.complete_async(self._pid, fragment, wait=2.5)
         except Exception as exc:
             config.log(f"memmatch failed: {exc}")
             return ""
@@ -1136,7 +1275,7 @@ class VnTextEngine:
         try:
             from aurora.platform import memmatch
 
-            fixed = memmatch.snap(self._pid, text)
+            fixed = memmatch.snap_async(self._pid, text, wait=2.5)
         except Exception as exc:
             config.log(f"memmatch snap failed: {exc}")
             return ""
@@ -1159,11 +1298,13 @@ class VnTextEngine:
         norm = str(cand.get("norm") or "")
         text = str(cand.get("text") or "")
         probe = str(cand.get("probe") or "")
-        # 只有按字形抓的 GDI 钩子会漏字（实测 WillPlus/AdvHD）：拿缺字版去**进程内存**
-        # 里配出完整那句 —— 只读扫描，不需要引擎地址、不注入、也不会崩游戏
+        # 缺字补全：按字形抓的 GDI 钩子 + 该引擎确实会缺字才做（见
+        # MEMORY_COMPLETION_SKIP_ENGINES 的反面）。拿缺字版去**进程内存**里配出完整
+        # 那句 —— 只读扫描，不需要引擎地址、不注入、也不会崩游戏。
         with self._lock:
             hook_name = str((self._seen.get(key) or {}).get("name") or "")
-        if self._pid and _GLYPH_HOOK_RE.search(hook_name):
+        if self._pid and _GLYPH_HOOK_RE.search(hook_name) \
+                and self._engine not in MEMORY_COMPLETION_SKIP_ENGINES:
             fixed = self._complete_from_memory(clean)
             if fixed:
                 clean = fixed
@@ -1174,7 +1315,7 @@ class VnTextEngine:
         # ② 汉字 ≥2、没句读、比最近任一句都短，且每个字都能在最近几行里找到
         #   （变体有时是相邻两句拼起来的，例如 `遅２羽励寄添`）
         with self._lock:
-            recent = list(self._recent_text)
+            recent = [text for text, _at in self._recent_text]
         if looks_like_short_fragment(probe, recent):
             self._merged += 1
             config.log(f"vntext short fragment merged: {clean[:30]!r}")
@@ -1222,15 +1363,21 @@ class VnTextEngine:
             self._gated += 1
             return
         # 一字不差的重复（短句归一化后可能只剩一两个字，下面的规则够不着）。
-        # 放在名字合并之后，免得把「说话人名字重复出现」也算成重复丢掉
+        # 放在名字合并之后，免得把「说话人名字重复出现」也算成重复丢掉。
+        # **必须带时间窗**：实测白色相簿2 的 `とうとう、降ってきた。` 是**文学重复**
+        # （同一句在剧情里再次出现），32 秒后被老逻辑当成重复文本吞掉、再也没有译文。
+        # 钩子侧的真重复（多线程/重绘重发）都在几秒内到，10 秒足够挡。
         if len(clean) >= 2:
             with self._lock:
-                if clean in self._recent_text:
+                now1 = time.time()
+                self._recent_text = [row for row in self._recent_text
+                                     if now1 - row[1] <= self.SHORT_DUP_SECONDS]
+                if any(text == clean for text, _at in self._recent_text):
                     self._merged += 1
                     config.log(f"vntext same text merged: {clean[:30]!r}")
                     self._push_status()
                     return
-                self._recent_text.append(clean)
+                self._recent_text.append((clean, now1))
                 del self._recent_text[:-8]
         # （乱码/菜单动画多是它们产的）；像台词的照常走，交给下面的去重合并 ——
         # 两个同步在吐同一句的线程（RIDDLE JOKER）不该被整条丢掉
@@ -1381,6 +1528,9 @@ class VnTextEngine:
         self._last_line = body
         self._last_norm = norm
         self._lines += 1
+        # 留一行「发射时刻」：排错时要能量「翻页 → 开始翻译」到底花在哪
+        # （原始行到达时间也在日志里，两条一减就是清洗/合并/补全的耗时）
+        config.log(f"vntext emit [{source}] {body[:36]!r}")
         line = {"text": body, "source": source, "game_id": self._game_id}
         try:
             if self._on_line:
@@ -1395,7 +1545,7 @@ class VnTextEngine:
     def lock_thread(self, key: str) -> dict:
         with self._lock:
             self._locked = str(key or "")
-        self._push_status()
+        self._push_status(force=True)
         return self.status()
 
     def send_hook(self, code: str) -> dict:
@@ -1419,7 +1569,7 @@ class VnTextEngine:
             return {"ok": True, "hook_code": ""}
         result = self.send_hook(code)
         result["hook_code"] = code
-        self._push_status()
+        self._push_status(force=True)
         return result
 
     def set_region(self, region: dict) -> dict:
@@ -1430,5 +1580,5 @@ class VnTextEngine:
                 "w": max(0.02, min(1.0, float(region.get("w", 1)))),
                 "h": max(0.02, min(1.0, float(region.get("h", 0.34)))),
             }
-        self._push_status()
+        self._push_status(force=True)
         return self.status()
