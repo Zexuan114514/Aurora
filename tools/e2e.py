@@ -639,6 +639,26 @@ def main() -> int:
             api._library.set_setting("translate_provider", saved_provider or "auto")
             api._library.update(game_id, **saved_desc)
 
+            # 3.8d 关于页 → 导出诊断包（P7）：zip 真的落盘，页面显示路径
+            window.evaluate_js(
+                "document.querySelector('#setNav .set-tab[data-pane=about]').click()")
+            time.sleep(1.0)
+            has_diag_btn = probe(window,
+                "return String(!!document.getElementById('btnDiagnostics'));")
+            window.evaluate_js("document.getElementById('btnDiagnostics').click()")
+            diag_hint = ""
+            for _ in range(12):
+                time.sleep(1.0)
+                diag_hint = probe(window,
+                    "return document.getElementById('diagHint').textContent;")
+                if isinstance(diag_hint, str) and "已导出" in diag_hint:
+                    break
+            diag_zips = sorted((TEST_DATA / "diagnostics").glob("*.zip"))
+            step("关于页能导出诊断包（zip 落盘 + 页面显示路径）",
+                 str(has_diag_btn).lower() == "true" and "已导出" in (diag_hint or "")
+                 and len(diag_zips) == 1 and diag_zips[0].stat().st_size > 0,
+                 f"{len(diag_zips)} 个 zip / {(diag_hint or '')[:60]}")
+
             # 3.9 网络页：控件读到状态，测试按钮能出结果
             window.evaluate_js(
                 "document.querySelector('#setNav .set-tab[data-pane=net]').click()")

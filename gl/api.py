@@ -25,6 +25,7 @@ from aurora.app.services.library import LibraryService
 from aurora.app.services.hooksearch import HookSearchService
 from aurora.app.services.launch import LaunchService
 from aurora.app.services.metadata import MetadataService
+from aurora.app.services.diagnostics import DiagnosticsService
 from aurora.app.services.translation import TranslationService
 from aurora.app.services.translators import TranslatorRegistry
 from aurora.app.services.vntext import VnTextService
@@ -61,6 +62,10 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._sources.set_plugin_statuses(self._plugins_service.statuses())
         #: P6.4：翻译引擎插件（`plugin:<id>`）的取用口；重新扫描后自动换新实例
         self._plugin_translators = TranslatorRegistry(self._plugins_service, logger=config.log)
+        #: P7：诊断包（版本 / 环境 / 脱敏设置 / 日志尾巴 / 插件与资料源状态）
+        self._diagnostics = DiagnosticsService(
+            library=self._library, plugins_service=self._plugins_service,
+            sources=self._sources, logger=config.log, version=config.VERSION)
         self._library_service = LibraryService(self._library, self._pm,
                                              auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
                                              apply_window_icon=self.apply_window_icon)

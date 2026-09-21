@@ -858,7 +858,11 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
             <button class="btn glass-btn" id="btnOpenData"><span>打开数据目录</span></button>
             <button class="btn glass-btn" id="btnExport"><span>导出游戏库…</span></button>
             <button class="btn glass-btn" id="btnImportLib"><span>导入游戏库…</span></button>
+            <button class="btn glass-btn" id="btnDiagnostics"><span>导出诊断包…</span></button>
           </div>
+          <p class="set-note" id="diagHint">诊断包 = 版本 / 系统 / 数据目录计数 / 迁移计划 /
+            日志尾巴 / 插件与资料源状态 + <b>脱敏后</b>的设置（API Key、token、URL 里的账密都打码）；
+            不含游戏库全文。出问题时把这个 zip 发给维护者。</p>
           <div class="keys-hint">
             <b>快捷键</b>
             <span>Ctrl+F 搜索 · ← → 切换游戏 · Enter 进入/启动 · 双击启动 · Esc 返回 · Home/End 首尾</span>

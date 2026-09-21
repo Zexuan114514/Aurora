@@ -16,7 +16,7 @@
 | **P4 前端 ES 模块化** | 3688 行 IIFE → 模块 + 单一状态层 | `ui/web/app/**`；`core/api.js`、`core/store.js`；打包清单单一来源 | `e2e.py` 90/90；`visual.py` 全过；`__auroraErrors` 为空 | 保留旧 `app.js` 一个版本，按开关回退 |
 | **P5 资产服务化** | 资产单一来源，取消 web 目录复制 | `infra/webserver.py`；`/assets/` 映射；删除 `sync_user_assets` | 双内核下封面/背景/图标正常；越权与穿越用例被拒 | 开关回退到「复制到 web 目录」的旧机制 |
 | **P6 插件与规则包** | 让社区贡献不需要读核心代码 | `data/plugins/*` + manifest；`data/rules/engines/*.json`；`docs/engines.md` 自动生成 | WillPlus/Artemis 实测码从规则包带出；`vntext_live.py` 真机通过 | 保留内置规则为默认，关掉插件目录加载 |
-| **P7 治理收口** | 让边界与契约长期不腐化 | CI 全量（单元/契约/迁移/守卫/打包 dry-run）；诊断包；README 与开发文档同步 | 离线检查全绿；真机矩阵无退化；故意违规能让 CI 变红 | 关闭新检查（不推荐），或回退对应阶段 |
+| **P7 治理收口** ✅ | 让边界与契约长期不腐化 | CI 全量（单元 / 契约 / 迁移 / 守卫 / 打包 dry-run）；诊断包；README 与开发文档同步 | 离线检查全绿；真机矩阵无退化；故意违规能让 CI 变红 | 关闭新检查（不推荐），或回退对应阶段 |
 
 ## 每阶段的固定动作
 
@@ -29,7 +29,7 @@
 
 | 脚本 | 覆盖 | 期望 |
 | --- | --- | --- |
-| `tools/e2e.py` | 大厅 / 游戏页 / 设置 / 分类 / 拖拽 / 缩放 / 布局 | 90/90 |
+| `tools/e2e.py` | 大厅 / 游戏页 / 设置（含插件区与诊断包）/ 分类 / 拖拽 / 缩放 / 布局 | 95/95（0 skipped） |
 | `tools/visual.py` + `visual_summary.py` | 封面与缩略图真实渲染、环形层次 | 判据全过 |
 | `tools/selftest.py` | 文件名推断 + 多源匹配 | 10/10 |
 | `tools/test_multisource.py` | 多源兜底 | 21/21 |
@@ -106,7 +106,8 @@
 | P6.2 插件加载器（`infra/plugins.py` + `app/services/plugins.py` + 桥接查询） | ✅ 已完成（2026-09-21） | 同上 P6.2 小节：manifest 门禁（api_version/kind/id/字段类型）、`importlib` 加载不改 `sys.path`、逐插件状态与失败隔离、连续 3 次失败自动禁用；`pytest` 75 passed（新增 17 个插件用例）、`run_all` 10/10、`e2e` 90/90（0 skipped）；贡献者文档 [`docs/plugins.md`](../plugins.md) |
 | P6.3 插件接入资料源（`gl/sources/plugin_source.py` + `SourceManager` 集成） | ✅ 已完成（2026-09-21） | 同上 P6.3 小节：插件源参与 `sources()` / `describe()`，`search` 返回 dict 自动归一成 `Candidate`、`fetch` → `Metadata`；调用走 `CallGuard`（三连失败自动禁用）；`pytest` 76 passed、`run_all` 10/10、`e2e` 90/90（0 skipped） |
 | P6.4 翻译引擎插件接入 + 设置页「插件」区（状态 / 权限 / 来源 / 重新扫描） | ✅ 已完成（2026-09-21） | 同上 P6.4 小节：`aurora/app/services/translators.py`（适配器 + 注册表）、`plugin:<id>` 走简介与逐句两条链路、设置页第 8 个页签「插件」；契约 [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md)、ADR-0009「加载失败 / 版本不兼容 / 自动禁用必须有界面呈现」已满足；`pytest` 82 passed、`run_all` 10/10、`e2e` 94/94（0 skipped） |
-| P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
+| **P7 治理收口**（CI 全量 / 诊断包 / 文档同步） | ✅ 已完成（2026-09-21） | 交付记录 [`p7-governance.md`](p7-governance.md)：CI 增加打包 dry-run、迁移专项与诊断包三步；`tools/collect_diagnostics.py` + 设置页「导出诊断包…」；README 与架构文档同步；**故意违规两次都让 run_all 变红**（留档 `_sandbox/p7-violation-*.log`）；`pytest` 87 passed、`run_all` 10/10、`e2e` 95/95、`visual` 判据不变 |
+| P0–P7 固定动作回填 | ✅ 已完成（2026-09-21） | 每阶段的历史记录、证据与回滚说明见对应交付记录（`p1-` / `p2-` / `p3-bridge-mixins` / `p7-governance`）与 `tools/checks/baseline.json` 的 `history` 字段 |
 
 ## Evidence vs assumptions
 

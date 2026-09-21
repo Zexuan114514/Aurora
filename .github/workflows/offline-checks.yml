@@ -26,16 +26,27 @@ jobs:
       - name: 离线检查（无需依赖，纯标准库）
         run: python tools\checks\run_all.py --json checks-result.json
 
+      - name: 打包 dry-run（前端清单 / 图标 / 规则包 / 动态声明）
+        run: python tools\build_exe.py --dry-run
+
       - name: 安装开发依赖
         run: python -m pip install --disable-pip-version-check -r requirements-dev.txt
 
       - name: pytest 套件
         run: python -m pytest
 
+      - name: 迁移与数据 v2 用例（v1→v2 全等 / 干跑 / 去抖 / 损坏恢复 / 回滚）
+        run: python -m pytest tests\test_state_store.py -q
+
+      - name: 诊断包（P7，输出到工作区供上传）
+        run: python tools\collect_diagnostics.py --out diagnostics-ci.zip
+
       - name: 上传检查结果
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: offline-checks-result
-          path: checks-result.json
+          path: |
+            checks-result.json
+            diagnostics-ci.zip
           if-no-files-found: ignore

@@ -27,7 +27,7 @@
     { "path": "tools/test_sources.py", "kind": "network", "phase": "P1", "expected": "逐源搜索与详情字段完整" },
     { "path": "tools/probe_sources.py", "kind": "network", "phase": "P1", "expected": "资料源可行性调研（人工结论）" },
     { "path": "tools/probe_kungal.py", "kind": "network", "phase": "P1", "expected": "TouchGal / Kungal 接口探测（人工结论）" },
-    { "path": "tools/e2e.py", "kind": "live", "phase": "P4", "expected": "90/90 通过" },
+    { "path": "tools/e2e.py", "kind": "live", "phase": "P4", "expected": "95/95 通过（0 skipped）" },
     { "path": "tools/visual.py", "kind": "live", "phase": "P4", "expected": "封面 3/3、缩略图 5/6（第 6 张为坏链接占位）、环形层次与缩放复位通过" },
     { "path": "tools/theme_probe.py", "kind": "live", "phase": "P4", "expected": "全部通过（4 预设 × 深/浅/跟随系统）" },
     { "path": "tools/vntext_live.py", "kind": "live", "phase": "P6", "expected": "全部通过（真机 hook 模式与 OCR 模式）" },
@@ -40,6 +40,7 @@
     { "path": "tools/visual_summary.py", "kind": "helper", "phase": "—", "expected": "汇总 visual.py 结果" },
     { "path": "tools/make_icon.py", "kind": "build", "phase": "P0", "expected": "生成 7 种尺寸的 aurora.ico" },
     { "path": "tools/make_bat.py", "kind": "build", "phase": "P0", "expected": "生成 GBK + CRLF 的 .bat" },
-    { "path": "tools/build_exe.py", "kind": "build", "phase": "P4", "expected": "打包出根目录 Aurora.exe" }
+    { "path": "tools/build_exe.py", "kind": "build", "phase": "P4", "expected": "打包出根目录 Aurora.exe；--dry-run 只检查打包输入（CI 用）" },
+    { "path": "tools/collect_diagnostics.py", "kind": "diagnose", "phase": "P7", "expected": "生成诊断包（脱敏设置 / 日志尾巴 / 插件与资料源状态），默认写 <数据目录>/diagnostics/*.zip" }
   ]
 }

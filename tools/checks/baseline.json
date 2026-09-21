@@ -4,9 +4,9 @@
   "app_version": "1.0.0",
   "python": "3.13",
   "bridge": {
-    "public_methods": 108,
+    "public_methods": 109,
     "internal_methods": 42,
-    "frontend_call_points": 99,
+    "frontend_call_points": 100,
     "overlay_methods": 4,
     "event_topics": 14,
     "overlay_actions": 8,
@@ -207,7 +207,7 @@
     },
     {
       "path": "aurora/ui/bridge/settings.py",
-      "lines": 202
+      "lines": 212
     },
     {
       "path": "aurora/ui/bridge/shared.py",
@@ -235,7 +235,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 191
+      "lines": 196
     },
     {
       "path": "aurora/infra/plugins.py",
@@ -248,6 +248,10 @@
     {
       "path": "aurora/app/services/translators.py",
       "lines": 134
+    },
+    {
+      "path": "aurora/app/services/diagnostics.py",
+      "lines": 218
     },
     {
       "path": "gl/config.py",
@@ -387,7 +391,7 @@
     },
     {
       "path": "gl/web/index.html",
-      "lines": 915
+      "lines": 919
     },
     {
       "path": "gl/web/overlay.html",
@@ -447,7 +451,7 @@
     },
     {
       "path": "gl/web/app/views/settings.js",
-      "lines": 469
+      "lines": 479
     },
     {
       "path": "gl/web/app/views/hall.js",
@@ -1861,6 +1865,25 @@
         {
           "from": "桥接快照：99 个前端调用点（list_plugins / rescan_plugins 被前端用上）",
           "to": "docs/architecture/contracts/bridge-contract.json（update_contract.py --write 重新生成）"
+        }
+      ]
+    },
+    {
+      "phase": "P7",
+      "date": "2026-09-21",
+      "note": "治理收口：CI 全量（新增 tools/build_exe.py --dry-run、tests/test_state_store.py 迁移专项、tools/collect_diagnostics.py 三步，诊断包随 artifact 上传）；新增 aurora/app/services/diagnostics.py（DiagnosticsService：summary/settings 脱敏/logs 尾部，递归打码 key/token/password 类字段与 URL 账密）+ 桥接 export_diagnostics() + 设置页「关于 → 导出诊断包…」+ 命令行 tools/collect_diagnostics.py（tools-manifest 新 kind diagnose）；README 与 docs/architecture 同步（P7 交付记录 docs/architecture/p7-governance.md）；故意违规两次实测 run_all 变红（契约漂移 / 分层越界，日志 _sandbox/p7-violation-*.log）后还原复绿；pytest 82 → 87（新增 5 个诊断包用例）、run_all 10/10、e2e 94/94（0 skipped）、visual errors=[] 且 ring 判据不变；桥接方法 150 → 151、前端调用点 99 → 100",
+      "moves": [
+        {
+          "from": "出问题只能自己找日志、抄版本、口述插件状态",
+          "to": "aurora/app/services/diagnostics.py + 设置页「导出诊断包…」+ tools/collect_diagnostics.py"
+        },
+        {
+          "from": "CI 只跑 run_all + pytest",
+          "to": ".github/workflows/offline-checks.yml：打包 dry-run（新）→ pytest → 迁移专项（新）→ 诊断包（新）"
+        },
+        {
+          "from": "README 的数字与功能停在 P2/P3（run_all 7/7、pytest 26、e2e 90/90）",
+          "to": "README.md / 13-roadmap.md / architecture/README.md 全部换成 P7 实测数字与产物"
         }
       ]
     }

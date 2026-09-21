@@ -441,6 +441,16 @@ export function createSettingsView(ctx) {
     $("btnTranslateAll").onclick = () => ctx.startTranslateAll();
 
     // 设置 → 备份 / 恢复
+    $("btnDiagnostics").onclick = async () => {
+      const res = await call("export_diagnostics");
+      if (!res || !res.ok) {
+        ctx.toast("导出诊断包失败：" + ((res && res.error) || "未知错误"));
+        return;
+      }
+      $("diagHint").textContent =
+        `已导出（${(res.bytes / 1024).toFixed(1)} KB）：${res.path}`;
+      ctx.toast("诊断包已导出，出问题时把这个 zip 发给维护者");
+    };
     $("btnExport").onclick = async () => {
       const res = await call("export_library");
       if (!res || res.cancelled) return;

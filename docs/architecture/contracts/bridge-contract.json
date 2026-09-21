@@ -15,10 +15,10 @@
   "channels": {
     "main": {
       "js_api": "gl.api.Api",
-      "method_count": 150,
-      "public_method_count": 108,
+      "method_count": 151,
+      "public_method_count": 109,
       "internal_method_count": 42,
-      "frontend_call_count": 99,
+      "frontend_call_count": 100,
       "excluded_members": [
         "__init__"
       ],
@@ -978,6 +978,14 @@
         },
         {
           "name": "drag_start",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "export_diagnostics",
           "params": [],
           "returns": "dict",
           "kind": "command",

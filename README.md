@@ -164,6 +164,32 @@ exe 路径 → 推断候选关键词 → 依次查询各资料源 → 相似度�
 
 ---
 
+## 插件与引擎规则包（社区贡献入口）
+
+三种贡献方式都**不用改核心代码**：加一个资料源、加一个翻译引擎、记一条实测 hook 码。
+契约细节见 [`docs/architecture/contracts/plugin-api-v1.md`](docs/architecture/contracts/plugin-api-v1.md)，
+贡献者最小示例见 [`docs/plugins.md`](docs/plugins.md)。
+
+```
+data/
+  plugins/
+    sources/<id>/plugin.json + main.py        # 资料源插件：search(query) / fetch(candidate)
+    translators/<id>/plugin.json + main.py    # 翻译引擎：translate(text, *, context, target, glossary, on_delta)
+  rules/
+    engines/*.json                            # 引擎规则包：指纹 + hook 码 + 清洗档位（同指纹覆盖内置）
+aurora/rules/engines/*.json                   # 内置规则包（随程序分发）
+```
+
+- **装**：把插件目录放进 `data/plugins/...`，在「设置 → 插件」点「重新扫描插件」即可，不用重启。
+- **选**：「设置 → 简介翻译 → 翻译方式」里会多出 `插件：<名字>`（值就是 `plugin:<id>`）；游戏内逐句翻译沿用同一选择。
+- **状态全部可见**：「设置 → 插件」逐条列出状态（正常 / 清单错误 / 版本不兼容 / 加载失败 / 已自动禁用）、失败原因、权限自述与来源路径 —— 这是 ADR-0009 的硬要求。
+- **出错不会带崩宿主**：每次调用异常隔离并计数，**连续 3 次失败自动禁用该插件**；游戏内逐句翻译在插件没给出结果时会落回 LLM / 免费兜底，并在面板标出「插件未响应，已兜底 …」。
+
+> ⚠️ **信任模型如实说明**：插件与 Aurora **同进程、以你的用户权限运行**，能读文件、能联网。
+> 宿主只保证「插件出错不会带崩 Aurora」，不保证插件不做坏事 —— **只装你信任来源的插件**。
+
+---
+
 ## 界面与交互
 
 - **环形大厅**：主界面是一圈绕竖轴排开的封面（循环队列），焦点那张最大、正对用户并高亮，
@@ -319,24 +345,29 @@ v4.1/
 ├─ 打包 Aurora.bat        一键打包成 Aurora.exe（自动准备依赖 + PyInstaller）
 ├─ main.py                入口：创建窗口、应用 DWM 效果、启动内核
 ├─ docs/images/           README 里的界面截图（hall.png 大厅 / game-page.png 游戏页）
-├─ aurora/                分层后的骨架（见 docs/architecture/05-layers-and-rules.md）
-│  └─ domain/             纯逻辑：文本规则 / 匹配打分 / 引擎规格 / 数据契约 / 会话结算
+├─ aurora/                分层后的主体（见 docs/architecture/05-layers-and-rules.md）
+│  ├─ domain/             纯逻辑：文本规则 / 匹配打分 / 引擎规格 / 数据契约 / 会话结算
+│  ├─ app/                用例服务（库 / 元数据 / 启动 / 翻译 / 插件 / 诊断 / 事件总线）
+│  ├─ infra/              JSON 状态存储、任务执行器、本地静态服务、规则包与插件加载器
+│  ├─ platform/           Win32 原语：窗口 / 托盘 / 热键 / 截图 / OCR / 进程树 / 内存
+│  ├─ rules/engines/      内置引擎规则包（用户规则放 data/rules/engines/，同指纹覆盖）
+│  └─ ui/                 桥接 mixin（7 个）、悬浮窗、前端静态资源
 ├─ gl/
 │  ├─ config.py           路径 / 默认设置 / JSON 读写 / 日志
 │  ├─ detect.py           转发 shim → aurora/domain/matching.py（P1 搬家）
-│  ├─ translate.py        简介翻译：语言检测 + LLM 接口 + 免费接口兜底
+│  ├─ translate.py        简介翻译：语言检测 + LLM 接口 + 免费接口兜底 + 插件引擎（plugin:<id>）
 │  ├─ downloads.py        获取游戏：下载目录监听 + 自动解压（zip / rar / 7z）+ 自动导入
 │  ├─ locale.py           转区启动：探测本机 Locale Emulator、读 LEConfig.xml、拼 LE 启动命令
 │  ├─ netproxy.py         代理解析：手动 / 环境变量 / 系统注册表 / 直连（供资料源与翻译使用）
 │  ├─ proctree.py         进程树工具：Toolhelp32 快照，按镜像路径 / 子树认「游戏本体」
-│  ├─ store.py            游戏库 JSON 持久化（含分类书架与游玩状态，线程安全）
+│  ├─ store.py            游戏库持久化门面（数据在 data/state/，含分类书架与游玩状态）
 │  ├─ process.py          启动 / 结束进程、按进程树判定会话与游玩时长统计
 │  ├─ steamlib.py         扫描本机 Steam 库（读 appmanifest / libraryfolders.vdf）
 │  ├─ tray.py             托盘图标（关窗后继续后台运行，纯 ctypes，无额外依赖）
 │  ├─ winapi.py           DWM 圆角、暗色边框（跟随主题）、图标、最大化
-│  ├─ api.py              暴露给前端的 JS 桥接（约 60 个方法）
+│  ├─ api.py              桥接装配（方法体在 aurora/ui/bridge/*.py，151 个方法由快照守住）
 │  ├─ metadata.py         兼容层（老接口转发到 gl.sources）
-│  ├─ sources/            资料源
+│  ├─ sources/            资料源（含 plugin_source.py：把插件包成宿主 Source）
 │  │  ├─ base.py          Source 基类 + Candidate / Metadata 数据结构
 │  │  ├─ manager.py       注册、排序、打分、跨源补图
 │  │  ├─ steam.py         Steam 商店
@@ -345,8 +376,8 @@ v4.1/
 │  │  ├─ custom.py        用户自定义源（JSON 接口 / 跳转搜索）
 │  │  └─ net.py           HTTP 重试、缓存、HTML 清洗
 │  ├─ assets/aurora.ico   程序图标（7 种尺寸）
-│  └─ web/                index.html · app.css · app.js（前端全部代码）
-├─ data/                  运行时生成：state/（settings·library·sessions）/ vntext/ / logs/ / cache/ / 素材目录
+│  └─ web/                index.html · app.css · app.js + app/（ES 模块树：core/ 10 + views/ 8）
+├─ data/                  运行时生成：state/（settings·library·sessions）/ plugins/ / rules/ / vntext/ / logs/ / cache/ / diagnostics/ / 素材目录
 └─ tools/                 自检、打包与调试脚本（可选）
 ```
 
@@ -381,10 +412,12 @@ python tools\visual_summary.py    # 汇总 visual.py 的结果
 python tools\meta_offline.py      # 用本地缓存校验元数据解析（断网时也能跑）
 python tools\check_bridge.py      # 前端调用的方法与后端实现是否一一对应
 python tools\check_library.py     # 检查现有游戏库文件是否完好（字段缺失 / 类型异常）
-python tools\checks\run_all.py    # 离线检查全家桶：契约快照 / 依赖白名单 / 去敏夹具 / 探针清单 / 基线漂移 / 分层守卫
+python tools\checks\run_all.py    # 离线检查全家桶（10 项）：契约快照 / 依赖白名单 / 去敏夹具 / 探针清单 /
+                                  #   基线漂移 / 桥接转发目标 / 引擎规则包 / 分层守卫 / 打包清单 / 启动冒烟
 python tools\checks\update_contract.py  # 桥接契约快照：默认干跑比对，--write 才写入（有意增删方法时用）
-python -m pytest                  # 同一批离线检查 + domain 金样本回归（82 个用例）
+python -m pytest                  # 同一批离线检查 + domain 金样本 + 插件 / 诊断包回归（87 个用例）
 python main.py --check-migration  # 数据迁移干跑：只报告 v1→v2 会迁移多少游戏/会话，不写任何文件
+python tools\collect_diagnostics.py     # 生成诊断包（脱敏设置 / 日志尾巴 / 插件与资料源状态）→ data\diagnostics\*.zip
 python tools\translate_probe.py   # 简介翻译自检：语言检测 + 接口链路 + 缓存
 python tools\download_probe.py    # 获取游戏自检：资源站增删 / 跳转链接 + 下载目录监听 / 自动解压 / 自动导入
 python tools\locale_probe.py      # 转区启动自检：LE 探测 / 四件套校验 / LEConfig 解析 / 启动命令 / PE 位数
@@ -401,6 +434,7 @@ python tools\probe_sources.py     # 调研用：VNDB / Bangumi / TouchGal 资料
 python tools\probe_kungal.py      # 调研用：TouchGal / Kungal 是否提供可用接口
 python tools\make_icon.py         # 重新生成图标（7 种尺寸的 .ico）
 python tools\build_exe.py         # 重新打包成根目录的 Aurora.exe
+python tools\build_exe.py --dry-run  # 只检查打包输入（前端清单 / 图标 / 规则包 / 动态声明），CI 用
 python tools\make_bat.py          # 重新生成启动脚本（GBK + CRLF，见下方说明）
 python tools\snap.py              # 启动应用并截图（配 tools\analyze.py 做像素级检查）
 python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查封面/布局
@@ -412,7 +446,7 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 | --- | --- |
 | `selftest.py` | **10/10 命中**（含中文/日文/英文关键词） |
 | `test_multisource.py` | **21/21 通过**（`サノバウィッチ` 正确落到 VNDB，中文名「魔女的夜宴」+ 34 张图） |
-| `e2e.py` | **90/90 通过**（含环形队列首尾相接、封面越远越小且带倾斜、焦点封面居中、手动匹配只列候选不自动采纳、点候选才应用、按坐标真点封面、拖动后单击仍能进入、设置页输入不穿透、分类工作区新建/命名/排序/删除、整理模式多选归类、主页作用域过滤与胶囊清除、状态徽标、浅色主题与配色切换、主页布局切换、专用 hook 码的存取与校验） |
+| `e2e.py` | **95/95 通过（0 skipped）**（含环形队列首尾相接、封面越远越小且带倾斜、焦点封面居中、手动匹配只列候选不自动采纳、点候选才应用、按坐标真点封面、拖动后单击仍能进入、设置页输入不穿透、分类工作区新建/命名/排序/删除、整理模式多选归类、主页作用域过滤与胶囊清除、状态徽标、浅色主题与配色切换、主页布局切换、专用 hook 码的存取与校验、**插件区状态与权限、「重新扫描插件」回执、简介翻译走 `plugin:<id>`、诊断包导出落盘**） |
 | `visual.py` | 大厅封面 3/3、缩略图 5/6（第 6 张是故意放的坏链接，正确显示占位）、环形队列层次（越远越小 / 都有倾斜 / 焦点最大且居中）通过、滑杆缩放到 180% 后复位归零 |
 | `translate_probe.py` | **全部通过**（语言检测 5/5、免费接口返回中文译文、二次调用命中缓存；设 `AURORA_TRANSLATE_KEY` 后额外测 LLM） |
 | `download_probe.py` | **全部通过**（资源站增删与 `{query}` 拼接正确、非法地址被拒、沙盒里放 zip 能自动解压+导入+保留原包、手动扫描与解压器探测正常） |
@@ -428,9 +462,10 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 | `vntext_live.py`（少女之剑，专用 hook 码） | **全部通过**（WillPlus/AdvHD：`HQ-4@A22E:AdvHD_crack.exe` 由指纹记录自动带上 → 5 句台词全部完整（`姉さんの家は剣術道場をやっていて…` 这种长句不再缺字）、GDI 缺字版全部并掉（`merged=9`）、原始行审计「半截碎片 12 / 漏掉 0」） |
 | `vntext_probe.py`（白色相簿2 场景） | 乱码/菜单/视频窗口标题/文件名四种杂讯线程全部挡掉，只发射真台词三句，活动线程正确指向 `7:3EBC:4`；用 `data/aurora.log` 里的真实会话（28 条钩子行）离线重放，领跑线程自动选为 `7:3EBC:4` |
 | `theme_probe.py` | **全部通过**（4 预设 × 深色/浅色/跟随系统，强调色与 data-theme 正确；深色面板为白色低透明度、文字亮色；浅色面板为白色高透明度、文字深色） |
-| `checks\run_all.py` | **7/7 通过**（契约快照 105+4 方法 / 14 事件、运行时依赖白名单、去敏夹具 24 游戏 / 63 字段 / 123 会话、探针清单 29 个脚本、架构基线漂移、分层守卫） |
-| `pytest` | **15 passed**（6 项离线检查 + 82 个 domain 金样本用例 + 转发/接线断言） |
-| `pytest`（P2 后） | **26 passed**（新增 10 项数据 v2 用例：迁移全等 / 干跑 / 去抖 / 损坏恢复 / 导出脱敏 / 导入合并 / 回滚） |
+| `checks\run_all.py` | **10/10 通过**（契约快照 151 方法 / 14 事件 / 100 个前端调用点、运行时依赖白名单、去敏夹具 24 游戏 / 63 字段 / 123 会话、探针清单 31 个脚本、架构基线漂移、桥接转发目标、引擎规则包、分层守卫、打包清单、启动冒烟） |
+| `pytest` | **87 passed**（离线检查 + domain 金样本 + 数据 v2 迁移/去抖/回滚 + 插件加载与翻译引擎 + 诊断包脱敏） |
+| `build_exe.py --dry-run` | **通过**（前端 4 个顶层文件 + 18 个模块文件、图标、内置规则包、winrt 7 个动态声明；CI 每推一次都跑） |
+| `collect_diagnostics.py` | **通过**（生成 zip：summary.json / settings.json（脱敏）/ logs/*.log） |
 - `analyze.py` 的区域与文字行检测已按环形大厅重排（工具条 / 两侧远封面 / 左邻封面 / 焦点封面 / 右邻封面 / 底部信息带）。
 
 > ⚠️ 两个 `.bat` 必须是 **GBK 编码 + CRLF 换行**：`cmd.exe` 按系统 ANSI 代码页（简体中文为 936）解析批处理，UTF-8 或 LF 换行会把中文注释拆成乱码并切断命令行。改动脚本后请用 `python tools\make_bat.py` 重新生成，不要用普通编辑器直接保存。
@@ -458,6 +493,12 @@ Aurora 的实现离不开下面这些项目 —— 一律**只借鉴思路、或
 > - 给 Textractor 的 Issue（Emote/Artemis x64 抓不到文本的证据与改进建议）已经提给上游，草稿不再随仓库分发。
 
 ## 常见问题
+
+**出问题了，怎么把现场发给维护者？**
+「设置 → 关于 → **导出诊断包…**」会生成一个 zip（也可以命令行跑 `python tools\collect_diagnostics.py`），里面有：
+版本与系统、数据目录计数、迁移计划、插件与资料源状态、**脱敏后的**设置（API Key / token / 密码类字段打码，
+URL 里的账密抹掉）、日志尾部（每个文件最多 256 KB）。**不含**游戏可执行文件、素材原图与游戏库全文。
+把整个 zip 发过来就能省掉一轮轮问答。
 
 **双击「启动 Aurora.bat」没反应或闪退？**
 先双击 **`调试启动.bat`**，它会保留控制台并打印错误。日志也写在 `data\aurora.log`。
