@@ -714,3 +714,34 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 推送事件分发与 `boot()`。可以先把「工具条 + 作用域」拆成 `views/toolbar.js`，
 再看推送分发要不要单独成 `core/events.js`。
 
+### P4.3-q 筛选 / 排序 / 作用域进 core/query.js + 工具条进 views/toolbar.js（2026-09-21 12:50）
+
+工具条这一刀把「查询」和「界面」分开：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `core/query.js`（新） | `searchHit` / `sortGames` / `inScope` / `scopeName` / `scopeCount` / `visibleGames`，以及 `STATUS_LABEL` / `STATUS_GLYPH` / `STATUS_ORDER` 三张表 —— 全是纯读，主页与分类工作区共用同一份，「两处结果永远一致」只在一个地方维持 |
+| `views/toolbar.js`（新） | 作用域胶囊（文案 + 清除按钮）、作用域菜单（范围 / 自定义分类 / 按状态 / 按开发商 + 定位）、`setScope`（含焦点修正与重绘）、排序菜单（选中态 + 右对齐定位 + 开合） |
+
+`createToolbarView(ctx)` 只注入两样：`render` 与 `ringUpdate`（改作用域后重绘 + 让环就位）。
+主模块的 `bindUi` 里，`$("scopePick")` / `$("btnSort")` 变成 `toolbar.toggleScopeMenu()` /
+`toolbar.toggleSortMenu()`，其余作用域与排序的调用点改走 `toolbar.*`；查询函数变成 import，
+调用点一个字没动。
+
+**这一刀踩到的坑（又是 e2e 当场拦住）**：主模块的 `catList()` 还在用 `inScope`，
+但它已经搬去 `core/query.js`，而 import 列表里漏了它 —— 于是**分类界面打不开墙**
+（`cards: 0`），e2e 第一次跑出 34/43。补上 import 后恢复 90/90。
+教训同 P4.3-m：搬函数时要把「被搬走的函数在主模块还有哪些调用点」逐个对一遍 import 清单。
+（这次两轮 e2e 还夹着一次网络抖动：Steam 取不到详情时那 6 项会被判跳过，等网络恢复重跑即
+`90/90, 0 skipped`；顺手给探针补了「切到分类界面」这一步，正是它没被覆盖才漏过 `inScope`。）
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90（0 skipped）**——
+「主页按分类过滤 + 作用域胶囊」「主页能直接选分类（作用域菜单）」「「已收藏」能当分类用」
+「作用域胶囊能清除筛选」全过；`visual` `errors=[]` 且 ring 判据不变；
+真机探针确认作用域菜单 7 行、选中「已收藏」后胶囊变 `已收藏 · 0`、清除后回 `全部游戏 · 0`、
+排序菜单可开、分类界面无未捕获异常。`app.js` 2366 → 2233 行。
+
+**下一刀（P4.3-r）**：`app.js` 只剩控制层了 —— 窗口/背景绑定、推送事件分发（14 个主题）、
+`boot()` 与设置页里的剩余绑定。建议先拆推送分发 → `core/events.js`（每个主题一段处理，
+主模块只留 `__aurora.emit` 的入口与 `render()` 调用），再收窗口/背景。
+

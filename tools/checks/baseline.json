@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 2366
+      "lines": 2233
     },
     {
       "path": "gl/web/index.html",
@@ -398,6 +398,10 @@
       "lines": 30
     },
     {
+      "path": "gl/web/app/core/query.js",
+      "lines": 64
+    },
+    {
       "path": "gl/web/app/views/categories.js",
       "lines": 118
     },
@@ -420,6 +424,10 @@
     {
       "path": "gl/web/app/views/vntext.js",
       "lines": 452
+    },
+    {
+      "path": "gl/web/app/views/toolbar.js",
+      "lines": 118
     }
   ],
   "threads": [
@@ -1577,6 +1585,25 @@
         {
           "from": "app.js: const ADD_KEY",
           "to": "gl/web/app/core/store.js: ADD_KEY"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-q",
+      "date": "2026-09-21",
+      "note": "筛选/排序/作用域纯逻辑进 core/query.js（含 STATUS_LABEL/GLYPH/ORDER），工具条的作用域胶囊/作用域菜单/排序菜单进 views/toolbar.js；第一次 e2e 抓到漏 import 的 inScope（分类墙 0 卡片），补齐后 90/90、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: visibleGames/searchHit/sortGames/inScope/scopeName/scopeCount",
+          "to": "gl/web/app/core/query.js"
+        },
+        {
+          "from": "app.js: STATUS_LABEL/STATUS_GLYPH/STATUS_ORDER",
+          "to": "gl/web/app/core/query.js"
+        },
+        {
+          "from": "app.js: syncScopePill/setScope/scopeRow/renderScopeMenu/openScopeMenu/syncSortMenu + 排序菜单开合",
+          "to": "gl/web/app/views/toolbar.js: createToolbarView"
         }
       ]
     }

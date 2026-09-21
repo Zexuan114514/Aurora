@@ -8,11 +8,15 @@ import { createRing, layoutReadout, hallKeysOf, ringMod } from "./app/views/hall
 import { createGameView } from "./app/views/game.js";
 import { createSourcesView } from "./app/views/sources.js";
 import { createVntextView } from "./app/views/vntext.js";
+import { createToolbarView } from "./app/views/toolbar.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
 import { hours, clock, sessionSeconds } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves, ADD_KEY } from "./app/core/store.js";
+import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
+         searchHit, sortGames, inScope, scopeName, scopeCount,
+         visibleGames } from "./app/core/query.js";
 
 /* ============================================================
    Aurora 游戏启动器 · 前端逻辑
@@ -164,75 +168,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   }
 
   /* ---------------------------------------------------------- 渲染 */
-  function visibleGames() {
-    let list = state.games.filter(inScope);
-    const q = state.filter.trim().toLowerCase();
-    if (q) list = list.filter((g) => searchHit(g, q));
-    return sortGames(list);
-  }
-
-  /* 搜索与排序：主页和分类工作区共用同一份逻辑，两处结果永远一致 */
-  function searchHit(game, q) {
-    return [game.name, game.steam_name, game.name_cn, game.name_original, game.exe_name,
-            game.dir, (game.developers || []).join(" "), (game.publishers || []).join(" "),
-            (game.genres || []).join(" "), (game.categories || []).join(" ")]
-      .join(" ").toLowerCase().includes(q);
-  }
-
-  function sortGames(list) {
-    if (state.sort === "favorite") {
-      list.sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
-    } else if (state.sort === "name") list.sort((a, b) => a.name.localeCompare(b.name, "zh"));
-    else if (state.sort === "recent") list.sort((a, b) => (b.last_played || 0) - (a.last_played || 0));
-    else if (state.sort === "playtime") list.sort((a, b) => (b.play_time || 0) - (a.play_time || 0));
-    return list;
-  }
-
-  /* ---------------------------------------------------------- 作用域 */
-  const STATUS_LABEL = { "": "未标记", playing: "在玩", cleared: "通关", shelved: "搁置" };
-  const STATUS_GLYPH = { playing: "玩", cleared: "通", shelved: "搁" };
-  const STATUS_ORDER = ["playing", "cleared", "shelved", ""];
-
-  function inScope(game) {
-    const scope = state.scope;
-    if (scope.type === "shelf") return (game.bookshelf_ids || []).includes(scope.value);
-    if (scope.type === "unfiled") return !(game.bookshelf_ids || []).length;
-    if (scope.type === "fav") return !!game.favorite;
-    if (scope.type === "status") return (game.status || "") === scope.value;
-    if (scope.type === "dev") return (game.developers || []).includes(scope.value);
-    return true;
-  }
-
-  function scopeName(scope = state.scope) {
-    if (scope.type === "shelf") {
-      const shelf = state.shelves.find((s) => s.id === scope.value);
-      return shelf ? shelf.name : "分类";
-    }
-    if (scope.type === "unfiled") return "未分类";
-    if (scope.type === "fav") return "已收藏";
-    if (scope.type === "status") return STATUS_LABEL[scope.value] ?? "状态";
-    if (scope.type === "dev") return scope.value;
-    return "全部游戏";
-  }
-
-  const scopeCount = () => state.games.filter(inScope).length;
-
-  function syncScopePill() {
-    const active = state.scope.type !== "all";
-    el.scopeLabel.textContent = `${scopeName()} · ${scopeCount()}`;
-    $("scopeClear").hidden = !active;
-  }
-
-  function setScope(type, value = "") {
-    state.scope = type && type !== "all" ? { type, value: value || "" } : { type: "all", value: "" };
-    state.selected.clear();
-    try { localStorage.setItem("aurora.scope", JSON.stringify(state.scope)); } catch (_) { /* ignore */ }
-    // 焦点跟着作用域走：切分类时落到该分类的第一款，空分类就落在「＋」上
-    const games = visibleGames();
-    if (!games.some((g) => g.id === state.focus)) state.focus = games[0]?.id || ADD_KEY;
-    render();
-    if (state.view === "home") ring.update();
-  }
+  /* 筛选 / 排序 / 作用域的纯逻辑在 ./app/core/query.js（P4.3-q） */
 
   /* imgHtml（图片回退链）在 ./app/core/dom.js（P4.3-l） */
 
@@ -471,7 +407,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
       btn.classList.toggle("on", btn.dataset.view === state.view);
       btn.disabled = state.settingsOpen;
     }
-    syncScopePill();
+    toolbar.syncScopePill();
     // 视图可见性只在这里决定：设置 / 分类 / 游戏页 / 大厅，互斥且一定会恢复
     const showSettings = state.settingsOpen;
     const showCategories = !showSettings && state.view === "categories";
@@ -687,69 +623,17 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     } catch (_) { /* 离线时保留现有状态 */ }
   }
 
-  /* 主页作用域菜单：不用进分类界面也能直接选一个范围 */
-  function scopeRow(type, value, label, count) {
-    const on = state.scope.type === type && (state.scope.value || "") === (value || "");
-    return `<button class="${on ? "on" : ""}" data-scope-type="${esc(type)}"
-                    data-scope-value="${esc(value || "")}">
-      <span>${esc(label)}</span><small>${count}</small></button>`;
-  }
-
-  function renderScopeMenu() {
-    const rows = [];
-    rows.push(`<div class="scope-group">范围</div>`);
-    rows.push(scopeRow("all", "", "全部游戏", state.games.length));
-    rows.push(scopeRow("unfiled", "", "未分类",
-                       state.shelfStats.unfiled ?? state.games.filter(
-                         (g) => !(g.bookshelf_ids || []).length).length));
-    rows.push(scopeRow("fav", "", "已收藏",
-                       state.games.filter((g) => g.favorite).length));
-    if (state.shelves.length) {
-      rows.push(`<div class="scope-group">自定义分类</div>`);
-      for (const shelf of state.shelves) {
-        rows.push(scopeRow("shelf", shelf.id, shelf.name, shelf.count ?? 0));
-      }
-    }
-    rows.push(`<div class="scope-group">按状态</div>`);
-    for (const value of STATUS_ORDER) {
-      const count = state.games.filter((g) => (g.status || "") === value).length;
-      rows.push(scopeRow("status", value, STATUS_LABEL[value], count));
-    }
-    const devs = new Map();
-    for (const game of state.games) {
-      for (const dev of (game.developers || [])) {
-        if (dev) devs.set(dev, (devs.get(dev) || 0) + 1);
-      }
-    }
-    if (devs.size) {
-      rows.push(`<div class="scope-group">按开发商</div>`);
-      for (const [name, count] of [...devs.entries()]
-          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh")).slice(0, 12)) {
-        rows.push(scopeRow("dev", name, name, count));
-      }
-    }
-    el.scopeMenu.innerHTML = rows.join("");
-  }
-
-  function openScopeMenu() {
-    renderScopeMenu();
-    el.scopeMenu.hidden = false;
-    const rect = el.scopePill.getBoundingClientRect();
-    const box = el.scopeMenu.getBoundingClientRect();
-    let left = Math.round(rect.left);
-    left = Math.max(12, Math.min(window.innerWidth - box.width - 12, left));
-    let top = Math.round(rect.bottom + 8);
-    if (top + box.height > window.innerHeight - 12) {
-      top = Math.max(80, Math.round(rect.top - box.height - 8));
-    }
-    el.scopeMenu.style.left = left + "px";
-    el.scopeMenu.style.top = top + "px";
-  }
+  /* 作用域胶囊 / 作用域菜单 / 排序菜单在 ./app/views/toolbar.js（P4.3-q） */
+  const toolbar = createToolbarView({
+    render: (...a) => render(...a),
+    ringUpdate: () => { if (state.view === "home") ring.update(); },
+  });
 
   /* P4.3-b：书架/多选/状态整块搬进 ./app/views/categories.js（视图只依赖 core）；
      这里注入主模块的渲染与提示函数，调用点名字保持不变 */
   const categories = createCategoriesView({
-    render, renderCatBar, applyShelfPayload, setScope,
+    render, renderCatBar, applyShelfPayload,
+    setScope: (...a) => toolbar.setScope(...a),
     renderDetail: (...a) => gameView.renderDetail(...a),
     toast, modal, cssEscape, STATUS_LABEL,
   });
@@ -1392,12 +1276,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   }
 
   /* ---------------------------------------------------------- 绑定 */
-  /* 排序菜单里的选中态 */
-  function syncSortMenu() {
-    for (const btn of el.sortMenu.querySelectorAll("button[data-sort]")) {
-      btn.classList.toggle("on", btn.dataset.sort === state.sort);
-    }
-  }
+  /* 排序菜单的选中态与开合在 ./app/views/toolbar.js（P4.3-q） */
 
   /* 末尾方块的二选一菜单：导入本地 / 获取游戏 */
   function openAddMenu(tile) {
@@ -1746,28 +1625,24 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
         setView("home");
       }
     });
-    $("scopePick").onclick = () => {
-      const wasHidden = el.scopeMenu.hidden;
-      closeAll();
-      if (wasHidden) openScopeMenu();
-    };
+    $("scopePick").onclick = () => toolbar.toggleScopeMenu();
     $("scopeClear").onclick = () => {
       el.scopeMenu.hidden = true;
-      setScope("all");
+      toolbar.setScope("all");
       toast("已显示全部游戏");
     };
     el.scopeMenu.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-scope-type]");
       if (!btn) return;
       el.scopeMenu.hidden = true;
-      setScope(btn.dataset.scopeType, btn.dataset.scopeValue || "");
+      toolbar.setScope(btn.dataset.scopeType, btn.dataset.scopeValue || "");
     });
 
     // 分类工作区（事件委托，界面重绘后依然有效）
     el.categoriesView.addEventListener("click", async (e) => {
       const scopeBtn = e.target.closest("[data-scope]");
       if (scopeBtn) {
-        setScope(scopeBtn.dataset.scope, scopeBtn.dataset.id || "");
+        toolbar.setScope(scopeBtn.dataset.scope, scopeBtn.dataset.id || "");
         return;
       }
       if (e.target.closest("[data-dev-more]")) {
@@ -1835,7 +1710,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     el.catCreate.addEventListener("submit", async (e) => {
       e.preventDefault();
       const shelf = await createShelf(el.catName.value.trim());
-      if (shelf) setScope("shelf", shelf.id);
+      if (shelf) toolbar.setScope("shelf", shelf.id);
     });
 
     // 分类工作区与主页共用同一份搜索 / 排序
@@ -1849,7 +1724,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     });
     el.catSort.onchange = (e) => {
       state.sort = e.target.value;
-      syncSortMenu();
+      toolbar.syncSortMenu();
       renderHall();
       renderCatHead();
       renderCatWall();
@@ -2039,16 +1914,8 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
       }
     });
 
-    // 排序（工具条图标 → 菜单）
-    $("btnSort").onclick = () => {
-      const hidden = el.sortMenu.hidden;
-      closeAll();
-      // 菜单右边缘对齐排序按钮，换窗口宽度也不会错位
-      const btn = $("btnSort").getBoundingClientRect();
-      el.sortMenu.style.right = Math.round(window.innerWidth - btn.right) + "px";
-      el.sortMenu.hidden = !hidden;
-      syncSortMenu();
-    };
+    // 排序（工具条图标 → 菜单）在 ./app/views/toolbar.js（P4.3-q）
+    $("btnSort").onclick = () => toolbar.toggleSortMenu();
     el.sortMenu.addEventListener("click", (e) => {
       const btn = e.target.closest("button[data-sort]");
       if (!btn) return;
