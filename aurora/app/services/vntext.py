@@ -176,14 +176,14 @@ class VnTextService:
         if not shot.get("ok"):
             return {"ok": False, "error": shot.get("error") or "capture-failed"}
         name = f"vntext-{game_id}.png"
-        target = config.USER_BG_DIR / name
+        target = config.BG_SOURCE_DIR / name
         try:
-            config.USER_BG_DIR.mkdir(parents=True, exist_ok=True)
+            config.BG_SOURCE_DIR.mkdir(parents=True, exist_ok=True)
             if not screencap.save_png(target, shot["bgr"], shot["width"], shot["height"]):
                 return {"ok": False, "error": "no-pillow"}
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
-        return {"ok": True, "url": f"userbg/{name}?v={int(time.time())}",
+        return {"ok": True, "url": f"assets/backgrounds/{name}?v={int(time.time())}",
                 "width": shot["width"], "height": shot["height"],
                 "region": dict(game.get("vntext_ocr_region") or {})}
 

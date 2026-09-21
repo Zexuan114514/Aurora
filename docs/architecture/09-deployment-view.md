@@ -36,8 +36,10 @@
 
 - 入口固定 `main.py`；两个 `.bat`（`启动 Aurora.bat` / `调试启动.bat`）必须 GBK + CRLF，由 `tools/make_bat.py` 生成。
 - PyInstaller 参数固定：winrt 动态导入需显式声明；`numpy/pandas/tkinter/pytest` 等排除以减体积。
-- **单一清单**：前端资源树与排除项由一份清单描述，`tools/build_exe.py` 与运行时共用；
-  继续排除 `web/{userbg,usercovers,usericon}`（用户素材不进发布包）。
+- **单一清单**：前端资源树由 `tools/build_exe.py` 顶部的 `WEB_FILES` / `WEB_MODULE_DIRS` 一份描述，
+  并由离线检查 `check_packaging` 对照 `gl/web` 实际目录守住（漏登记就变红）。
+  P5 起用户素材**不再进 web 目录**：`aurora/infra/webserver.py` 按 `/assets/` 直接服务 `data/` 下的原图，
+  发布包里本来就没有它们。
 - 发布形态：把 exe 与 `docs/`（可选）拷走即可；升级只替换 exe，数据目录不动。
 - 迁移与降级：新版本首次启动自动迁移 v1 → v2 并备份；用户可拿备份回退到旧版本继续用。
 

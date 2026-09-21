@@ -21,12 +21,11 @@ STAGE = BUILD / "web-stage"
 ICON = ROOT / "gl" / "assets" / "aurora.ico"
 TARGET = ROOT / "Aurora.exe"
 
-#: 真正要打进 exe 的前端文件。gl/web 下的 userbg / usercovers / usericon 是
-#: 用户自己的素材副本（运行时由 gl/config.py 从 data/ 重新同步），绝不能进发布包
+#: 真正要打进 exe 的前端文件。用户素材（背景 / 自定义封面 / 图标）P5 起不进 web 目录，
+#: 由 aurora/infra/webserver.py 按 /assets/ 直接服务 data/ 下的原图。
 WEB_FILES = ("index.html", "app.css", "app.js", "overlay.html")
 #: P4 起前端是 ES 模块：app/ 下的 js 树要原样带上（core/ views/ components/ …）
 WEB_MODULE_DIRS = ("app",)
-WEB_USER_DIRS = ("userbg", "usercovers", "usericon")
 
 #: 游戏内翻译用的 Windows OCR 是动态导入的，PyInstaller 扫不到，必须显式声明
 WINRT_MODULES = (
@@ -86,8 +85,6 @@ def stage_web() -> Path:
         if not source.is_dir():
             raise FileNotFoundError(f"缺少前端模块目录：{source}")
         shutil.copytree(source, STAGE / name)
-    for name in WEB_USER_DIRS:      # 目录结构保留，运行时再往里同步用户素材
-        (STAGE / name).mkdir(exist_ok=True)
     return STAGE
 
 

@@ -31,7 +31,7 @@
     },
     {
       "path": "aurora/app/projection.py",
-      "lines": 81
+      "lines": 97
     },
     {
       "path": "aurora/app/services/__init__.py",
@@ -95,7 +95,11 @@
     },
     {
       "path": "aurora/infra/config.py",
-      "lines": 233
+      "lines": 215
+    },
+    {
+      "path": "aurora/infra/webserver.py",
+      "lines": 150
     },
     {
       "path": "aurora/infra/dialogs.py",
@@ -187,7 +191,7 @@
     },
     {
       "path": "aurora/ui/bridge/library.py",
-      "lines": 308
+      "lines": 305
     },
     {
       "path": "aurora/ui/bridge/metadata.py",
@@ -375,7 +379,7 @@
     },
     {
       "path": "main.py",
-      "lines": 349
+      "lines": 360
     },
     {
       "path": "gl/web/app/core/api.js",
@@ -550,6 +554,11 @@
       "name": "aurora-vntext-ocr",
       "file": "gl/vntext.py",
       "line": 1236
+    },
+    {
+      "name": "aurora-webserver",
+      "file": "aurora/infra/webserver.py",
+      "line": 140
     }
   ],
   "data": {
@@ -1757,6 +1766,21 @@
         {
           "from": "app.js bindUi：全局 click/keydown/contextmenu/拖放",
           "to": "gl/web/app/core/shell.js: createShell.bind"
+        }
+      ]
+    },
+    {
+      "phase": "P5",
+      "date": "2026-09-21",
+      "note": "资产服务化（ADR-0005）：新增 aurora/infra/webserver.py（127.0.0.1:0 本地静态服务，/ 前端 + /assets/ 映射数据目录，只读、防穿越）；删除 gl/config 的 sync_user_assets 与三个 web 副本目录；素材 URL 统一 assets/…，老记录在 app/projection.py 投影时改写；build_exe 去掉 WEB_USER_DIRS，check_packaging 兼容两种形态；e2e 90/90（0 skipped）、visual 判据不变、离线探针 15/15、真机素材 200",
+      "moves": [
+        {
+          "from": "gl/config.py: sync_user_assets + USER_{BG,ICON,COVER}_DIR（复制到 gl/web/{userbg,usercovers,usericon}）",
+          "to": "aurora/infra/webserver.py（/assets/ 直接服务 data/ 原图）+ config.ASSET_MOUNTS"
+        },
+        {
+          "from": "桥接层素材 URL：userbg/… / usercovers/… / usericon/…",
+          "to": "assets/{backgrounds,covers,icons}/…（老记录由 app/projection.py 投影时改写）"
         }
       ]
     }

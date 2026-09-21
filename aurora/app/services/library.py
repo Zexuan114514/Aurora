@@ -299,7 +299,7 @@ class LibraryService:
         """删除该游戏产生的本地素材副本（自定义图标 + 本地背景图）。"""
         self._remove_icon_files(game_id)
         self._purge_covers(game_id)
-        for folder in (config.BG_SOURCE_DIR, config.USER_BG_DIR):
+        for folder in (config.BG_SOURCE_DIR,):
             try:
                 for item in folder.glob(f"{game_id}-*"):
                     if item.is_file():
@@ -310,7 +310,7 @@ class LibraryService:
     # ---- 素材清理（P3.8-h 从桥接层搬出） ----
 
     def _purge_covers(self, game_id: str) -> None:
-        for folder in (config.COVER_SOURCE_DIR, config.USER_COVER_DIR):
+        for folder in (config.COVER_SOURCE_DIR,):
             try:
                 for item in folder.glob(f"{game_id}-*"):
                     if item.is_file():
@@ -319,7 +319,7 @@ class LibraryService:
                 config.log(f"purge cover failed: {exc}")
 
     def _remove_icon_files(self, game_id: str) -> None:
-        for folder in (config.ICON_SOURCE_DIR, config.USER_ICON_DIR):
+        for folder in (config.ICON_SOURCE_DIR,):
             try:
                 for item in folder.glob(f"{game_id}.*"):
                     item.unlink()

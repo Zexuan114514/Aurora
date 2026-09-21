@@ -112,7 +112,7 @@ class WindowBridgeMixin:
             game = self._library.get(game_id)
             url = (game or {}).get("custom_icon") or ""
             if url:
-                path = str(config.USER_ICON_DIR / url.split("/")[-1].split("?")[0])
+                path = str(config.ICON_SOURCE_DIR / url.split("/")[-1].split("?")[0])
         winapi.set_icon(self._window, path or None)
         return {"ok": True}
 

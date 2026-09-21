@@ -118,10 +118,9 @@ class LibraryBridgeMixin:
         name = f"{game_id}-{uuid.uuid4().hex[:6]}{source.suffix.lower()}"
         try:
             shutil.copy2(source, config.COVER_SOURCE_DIR / name)
-            shutil.copy2(source, config.USER_COVER_DIR / name)
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
-        url = f"usercovers/{name}"
+        url = f"assets/covers/{name}"
         updated = self._library.update(game_id, custom_cover=url)
         if updated:
             self._emit("game:updated", _public(updated, self._pm))
@@ -164,10 +163,9 @@ class LibraryBridgeMixin:
         name = f"{game_id}-{uuid.uuid4().hex[:6]}{source.suffix.lower()}"
         try:
             shutil.copy2(source, config.BG_SOURCE_DIR / name)
-            shutil.copy2(source, config.USER_BG_DIR / name)
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
-        url = f"userbg/{name}"
+        url = f"assets/backgrounds/{name}"
         game = self._library.update(game_id, background=url, background_kind="local")
         if game:
             self._emit("game:updated", _public(game, self._pm))
@@ -205,11 +203,10 @@ class LibraryBridgeMixin:
         name = f"{game_id}{suffix}"
         try:
             shutil.copy2(source, config.ICON_SOURCE_DIR / name)
-            shutil.copy2(source, config.USER_ICON_DIR / name)
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
-        url = f"usericon/{name}?v={int(time.time())}"
+        url = f"assets/icons/{name}?v={int(time.time())}"
         updated = self._library.update(game_id, custom_icon=url)
         if updated:
             self._emit("game:updated", _public(updated, self._pm))

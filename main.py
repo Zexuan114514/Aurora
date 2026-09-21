@@ -19,6 +19,7 @@ if __package__ in (None, ""):
 import webview  # noqa: E402
 
 from aurora.platform import winapi  # noqa: E402
+from aurora.infra import webserver  # noqa: E402
 from gl import config  # noqa: E402
 from gl.api import Api  # noqa: E402
 
@@ -263,8 +264,15 @@ def bind_tray(window: webview.Window, api: Api) -> dict:
     return holder
 
 
-def build_window(api: Api) -> webview.Window:
-    entry = f"{config.WEB_DIR / 'index.html'}?v={_asset_version()}"
+def build_window(api: Api, server: webserver.AssetServer | None = None) -> webview.Window:
+    """建主窗口。
+
+    P5 起页面走自建静态服务（`/` 前端 + `/assets/` 用户素材，ADR-0005）。
+    没传 `server` 时这里自己起一个 —— 探针脚本（e2e / visual / snap）因此走的也是真实路径。
+    """
+    if server is None:
+        server = webserver.start(config.WEB_DIR, config.ASSET_MOUNTS)
+    entry = f"{server.url}/index.html?v={_asset_version()}"
     return webview.create_window(
         config.APP_TITLE,
         url=entry,
@@ -288,15 +296,17 @@ def main() -> int:
         return _check_migration()
     config.ensure_dirs()
     config.prune_log()
-    config.sync_user_assets()
     if config.prune_cache():
         config.log("pruned expired cache files")
     if not _single_instance():
         _focus_running_instance()
         return 0
 
+    # P5（ADR-0005）：自己起本地静态服务 —— `/` 服务随包前端，`/assets/` 映射 data/ 下的用户素材
+    server = webserver.start(config.WEB_DIR, config.ASSET_MOUNTS)
+    config.log(f"web server on {server.url}")
     api = Api()
-    window = build_window(api)
+    window = build_window(api, server)
     api._window = window
     bind_file_drop(window, api)
     bind_tray(window, api)
@@ -307,6 +317,7 @@ def main() -> int:
         finally:
             api.shutdown()
             default_runner().shutdown()   # 叶子模块（下载监听 / 托盘 / 热键 / 文本会话）的服务线程
+            server.stop()
 
     window.events.closed += on_closed
 

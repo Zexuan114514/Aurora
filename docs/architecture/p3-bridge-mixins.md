@@ -950,3 +950,31 @@ import 列表里只有 `closeAll, openPanel`（以前它们不开面板，用不
 `ctx.sourceName` 残留（P4.3-m）、漏 import `inScope`（P4.3-q）、漏 import `call`（P4.3-u）、
 漏 import `closePanel`（P4.3-w），以及一个**本来就不存在**的 `moveShelf`（P4.3-v 顺手补齐）。
 
+## P5 资产服务化（2026-09-21 17:30）
+
+ADR-0005 的落地：用户素材只留一份（`data/{backgrounds,covers,icons}`），由自建静态服务按
+`/assets/…` 暴露，彻底删掉「复制到 web 目录」这条链路。
+
+| 改动 | 内容 |
+| --- | --- |
+| `aurora/infra/webserver.py`（新） | `ThreadingHTTPServer` 绑 `127.0.0.1:0`（系统挑空闲端口），后台守护线程 `aurora-webserver`；`/` 服务随包前端（`no-store`），`/assets/<mount>/<file>` 映射数据目录（`no-cache`）；只允许 `GET` / `HEAD`（其余 405 + `Allow`），`..` / 编码穿越 / 绝对路径 / 未挂载目录名一律 403/404 |
+| `aurora/infra/config.py` | 删 `USER_BG_DIR` / `USER_ICON_DIR` / `USER_COVER_DIR` 与 `sync_user_assets()`；新增 `ASSET_MOUNTS`（挂载表），`ensure_dirs` 改回只建数据目录 |
+| `main.py` | 启动时起服务并把入口指向 `http://127.0.0.1:<port>/index.html?v=…`；窗口关闭时 `server.stop()`；`build_window()` 未传 server 时自己起一个（探针因此也走真实路径） |
+| 素材 URL | 后端产出的路径统一为 `assets/{backgrounds,covers,icons}/…`（桥接层 3 处 + OCR 截图 1 处）；`apply_window_icon` 改从 `ICON_SOURCE_DIR` 取原图 |
+| 老数据兼容 | `aurora/app/projection.py` 在投影给前端时把 `userbg/…` / `usercovers/…` / `usericon/…` 改写成 `assets/…`（不动磁盘上的库文件） |
+| 打包 | `tools/build_exe.py` 删掉 `WEB_USER_DIRS` 与「只留目录」的占位；`check_packaging` 兼容两种形态（现在报「用户素材不在 web 目录」） |
+| 其它 | `.gitignore` 去掉三条副本目录规则；`gl/web/{userbg,usercovers,usericon}` 实体目录已删除 |
+
+**验收（刻意用探针而不是肉眼看）**：
+
+| 探针 | 结果 |
+| --- | --- |
+| `_sandbox/p5_assets_probe.py`（无窗口） | **15/15**：首页 / 入口模块 / 模块树 / 根路径回落可读；`/assets/` 素材 200 且字节一致、HEAD 支持；`../`、`%2e%2e`、出 web 根、绝对路径四类穿越被拒；未挂载目录名 403；目录本身 404；`POST` 405；老 URL 投影改写正确、新 URL 原样 |
+| `_sandbox/p5_asset_window_probe.py`（真窗口） | 背景层读到 `url("http://127.0.0.1:…/assets/backgrounds/…")`（新老 URL 都一样）；页面内 XHR 取该图 **200 / `image/png` / 183 字节 / `no-cache`** |
+| `tools/e2e.py` | **90/90（0 skipped）** —— 窗口现在就是从这个自建服务加载的 |
+| `tools/visual.py` | `errors=[]`，ring 判据与改前逐项相同 |
+| `tools/checks/run_all.py` | **9/9**（打包清单检查同步放宽；`aurora-webserver` 线程已登记进基线） |
+
+**没验到的**：本机只有 Edge WebView2，Qt 内核（备选）没装，所以「双内核」只实测了 WebView2 那一半；
+页面走的是标准 `http://127.0.0.1`，Qt 侧理论上等价，等有环境再补测（ADR-0005 的回退开关仍保留选项 1 的思路）。
+

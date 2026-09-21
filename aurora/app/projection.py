@@ -6,6 +6,22 @@ from __future__ import annotations
 
 from pathlib import Path
 
+#: P5 之前用户素材被复制进 gl/web/{userbg,usercovers,usericon}，库里存的是那些相对路径；
+#: 现在统一由本地静态服务按 /assets/ 暴露。老记录在投影给前端时顺手改写，不动磁盘上的数据。
+_LEGACY_ASSET_PREFIXES = (
+    ("userbg/", "assets/backgrounds/"),
+    ("usercovers/", "assets/covers/"),
+    ("usericon/", "assets/icons/"),
+)
+
+
+def _asset_url(url: str) -> str:
+    """把 P5 之前的 `userbg/…` 一类路径改写成 `assets/…`（其余原样返回）。"""
+    for legacy, current in _LEGACY_ASSET_PREFIXES:
+        if url.startswith(legacy):
+            return current + url[len(legacy):]
+    return url
+
 
 def _public(game: dict, pm: process.ProcessManager) -> dict:
     exe = Path(game.get("exe", ""))
@@ -36,12 +52,12 @@ def _public(game: dict, pm: process.ProcessManager) -> dict:
         "store_url": game.get("store_url") or "",
         "cover": game.get("cover") or "",
         "cover_sources": game.get("cover_sources") or [],
-        "custom_cover": game.get("custom_cover") or "",
-        "custom_icon": game.get("custom_icon") or "",
+        "custom_cover": _asset_url(game.get("custom_cover") or ""),
+        "custom_icon": _asset_url(game.get("custom_icon") or ""),
         "logo": game.get("logo") or "",
         "header_image": game.get("header_image") or "",
         "images": game.get("images") or [],
-        "background": game.get("background") or "",
+        "background": _asset_url(game.get("background") or ""),
         "background_kind": game.get("background_kind") or "",
         "bg_scale": float(game.get("bg_scale") or 1.0),
         "bg_x": float(game.get("bg_x") or 0.0),

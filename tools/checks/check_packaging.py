@@ -6,8 +6,8 @@ P4 的交付里有一条「打包清单单一来源」：清单只有 `tools/bui
   * 清单里写的文件/目录必须真的存在
   * `gl/web` 顶层**不允许有未登记的文件或目录**（漏登记 = 打包后页面 404）
 
-用户素材目录（userbg / usercovers / usericon）在清单里声明为「只留目录、不进包」，
-内容由运行时从 data/ 同步，所以这里只检查目录存在。
+用户素材 P5 起不再进 web 目录（由 aurora/infra/webserver.py 按 /assets/ 服务 data/ 下的原图），
+但仍兼容老的 WEB_USER_DIRS 列表：若 build_exe.py 里还有这一项，就按「只留目录、不进包」检查。
 """
 from __future__ import annotations
 
@@ -45,15 +45,14 @@ def check() -> Result:
 
     literals = _tuple_literals(build_py.read_text(encoding="utf-8"),
                                "WEB_FILES", "WEB_MODULE_DIRS", "WEB_USER_DIRS")
-    missing_const = [n for n in ("WEB_FILES", "WEB_MODULE_DIRS", "WEB_USER_DIRS")
-                     if n not in literals]
+    missing_const = [n for n in ("WEB_FILES", "WEB_MODULE_DIRS") if n not in literals]
     if missing_const:
         result.fail(f"{BUILD} 里读不到清单常量：{', '.join(missing_const)}")
         return result
 
     files = literals["WEB_FILES"]
     module_dirs = literals["WEB_MODULE_DIRS"]
-    user_dirs = literals["WEB_USER_DIRS"]
+    user_dirs = literals.get("WEB_USER_DIRS", ())
 
     for name in files:
         if not (web / name).is_file():
@@ -82,8 +81,13 @@ def check() -> Result:
 
     packed_files = len(files) + sum(1 for d in module_dirs
                                     for _ in (web / d).rglob("*") if _.is_file())
-    result.note(f"前端清单：{len(files)} 个顶层文件 + {len(module_dirs)} 棵模块树"
-                f"（共 {packed_files} 个文件），{len(user_dirs)} 个用户素材目录不进包")
+    note = (f"前端清单：{len(files)} 个顶层文件 + {len(module_dirs)} 棵模块树"
+            f"（共 {packed_files} 个文件）")
+    if user_dirs:
+        note += f"，{len(user_dirs)} 个用户素材目录不进包"
+    else:
+        note += "；用户素材不在 web 目录（由 /assets/ 直接服务 data/，P5）"
+    result.note(note)
     if not unlisted_files and not unlisted_dirs:
         result.note("gl/web 顶层无未登记条目：清单与实际目录一致")
     return result

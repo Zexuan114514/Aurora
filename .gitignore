@@ -23,11 +23,6 @@ data/
 *.log
 *.log.*
 
-# 用户素材同步到 web 目录后的副本（原图在 data/ 下）
-gl/web/userbg/
-gl/web/usercovers/
-gl/web/usericon/
-
 # ---------- 调试与测试产物 ----------
 tools/*.png
 tools/*.jpg

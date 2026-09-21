@@ -60,8 +60,8 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | `data/library.json` 单文件 297KB / 24 游戏 / 60 字段 / 39 项设置 | 实测统计 | 每次改设置全量重写，必须分账 + 去抖 |
 | 10+ 处临时 daemon 线程、构造器回调耦合 | `rg 'Thread('` | 需要显式 TaskRunner + 事件总线 |
 | 事件 14 个主题、靠 `evaluate_js` 拼 JSON 字符串 | `gl/api.py` | 需要事件信封与统一分发 |
-| 用户素材复制进 `gl/web/{userbg,usercovers,usericon}` | `gl/config.py: sync_user_assets` | 资产要单一来源 |
-| `tools/build_exe.py` 硬编码 4 个前端文件 | 该脚本 | 打包清单要单一来源 |
+| 用户素材复制进 `gl/web/{userbg,usercovers,usericon}` | `gl/config.py: sync_user_assets` | 资产要单一来源 —— **P5 已消除**：改由 `aurora/infra/webserver.py` 按 `/assets/` 服务 `data/` 下的原图（[ADR-0005](../adr/ADR-0005-assets-single-source.md)） |
+| `tools/build_exe.py` 硬编码 4 个前端文件 | 该脚本 | 打包清单要单一来源 —— **P4.3-x 已守住**：清单仍在脚本顶部一份，`tools/checks/check_packaging.py` 对照 `gl/web` 实际目录，漏登记即失败 |
 | 契约仅靠 `tools/check_bridge.py` 正则比对，无 CI | `tools/` | 契约要机器可读 + CI 守卫 |
 
 ## 产物索引

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 import sys
 import time
 from pathlib import Path
@@ -55,13 +54,17 @@ STEAM_CACHE_DIR = CACHE_DIR / "steam"
 WEB_DATA_DIR = LAYOUT.webview
 LOG_FILE = LAYOUT.log_file
 
-# 用户素材：原图存在 data/ 下，副本同步到 web/ 供本地 http 服务访问
+# 用户素材：原图存在 data/ 下，由本地静态服务按 /assets/<mount>/… 暴露（P5，ADR-0005）
 BG_SOURCE_DIR = LAYOUT.backgrounds
 ICON_SOURCE_DIR = LAYOUT.icons
 COVER_SOURCE_DIR = LAYOUT.covers
-USER_BG_DIR = WEB_DIR / "userbg"
-USER_ICON_DIR = WEB_DIR / "usericon"
-USER_COVER_DIR = WEB_DIR / "usercovers"
+
+#: 静态服务的挂载表：URL 前缀 → 数据目录（只读，不复制）
+ASSET_MOUNTS = {
+    "backgrounds": BG_SOURCE_DIR,
+    "covers": COVER_SOURCE_DIR,
+    "icons": ICON_SOURCE_DIR,
+}
 
 # 默认设置
 DEFAULT_SETTINGS = {
@@ -131,7 +134,7 @@ CACHE_MAX_AGE = 90 * 24 * 3600
 
 def ensure_dirs() -> None:
     store_paths.ensure_dirs(LAYOUT)
-    for d in (STEAM_CACHE_DIR, USER_BG_DIR, USER_ICON_DIR, USER_COVER_DIR):
+    for d in (STEAM_CACHE_DIR, BG_SOURCE_DIR, ICON_SOURCE_DIR, COVER_SOURCE_DIR):
         try:
             d.mkdir(parents=True, exist_ok=True)
         except Exception:
@@ -150,27 +153,6 @@ def _migrate_legacy_log() -> None:
                 os.replace(backup, LOG_FILE.with_name(LOG_FILE.name + ".1"))
     except Exception:
         pass
-
-
-def sync_user_assets() -> None:
-    """把用户素材同步进 web 目录。
-
-    打包成单文件 exe 时 web 目录是临时解压目录，每次启动都要重新同步，
-    否则用户设置的背景图/自定义图标会失效。
-    """
-    for src, dst in ((BG_SOURCE_DIR, USER_BG_DIR), (ICON_SOURCE_DIR, USER_ICON_DIR),
-                     (COVER_SOURCE_DIR, USER_COVER_DIR)):
-        try:
-            src.mkdir(parents=True, exist_ok=True)
-            dst.mkdir(parents=True, exist_ok=True)
-            for item in src.iterdir():
-                if not item.is_file():
-                    continue
-                target = dst / item.name
-                if not target.exists() or target.stat().st_mtime < item.stat().st_mtime:
-                    shutil.copy2(item, target)
-        except Exception as exc:
-            log(f"sync user assets failed: {exc}")
 
 
 def log(message: str) -> None:
