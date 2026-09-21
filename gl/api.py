@@ -56,6 +56,8 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._settings = SettingsService(self._library, self._sources)
         #: P6.2：插件目录（data/plugins/**）的加载与状态查询
         self._plugins_service = PluginsService(config.DATA_DIR, logger=config.log)
+        #: P6.3：把加载成功的插件资料源接进 SourceManager
+        self._sources.set_plugin_statuses(self._plugins_service.statuses())
         self._library_service = LibraryService(self._library, self._pm,
                                              auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
                                              apply_window_icon=self.apply_window_icon)

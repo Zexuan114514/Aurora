@@ -235,7 +235,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 184
+      "lines": 186
     },
     {
       "path": "aurora/infra/plugins.py",
@@ -335,7 +335,11 @@
     },
     {
       "path": "gl/sources/manager.py",
-      "lines": 378
+      "lines": 402
+    },
+    {
+      "path": "gl/sources/plugin_source.py",
+      "lines": 90
     },
     {
       "path": "gl/sources/net.py",
@@ -1823,6 +1827,17 @@
         {
           "from": "桥接层无插件相关方法",
           "to": "aurora/ui/bridge/settings.py: list_plugins / rescan_plugins"
+        }
+      ]
+    },
+    {
+      "phase": "P6.3",
+      "date": "2026-09-21",
+      "note": "插件接入资料源注册表：新增 gl/sources/plugin_source.py（把插件包成宿主 Source，短名 search(query) → 宿主 search(queries)，返回 dict 归一成 Candidate/Metadata，调用走 CallGuard）；SourceManager 记插件状态并让插件源参与 sources()/describe()；Api 启动时灌入、rescan_plugins 后同步；pytest 76 passed、run_all 10/10、e2e 90/90（0 skipped）。翻译引擎接入与设置页插件区留待 P6.4",
+      "moves": [
+        {
+          "from": "插件只能在 data/plugins 里加载，不参与任何流程",
+          "to": "gl/sources/plugin_source.py + SourceManager.plugin_sources()（资料源插件真正生效）"
         }
       ]
     }

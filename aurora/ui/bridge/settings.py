@@ -30,8 +30,10 @@ class SettingsBridgeMixin:
 
 
     def rescan_plugins(self) -> dict:
-        """按用户要求重新扫一遍插件目录（不热重载已加载的实例）。"""
-        return self._plugins_service.rescan()
+        """按用户要求重新扫一遍插件目录，并把结果同步给资料源管理器。"""
+        payload = self._plugins_service.rescan()
+        self._sources.set_plugin_statuses(self._plugins_service.statuses())
+        return payload
 
 
     # ------------------------------------------------------------------ #

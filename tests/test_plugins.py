@@ -173,7 +173,47 @@ def test_bridge_mixin_forwards_to_plugin_service(tmp_path):
 
     dummy = Dummy()
     dummy._plugins_service = PluginsService(tmp_path)
+    dummy._sources = type("S", (), {"set_plugin_statuses": lambda self, rows: None})()
     make_plugin(tmp_path / "plugins", "sources", "via-bridge")
     payload = dummy.list_plugins()
     assert payload["ok"] and [p["id"] for p in payload["plugins"]] == ["via-bridge"]
     assert dummy.rescan_plugins()["plugins"][0]["state"] == "ok"
+
+
+def test_source_plugin_becomes_host_source(tmp_path):
+    """插件资料源真的接进 SourceManager：能搜、能拉详情、状态可查。"""
+    from gl.sources.manager import SourceManager
+
+    body = (
+        "class Plugin:\n"
+        "    kind = 'api'\n"
+        "    homepage = 'https://example.com'\n"
+        "    supports_lang = True\n"
+        "    def search(self, query, lang='schinese'):\n"
+        "        return [{'source_id': 'g1', 'name': '插件搜到的游戏', 'score': 0.9}]\n"
+        "    def fetch(self, candidate, lang='schinese'):\n"
+        "        return {'description': '来自插件的简介', 'developers': ['某社']}\n"
+    )
+    make_plugin(tmp_path, "sources", "plug-src", body=body)
+    statuses = plugins.discover(tmp_path)
+
+    class _Lib:
+        settings = {}
+
+    manager = SourceManager(_Lib())
+    manager.set_plugin_statuses(statuses)
+    sources = [s for s in manager.sources() if s.id == "plug-src"]
+    assert len(sources) == 1 and sources[0].kind == "api"
+
+    found = sources[0].search(["某游戏"])
+    assert [c.source_id for c in found] == ["g1"]
+    assert found[0].source == "plug-src"          # source 自动补成插件 id
+    detail = sources[0].fetch(found[0])
+    assert detail is not None and detail.description == "来自插件的简介"
+    assert detail.source == "plug-src" and detail.developers == ["某社"]
+    assert any(row.get("plugin") for row in manager.describe())
+
+    # 加载失败的插件不会变成资料源
+    make_plugin(tmp_path, "sources", "plug-bad", body="raise RuntimeError('炸')\n")
+    manager.set_plugin_statuses(plugins.discover(tmp_path))
+    assert all(s.id != "plug-bad" for s in manager.sources())

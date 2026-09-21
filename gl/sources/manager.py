@@ -12,6 +12,7 @@ from . import net
 from .base import Candidate, Metadata, Source
 from .bangumi import BangumiSource
 from .custom import CustomApiSource, CustomLinkSource, from_config
+from .plugin_source import PluginSource
 from .steam import SteamSource
 from .vndb import VNDBSource
 
@@ -46,6 +47,17 @@ class SourceManager:
         self.library = library
         #: 记住搜索时拿到的原始候选，拉详情时要用（例如 Bangumi 的 R18 条目）
         self._candidates: dict[tuple[str, str], Candidate] = {}
+        #: P6.3：已加载的插件资料源（由 Api 在启动 / 重扫后灌进来）
+        self._plugin_statuses: list = []
+
+    def set_plugin_statuses(self, statuses) -> None:
+        """记下当前加载成功的插件（只有 `state == ok` 的会变成资料源）。"""
+        self._plugin_statuses = [s for s in (statuses or [])
+                                 if getattr(s, "kind", "") == "sources"]
+
+    def plugin_sources(self) -> list[PluginSource]:
+        return [PluginSource(s, logger=config.log) for s in self._plugin_statuses
+                if getattr(s, "state", "") == "ok" and getattr(s, "plugin", None)]
 
     # ------------------------------------------------------------------ #
     # 配置
@@ -136,6 +148,10 @@ class SourceManager:
             src = from_config(entry)
             if src:
                 out.append(src)
+        for src in self.plugin_sources():           # P6.3：插件源排在自定义源之后
+            if not include_disabled and src.id in cfg["disabled"]:
+                continue
+            out.append(src)
         return out
 
     def get(self, source_id: str) -> Source | None:
@@ -164,6 +180,14 @@ class SourceManager:
                 "builtin": False, "enabled": src.id not in cfg["disabled"],
                 "homepage": src.homepage, "search_url": src.search_url,
                 "status": src.status(), "config": entry,
+            })
+        for src in self.plugin_sources():
+            rows.append({
+                "id": src.id, "name": src.name, "kind": src.kind,
+                "builtin": False, "plugin": True,
+                "enabled": src.id not in cfg["disabled"],
+                "homepage": src.homepage, "search_url": src.search_url,
+                "status": src.status(),
             })
         return rows
 
