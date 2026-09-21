@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3345
+      "lines": 3223
     },
     {
       "path": "gl/web/index.html",
@@ -387,7 +387,11 @@
     },
     {
       "path": "gl/web/app/core/dom.js",
-      "lines": 64
+      "lines": 68
+    },
+    {
+      "path": "gl/web/app/core/time.js",
+      "lines": 36
     },
     {
       "path": "gl/web/app/views/categories.js",
@@ -400,6 +404,10 @@
     {
       "path": "gl/web/app/views/hall.js",
       "lines": 578
+    },
+    {
+      "path": "gl/web/app/views/game.js",
+      "lines": 131
     }
   ],
   "threads": [
@@ -1443,6 +1451,25 @@
         {
           "from": "app.js: 悬停聚焦/单击/双击/横向拖动/滚轮/←→Home End Enter",
           "to": "gl/web/app/views/hall.js: createRing 的 bind/handleKey"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-k",
+      "date": "2026-09-21",
+      "note": "游戏页渲染面进 views/game.js（createGameView + chip/descText/detailBody）；时长/时钟/会话时间戳抽到 core/time.js，esc 抽到 core/dom.js；主模块只注入取数与副作用；e2e 90/90、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: renderGameContent + chip/descText/updateShowOriginalBtn/detailBody",
+          "to": "gl/web/app/views/game.js: createGameView"
+        },
+        {
+          "from": "app.js: hours/clock/sessionSeconds/stamp",
+          "to": "gl/web/app/core/time.js"
+        },
+        {
+          "from": "app.js: esc",
+          "to": "gl/web/app/core/dom.js"
         }
       ]
     }

@@ -5,7 +5,9 @@ import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
 import { createRing, layoutReadout, hallKeysOf, ringMod } from "./app/views/hall.js";
-import { $, el, missingIds } from "./app/core/dom.js";
+import { detailBody, createGameView } from "./app/views/game.js";
+import { $, el, missingIds, esc } from "./app/core/dom.js";
+import { hours, clock, sessionSeconds, stamp } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
 
@@ -26,9 +28,6 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   let bgTimer = null;            // 焦点切换后的背景防抖
 
   /* ---------------------------------------------------------- 工具 */
-  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
   const cssUrl = (u) => `url("${String(u).replace(/"/g, '\\"')}")`;
 
   /* 选择器里安全地写 id（游戏 id 是十六进制，理论上够用，仍然兜一层） */
@@ -83,34 +82,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   }
 
 
-  const hours = (sec) => {
-    if (sec >= 3600) return (sec / 3600).toFixed(sec >= 36000 ? 0 : 1) + " 小时";
-    const minutes = Math.round(sec / 60);
-    return minutes < 1 ? "不到 1 分钟" : minutes + " 分钟";
-  };
-
-  /* 运行中的实时计时：00:35 / 1:02:03 */
-  const clock = (sec) => {
-    const total = Math.max(0, Math.floor(sec || 0));
-    const h = Math.floor(total / 3600);
-    const m = Math.floor((total % 3600) / 60);
-    const s = total % 60;
-    const pad = (n) => String(n).padStart(2, "0");
-    return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-  };
-
-  const sessionSeconds = (game) =>
-    game.session_started_at ? Math.floor(Date.now() / 1000) - game.session_started_at : 0;
-
-  /* 会话历史里的时间戳（秒）-> 2026-09-15 21:30 */
-  const stamp = (ts) => {
-    const d = new Date((Number(ts) || 0) * 1000);
-    if (!ts) return "—";
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} `
-      + `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
-
+  /* 时长 / 时钟 / 会话时间戳在 ./app/core/time.js（P4.3-k） */
   function hashHue(text) {
     let h = 0;
     for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 360;
@@ -450,7 +422,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
       state.iconFor = wantIcon;
       call("apply_window_icon", wantIcon).catch(() => {});
     }
-    renderGameContent();
+    gameView.renderGameContent();
     syncFocusUi();
     // 拖动过程中焦点由手指决定，别再让环拉回 state.focus
     if (opts.scroll !== false && !ring.dragging()) ring.update();
@@ -484,7 +456,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     if (id) state.focus = id;
     if (!currentGame()) return;
     state.page = "game";
-    renderGameContent();
+    gameView.renderGameContent();
     el.hall.hidden = true;
     el.view.hidden = false;
     document.body.classList.add("page-game");
@@ -500,112 +472,18 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     renderHall();
   }
 
-  function chip(text, accent) {
-    return `<span class="chip${accent ? " accent" : ""}">${esc(text)}</span>`;
-  }
-
-  /* 简介文本：显示原文还是译文由 show_original 决定 */
-  function descText(g) {
-    const orig = (g.description_original || "").trim();
-    if (state.settings.show_original && orig) return orig;
-    return g.description || g.description_translated || g.about?.slice(0, 220) || "";
-  }
-
-  function updateShowOriginalBtn(g) {
-    const btn = el.showOriginal;
-    if (!btn) return;
-    const hasBoth = !!(g && g.description_translated
-      && (g.description_original || "").trim()
-      && g.description_translated !== g.description_original);
-    btn.hidden = !hasBoth;
-    if (hasBoth) btn.textContent = state.settings.show_original ? "显示译文" : "显示原文";
-  }
-
-  /* 详情正文：有译文时跟着卡片显示译文，否则用长简介（原文） */
-  function detailBody(g) {
-    const shown = descText(g);
-    if (g.description_translated) return shown || g.about || "";
-    return g.about || shown || "";
-  }
-
-  /* 游戏页（以及大厅底部的）文字内容 */
-  function renderGameContent() {
-    const g = currentGame();
-    if (!g) {
-      el.fetching.hidden = true;
-      el.title.textContent = "—";
-      el.desc.textContent = "";
-      el.chips.innerHTML = "";
-      el.logo.hidden = true;
-      el.logo.removeAttribute("src");
-      return;
-    }
-    syncBgZoomUi(g);
-
-    // 标题 / LOGO
-    if (g.logo) {
-      el.logo.src = g.logo;
-      el.logo.hidden = false;
-      el.logo.onerror = () => { el.logo.hidden = true; };
-    } else {
-      el.logo.hidden = true;
-      el.logo.removeAttribute("src");
-    }
-    el.title.textContent = g.name;
-
-    // 信息条
-    const bits = [];
-    if (g.developers[0]) bits.push(chip(g.developers[0]));
-    const year = (g.release_date || "").match(/\d{4}/)?.[0];
-    if (year) bits.push(chip(year));
-    g.genres.slice(0, 2).forEach((x) => bits.push(chip(x)));
-    if (g.metacritic) bits.push(chip(`Metacritic ${g.metacritic}`, true));
-    if (g.locale_enabled) bits.push(chip("转区启动"));
-    if (g.play_time > 0) bits.push(chip(`已玩 ${hours(g.play_time)}`));
-    if (g.running) {
-      bits.push(`<span class="chip accent" id="chipLive">运行中 · <b>${clock(sessionSeconds(g))}</b></span>`);
-    }
-    if (g.missing) bits.push(chip("可执行文件不存在", true));
-    if (!g.running && g.metadata_state === "notfound" && /网络/.test(g.metadata_note || "")) {
-      bits.push(chip("上次搜索没连上网络", true));
-    }
-    el.chips.innerHTML = bits.join("");
-
-    // 简介（原文/译文由 show_original 决定）
-    el.desc.textContent = descText(g)
-      || (g.metadata_state === "ok" ? "这款游戏没有提供简介。" : "正在获取游戏简介…");
-    updateShowOriginalBtn(g);
-
-    // 运行状态
-    el.pillRunning.hidden = !g.running;
-    el.play.classList.toggle("running", !!g.running);
-    el.playLabel.textContent = g.running ? "结束游戏" : "开始游戏";
-    if (g.running) startLiveTicker();
-
-    // 数据来源
-    if (g.data_source || g.match_source) {
-      el.pillSource.hidden = false;
-      const parts = [];
-      if (g.data_source) parts.push(sourceName(g.data_source));
-      parts.push(g.match_source === "manual" ? "手动匹配" : "自动匹配");
-      if (g.match_score != null) parts.push(`${Math.round(g.match_score * 100)}%`);
-      el.pillSource.textContent = parts.join(" · ");
-    } else {
-      el.pillSource.hidden = true;
-    }
-
-    // 加载遮罩
-    const busy = g.metadata_state === "searching" || state.busy[g.id];
-    el.fetching.hidden = !busy;
-    if (busy) {
-      el.fetchTitle.textContent = "正在搜索游戏信息…";
-      el.fetchSub.textContent = (g.queries || []).slice(0, 2).join(" / ") || g.exe_name;
-    }
-  }
+  /* 游戏页渲染面（chip/descText/detailBody/updateShowOriginalBtn/renderGameContent）
+     在 ./app/views/game.js（P4.3-k）；这里只把取数与副作用注入进去 */
+  const gameView = createGameView({
+    currentGame: () => currentGame(),
+    syncBgZoomUi: (g) => syncBgZoomUi(g),
+    startLiveTicker: () => startLiveTicker(),
+    sourceName: (id) => sourceName(id),
+  });
 
   function render() {
     renderHall();
-    renderGameContent();
+    gameView.renderGameContent();
     document.body.classList.toggle("settings-open", state.settingsOpen);
     $("btnSettings").classList.toggle("on", state.settingsOpen);
     for (const btn of el.viewSwitch.querySelectorAll(".vs-btn")) {

@@ -558,3 +558,27 @@ html / 忙标记 / 标题）、以及 `enterGame` / `playGame` / `openAddMenu` �
 大厅 / 分类 / 设置三块已归位，拆法沿用同一套：纯函数传参、回调用箭头延迟取值、
 `window.__aurora` 与 e2e / visual 判据不变。
 
+### P4.3-k 游戏页渲染面进 views/game.js（2026-09-21 11:15）
+
+视图清单里只剩游戏页。这一刀先搬**渲染面**（纯读 + 拼 DOM），游戏页的各个面板
+（背景 / 详情 / 匹配 / 资料源 / 转区 / 获取）留待下一刀 —— 与大厅当初
+「先读出面、再几何、后本体」是同一个节奏。
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/game.js`（新） | `createGameView(ctx)` 的 `renderGameContent`（LOGO / 标题 / 信息条 / 简介 / 运行状态 / 数据来源 / 加载遮罩），外加 `chip` / `descText` / `updateShowOriginalBtn` / `detailBody`（详情面板现在也 import 后两者） |
+| `core/time.js`（新） | `hours` / `clock` / `sessionSeconds` / `stamp` —— 大厅信息带、游戏页信息条、详情面板、实时计时都要用，所以从主模块抽成共享块（调用点名字不变） |
+| `core/dom.js` | 顺带收一个 `esc`：视图模块也要拼模板，`chip` 就靠它 |
+
+`createGameView(ctx)` 只注入四样：`currentGame` / `syncBgZoomUi` / `startLiveTicker` /
+`sourceName`，一律箭头延迟取值（P4.3-c 的教训）。主模块三处调用点改成
+`gameView.renderGameContent()`；时长 / 时钟与 `detailBody` 变成 import，调用点一个字没动。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**（含「界面显示简介 / 标签 /
+LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`visual` `errors=[]` 且 ring 判据
+与改前逐项相同。`app.js` 3345 → 3223 行。
+
+**下一刀（P4.3-l）**：游戏页的**面板**——`renderDetail` / `renderBgPanel` +
+`syncBgZoomUi` / `renderCoverPanel` / `renderMatches` + `openCandidates`，
+每块单独一刀，仍以 `e2e`（详情 / 换封面 / 手动匹配 / 背景面板都有判据）+ `visual` 收口。
+

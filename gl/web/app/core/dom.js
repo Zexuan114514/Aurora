@@ -1,13 +1,17 @@
-/* Aurora 前端 · DOM 元素表（P4.3-a）
+/* Aurora 前端 · DOM 元素表（P4.3-a，P4.3-k 加 esc）
  *
  * 视图模块都要拿界面元素，所以这张表从 app.js 里搬出来单独一份：
  *   - `$`：按 id 取元素，取不到就记进 `missingIds`（HTML 与 JS 对不上时能在
  *     `window.__auroraErrors` 里看到，而不是整页静默死掉）
  *   - `el`：启动时一次性把所有用到的元素抓成一张表（缺的元素值是 undefined，
  *     视图里 `if (!el.x)` 那种判断继续有效）
+ *   - `esc`：拼 HTML 时的转义（视图模块也要拼模板，所以放这里）
  */
 
 export const missingIds = new Set();
+
+export const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 export const $ = (id) => {
   const node = document.getElementById(id);
