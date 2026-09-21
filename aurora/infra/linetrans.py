@@ -58,11 +58,16 @@ def glossary_terms(game_id: str = "") -> dict:
 
 
 class LineTranslator:
-    """串行 + 可打断的逐句翻译器。"""
+    """串行 + 可打断的逐句翻译器。
 
-    def __init__(self, *, settings_getter, on_event) -> None:
+    P6.4：`plugin_getter` 注入「`plugin:<id>` → 插件翻译引擎」的取用口；设置里选了插件引擎时
+    先走插件（带上下文 / 术语表 / 流式回调），插件没给出结果再落到原有的 LLM → 免费兜底链。
+    """
+
+    def __init__(self, *, settings_getter, on_event, plugin_getter=None) -> None:
         self._get_settings = settings_getter
         self._on_event = on_event              # (kind, payload) -> None
+        self._get_plugin = plugin_getter       # (plugin_id) -> 适配器 | None（P6.4）
         self._lock = threading.RLock()
         self._history: list[dict] = []
         self._context: list[str] = []
@@ -170,36 +175,64 @@ class LineTranslator:
             return True
 
         out = ""
-        key = str(cfg.get("translate_api_key") or "").strip()
         provider = "llm"
-        if key and self._streaming:
-            try:
-                out = stream_llm(text, cfg, context=context, glossary=terms,
-                                 on_delta=on_delta) or ""
-            except Exception as exc:
-                config.log(f"linetrans stream failed: {exc}")
-                out = ""
+        fallback_from = ""
+        engine = self._plugin_engine(cfg)
+        if engine is not None:
+            # 插件是用户显式选的引擎：先问它；它失败/没结果时仍走下面的宿主兜底链，
+            # 保证「插件坏了也有译文」（失败已由 CallGuard 计数，三连失败自动禁用）。
+            provider = engine.provider
+            out = engine.translate(text, context=context, glossary=terms,
+                                   target=target, on_delta=on_delta) or ""
+            if not out:
+                fallback_from = provider      # 记下兜底来源：界面要能看出这句不是插件给的
+                provider = "llm"
         if not out:
-            provider = "llm" if key else "free"
-            out = self._fallback(text, cfg, target) or ""
+            key = str(cfg.get("translate_api_key") or "").strip()
+            if key and self._streaming:
+                try:
+                    out = stream_llm(text, cfg, context=context, glossary=terms,
+                                     on_delta=on_delta) or ""
+                except Exception as exc:
+                    config.log(f"linetrans stream failed: {exc}")
+                    out = ""
+            if not out:
+                provider = "llm" if key else "free"
+                out = self._fallback(text, cfg, target) or ""
         if not out:
             self._fire("error", {"text": text, "error": "translate-failed"})
             return
         self._cache_put(text, cfg, terms, target, out)
-        self._finish(job, out, provider=provider)
+        self._finish(job, out, provider=provider, fallback_from=fallback_from)
 
-    def _finish(self, job: dict, out: str, provider: str) -> None:
+    def _plugin_engine(self, cfg: dict):
+        """按 `translate_provider = plugin:<id>` 取插件引擎；没配/拿不到返回 None。"""
+        getter = self._get_plugin
+        if not callable(getter):
+            return None
+        mode = str(cfg.get("translate_provider") or "").lower()
+        if not mode.startswith("plugin:"):
+            return None
+        try:
+            return getter(mode.split(":", 1)[1].strip())
+        except Exception as exc:                            # noqa: BLE001
+            config.log(f"linetrans plugin lookup failed: {exc}")
+            return None
+
+    def _finish(self, job: dict, out: str, provider: str, fallback_from: str = "") -> None:
         text = job["text"]
         with self._lock:
             self._context.append(text)
             del self._context[:-12]
             self._history.append({"text": text, "translation": out,
                                   "provider": provider, "source": job.get("source", ""),
+                                  "fallback_from": fallback_from,
                                   "game_id": job.get("game_id", ""),
                                   "at": int(time.time())})
             del self._history[:-MAX_HISTORY]
         # 每条都要发出去：排队后「过期」只意味着它比最新台词旧，不代表不用给译文
         self._fire("done", {"text": text, "translation": out, "provider": provider,
+                            "fallback_from": fallback_from,
                             "source": job.get("source", "")})
 
     def _fallback(self, text: str, cfg: dict, target: str) -> str | None:
@@ -212,9 +245,13 @@ class LineTranslator:
 
     # ------------------------------------------------------------------ #
     def _cache_key(self, text: str, cfg: dict, terms: dict, target: str) -> str:
+        mode = str(cfg.get("translate_provider") or "")
         payload = json.dumps({
             "text": text,
             "model": cfg.get("translate_model") or "",
+            # P6.4：插件引擎单独分段，避免换引擎后吃到别的引擎的旧译文；
+            # 非插件模式不参与，老缓存键保持不变
+            "engine": mode if mode.startswith("plugin:") else "",
             "target": target,
             "glossary": sorted(terms.items()),
         }, ensure_ascii=False, sort_keys=True)

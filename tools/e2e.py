@@ -50,6 +50,41 @@ while True:
         break
 '''
 
+FAKE_TRANSLATOR = '''"""端到端自检用的假翻译引擎插件（P6.4）。"""
+
+class Plugin:
+    id = "e2e-trans"
+    name = "E2E 翻译"
+    requires_key = False
+    supports_stream = True
+
+    def translate(self, text, *, context, target, glossary, on_delta):
+        out = "【插件】" + str(text)[:24]
+        if on_delta:
+            on_delta(out)
+        return {"text": out, "provider": "e2e-trans"}
+'''
+
+
+def write_plugin_fixtures(data_dir: Path) -> None:
+    """两个假插件：一个能用的翻译引擎 + 一个版本不兼容的（界面必须写出原因）。"""
+    translators = data_dir / "plugins" / "translators"
+    good = translators / "e2e-trans"
+    good.mkdir(parents=True, exist_ok=True)
+    (good / "plugin.json").write_text(json.dumps({
+        "api_version": "1.0", "kind": "translator", "id": "e2e-trans",
+        "name": "E2E 翻译", "version": "0.1.0", "entry": "main.py",
+        "author": "e2e", "permissions": ["network"],
+    }, ensure_ascii=False), encoding="utf-8")
+    (good / "main.py").write_text(FAKE_TRANSLATOR, encoding="utf-8")
+
+    bad = translators / "e2e-bad"
+    bad.mkdir(parents=True, exist_ok=True)
+    (bad / "plugin.json").write_text(json.dumps({
+        "api_version": "2.0", "kind": "translator", "id": "e2e-bad",
+        "name": "E2E 旧版插件", "version": "0.1.0", "entry": "main.py",
+    }, ensure_ascii=False), encoding="utf-8")
+
 
 class MockLLM(http.server.BaseHTTPRequestHandler):
     def do_POST(self):  # noqa: N802
@@ -90,6 +125,7 @@ def main() -> int:
     EXE_DIR.mkdir(parents=True, exist_ok=True)
     fake_cli = SANDBOX / "e2e-textractor.py"
     fake_cli.write_text(FAKE_TEXTTRACTOR, encoding="utf-8")
+    write_plugin_fixtures(TEST_DATA)
     llm = http.server.ThreadingHTTPServer(("127.0.0.1", 0), MockLLM)
     threading.Thread(target=llm.serve_forever, daemon=True).start()
     llm_port = llm.server_address[1]
@@ -525,7 +561,7 @@ def main() -> int:
                  bool(saved.get("ok")) and str(reloaded_dir) == str(target_dir), str(reloaded_dir))
             api.set_download_option("download_dir", str(TEST_DATA / "downloads"))
 
-            # 3.8 设置页：整页 + 六个页签
+            # 3.8 设置页：整页 + 八个页签
             window.evaluate_js("document.getElementById('btnSettings').click()")
             time.sleep(1.5)
             settings = probe(window, """
@@ -541,9 +577,67 @@ def main() -> int:
             """)
             step("设置页能打开且盖住大厅",
                  settings.get("open") and settings.get("hallHidden")
-                 and len(settings.get("tabs") or []) == 7
+                 and len(settings.get("tabs") or []) == 8
                  and settings.get("tabs") == settings.get("panes")
                  and settings.get("inside"), settings)
+
+            # 3.8b 插件区（P6.4 / ADR-0009）：状态、权限、来源与「重新扫描」
+            window.evaluate_js(
+                "document.querySelector('#setNav .set-tab[data-pane=plugins]').click()")
+            time.sleep(1.4)
+            plugins_pane = probe(window, """
+              const pane = document.querySelector('#settingsView .set-pane.on');
+              const rows = [...document.querySelectorAll('#pluginList .plugin-row')];
+              const text = rows.map((r) => r.textContent.replace(/\\s+/g, ' ').trim()).join(' | ');
+              return JSON.stringify({
+                pane: pane && pane.dataset.pane,
+                count: rows.length,
+                text: text,
+                dir: document.getElementById('pluginDir').textContent,
+                providers: [...document.getElementById('setTransProvider').options]
+                             .map((o) => o.value)});
+            """)
+            step("设置页插件区列出状态 / 权限 / 来源（中文标签）",
+                 plugins_pane.get("pane") == "plugins"
+                 and plugins_pane.get("count") == 2
+                 and "E2E 翻译" in (plugins_pane.get("text") or "")
+                 and "正常" in (plugins_pane.get("text") or "")
+                 and "版本不兼容" in (plugins_pane.get("text") or "")
+                 and "权限：" in (plugins_pane.get("text") or "")
+                 and "plugins" in (plugins_pane.get("dir") or ""),
+                 f"{plugins_pane.get('count')} 个插件 / {plugins_pane.get('dir')}")
+            step("翻译方式下拉里有插件引擎（plugin:e2e-trans）",
+                 "plugin:e2e-trans" in (plugins_pane.get("providers") or []),
+                 plugins_pane.get("providers"))
+
+            window.evaluate_js("document.getElementById('btnPluginRescan').click()")
+            time.sleep(1.6)
+            rescanned = probe(window, """
+              return JSON.stringify({
+                count: document.querySelectorAll('#pluginList .plugin-row').length,
+                toast: document.getElementById('toast').textContent});
+            """)
+            step("「重新扫描插件」刷新列表并给出回执",
+                 rescanned.get("count") == 2
+                 and "已重新扫描插件" in (rescanned.get("toast") or ""), rescanned)
+
+            # 3.8c 翻译引擎插件真的接进简介链路（provider = plugin:<id>）
+            before_plug = api._library.get(game_id)
+            saved_desc = {key: before_plug.get(key) for key in
+                          ("description", "description_original",
+                           "description_translated", "description_lang")}
+            saved_provider = api._library.settings.get("translate_provider")
+            api._library.set_setting("translate_provider", "plugin:e2e-trans")
+            api._library.update(game_id,
+                                description=("The story follows a young swordsman "
+                                             "who must protect his hometown."),
+                                description_original="", description_translated="")
+            plug_res = api._translation._translate_description(game_id)
+            step("简介翻译能走插件引擎（provider = plugin:e2e-trans）",
+                 plug_res.get("provider") == "plugin:e2e-trans" and plug_res.get("changed"),
+                 plug_res)
+            api._library.set_setting("translate_provider", saved_provider or "auto")
+            api._library.update(game_id, **saved_desc)
 
             # 3.9 网络页：控件读到状态，测试按钮能出结果
             window.evaluate_js(

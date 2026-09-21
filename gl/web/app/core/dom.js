@@ -72,6 +72,7 @@ export const el = {
     frameSel: $("frameSel"),
     netStatus: $("netStatus"), netResults: $("netResults"),
     leStatus: $("leStatus"), leProfiles: $("leProfiles"),
+    pluginList: $("pluginList"),
     toast: $("toast"),
     dropHint: $("dropHint"),
     modal: $("modal"), modalTitle: $("modalTitle"), modalBody: $("modalBody"),

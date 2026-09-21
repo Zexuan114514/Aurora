@@ -21,6 +21,17 @@ const PALETTES = [
   { key: "amber", name: "琥珀橙", accent: "#FF9F0A", accent2: "#FFC46B" },
 ];
 
+/* 插件状态（P6.4 / ADR-0009：加载失败 / 版本不兼容 / 自动禁用都必须看得见） */
+const PLUGIN_STATES = {
+  ok: "正常", "manifest-error": "清单错误", incompatible: "版本不兼容",
+  "load-error": "加载失败", "init-error": "初始化失败", duplicate: "重复 ID",
+  disabled: "已自动禁用",
+};
+const PLUGIN_KINDS = { sources: "资料源", translators: "翻译引擎" };
+const PLUGIN_PERMS = {
+  network: "联网", "files:read": "读文件", "files:write": "写文件", process: "启动进程",
+};
+
 const lightQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
 
 export function createSettingsView(ctx) {
@@ -149,6 +160,68 @@ export function createSettingsView(ctx) {
     }
   }
 
+  /* ------------------------------------------------------------ 设置：插件（P6.4） */
+  function renderPluginRows(plugins) {
+    if (!plugins.length) {
+      el.pluginList.innerHTML =
+        '<p class="hint">还没有插件。把插件目录放进 data/plugins/… 后点「重新扫描插件」。</p>';
+      return;
+    }
+    el.pluginList.innerHTML = plugins.map((p) => {
+      const perms = (p.permissions || []).map((key) => PLUGIN_PERMS[key] || key);
+      const label = PLUGIN_STATES[p.state] || p.state || "未知";
+      return `
+        <div class="plugin-row${p.state === "ok" ? " ok" : ""}">
+          <div class="plugin-line">
+            <i class="dot"></i>
+            <b class="plugin-name">${esc(p.name || p.id)}</b>
+            <span class="src-badge">${esc(PLUGIN_KINDS[p.kind] || p.kind || "插件")}</span>
+            <span class="plugin-state">${esc(label)}</span>
+            <span class="plugin-meta">${esc(p.id)} · v${esc(p.version || "—")} · 失败 ${p.failures || 0} 次</span>
+          </div>
+          ${p.detail ? `<div class="plugin-detail">${esc(p.detail)}</div>` : ""}
+          <div class="plugin-foot">
+            <span>权限：${perms.length ? esc(perms.join(" / ")) : "未声明"}</span>
+            <code class="plugin-path" title="${esc(p.path || "")}">${esc(p.path || "")}</code>
+          </div>
+        </div>`;
+    }).join("");
+  }
+
+  /* 翻译方式下拉里的插件选项：只有「翻译引擎」类插件会进去 */
+  function syncTranslateProviderOptions(plugins) {
+    const sel = $("setTransProvider");
+    if (!sel) return;
+    const current = sel.value || state.settings.translate_provider || "auto";
+    for (const opt of [...sel.querySelectorAll("option[data-plugin]")]) opt.remove();
+    for (const p of plugins || []) {
+      if (p.kind !== "translators") continue;
+      const opt = document.createElement("option");
+      opt.value = `plugin:${p.id}`;
+      opt.dataset.plugin = p.id;
+      opt.textContent = `插件：${p.name || p.id}`
+        + (p.state === "ok" ? "" : `（${PLUGIN_STATES[p.state] || p.state}）`);
+      sel.appendChild(opt);
+    }
+    // 插件被删掉时下拉退回「自动」（只是显示层，不动用户存的值）
+    sel.value = [...sel.options].some((opt) => opt.value === current) ? current : "auto";
+  }
+
+  async function refreshPluginsPane(rescan = false) {
+    try {
+      // 写成两个字面量调用：契约守卫靠 `call("名字")` 扫描前端调用点
+      const payload = rescan ? await call("rescan_plugins") : await call("list_plugins");
+      const plugins = (payload && payload.plugins) || [];
+      renderPluginRows(plugins);
+      syncTranslateProviderOptions(plugins);
+      $("pluginDir").textContent = payload && payload.dir ? `插件目录：${payload.dir}` : "";
+      return payload;
+    } catch (err) {
+      el.pluginList.innerHTML = `<p class="hint">读取插件失败：${esc(err.message)}</p>`;
+      return null;
+    }
+  }
+
   /* ------------------------------------------------------------ 外观回填与保存 */
   function applySettingsToUi() {
     const s = state.settings;
@@ -167,7 +240,7 @@ export function createSettingsView(ctx) {
     $("setMerge").checked = s.sources ? s.sources.merge_images !== false : true;
     $("setTray").checked = !!s.close_to_tray;
     $("setTransEnabled").checked = s.translate_enabled !== false;
-    $("setTransProvider").value = s.translate_provider || "auto";
+    setSelectValue($("setTransProvider"), s.translate_provider, "auto");
     $("setTransBase").value = s.translate_base_url || "";
     $("setTransKey").value = s.translate_api_key || "";
     $("setTransModel").value = s.translate_model || "";
@@ -187,6 +260,13 @@ export function createSettingsView(ctx) {
     applySettingsToUi();
     if (key === "ken_burns") ctx.applyKenBurns(value);
     await call("set_setting", key, value);
+  }
+
+  /* 下拉里没有这个值（例如插件被删了）时不要置空，退回默认项 */
+  function setSelectValue(sel, value, fallback) {
+    if (!sel) return;
+    const wanted = (value === undefined || value === null || value === "") ? fallback : value;
+    sel.value = [...sel.options].some((opt) => opt.value === wanted) ? wanted : fallback;
   }
 
   /* ------------------------------------------------------------ 页签导航与开合 */
@@ -222,8 +302,9 @@ export function createSettingsView(ctx) {
       state.settings = info.settings || state.settings;
       state.version = info.version || state.version;
       $("aboutVersion").textContent = state.version || "—";
+      await refreshPluginsPane();     // P6.4：先灌插件状态，翻译方式下拉再回填
       applySettingsToUi();
-    } catch (_) { /* 离线也要能开设置 */ }
+    } catch (_) { refreshPluginsPane(); /* 离线也要能开设置（插件区照常显示） */ }
     refreshNetworkPane();
     refreshLocalePane();
     ctx.refreshVntext();
@@ -344,6 +425,15 @@ export function createSettingsView(ctx) {
       ctx.render();
     };
 
+    // 设置 → 插件（P6.4）
+    $("btnPluginRescan").onclick = async () => {
+      el.pluginList.innerHTML = '<p class="hint">正在重新扫描插件目录…</p>';
+      const payload = await refreshPluginsPane(true);
+      ctx.toast(payload ? `已重新扫描插件：${(payload.plugins || []).length} 个`
+                        : "重新扫描插件失败");
+    };
+    $("btnPluginOpenDir").onclick = () => call("open_data_dir");
+
     // 设置 → 资料源 / Steam / 批量
     $("btnSources").onclick = () => ctx.openSourcePanel();
     $("btnSteamScan").onclick = () => ctx.openSteamPanel();
@@ -374,6 +464,6 @@ export function createSettingsView(ctx) {
   return {
     setSettingsTab, openSettings, closeSettings, refreshSettingsPanes,
     applySettingsToUi, saveSetting, renderPaletteRow, applyTheme,
-    refreshNetworkPane, refreshLocalePane, testNetwork, bind,
+    refreshNetworkPane, refreshLocalePane, refreshPluginsPane, testNetwork, bind,
   };
 }

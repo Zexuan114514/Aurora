@@ -1034,7 +1034,63 @@ ADR-0009 的加载器部分落地（**接入注册表与界面留到 P6.3**）�
 2. 测试里 `from gl.api import Api` → 依赖白名单报「引用了 gl.api（模块顶端 import webview）」→ 改成
    直接测 `PluginsService` 与 `SettingsBridgeMixin`（不拉整棵 Api）。
 
-**P6 还剩（P6.3）**：把插件真正接入资料源 / 翻译引擎注册表（让 `search/fetch/translate` 生效），
-并在设置页加「插件」区展示状态、权限与来源，配一个「重新扫描插件」按钮 —— ADR-0009 明确要求
-「加载失败 / 版本不兼容 / 自动禁用必须有界面呈现」。
+## P6.3 插件接入资料源（2026-09-21 17:58）
+
+ADR-0009 的「资料源接入」落地（翻译引擎接入与设置页插件区留到 P6.4）：
+
+| 改动 | 内容 |
+| --- | --- |
+| `gl/sources/plugin_source.py`（新） | `PluginSource(Source)`：插件的短签名 `search(query, lang)` 接到宿主 `search(queries, timeout)`（逐个问、最多三个、命中即停）；返回 dict 归一成 `Candidate`；`fetch` → `Metadata`（缺 `source` / `source_id` / `name` 时按候选补齐）；每次调用走 `CallGuard` |
+| `gl/sources/manager.py` | `set_plugin_statuses()` / `plugin_sources()`：只有 `state == ok` 的插件会变成资料源，排在自定义源之后参与 `sources()` 与 `describe()`（`plugin: true` 标记） |
+| `gl/api.py` | 启动时把插件状态灌进 `SourceManager`；`rescan_plugins()` 重扫后同步 |
+
+**验收**：`pytest` 76 passed（新增「插件 → 宿主 Source」端到端用例）、`run_all` 10/10、
+`e2e` 90/90（0 skipped）。
+
+## P6.4 翻译引擎插件接入 + 设置页「插件」区（2026-09-21）
+
+ADR-0009 收尾：插件状态的界面呈现（「加载失败 / 版本不兼容 / 自动禁用必须有界面呈现」）
+与翻译引擎接入（简介链路 + 游戏内逐句链路）。
+
+| 改动 | 内容 |
+| --- | --- |
+| `aurora/app/services/translators.py`（新） | `PluginTranslator`：把 `translate(text, *, context, target, glossary, on_delta)` 包成宿主引擎 —— 入参/返回归一（dict 或纯字符串都收，插件只给整段时宿主补一段流式回执）、调用走 `CallGuard`（连续 3 次失败自动禁用）、`provider` 固定写成 `plugin:<id>`；`TranslatorRegistry`：按 `plugin:<id>` 现查现建，**重新扫描后自动换新实例**（旧适配器连同失败计数一起退休） |
+| `gl/translate.py` | `translate_text()` / `test_provider()` 新增可选 `plugin_translate` 回调；`translate_provider = plugin:<id>` 时先问插件，成功写 `provider = plugin:<id>` 并进宿主缓存（键含 provider），失败保持原文并附 `error`（`plugin-unavailable` / `plugin-failed`）—— **显式选了插件就不静默换引擎**，与「仅 LLM / 仅免费」同一套语义 |
+| `aurora/app/services/translation.py` | `_plugin_engine(provider)`：把 `plugin:<id>` 翻成 `gl.translate` 要的回调（取不到就返回 None）；简介翻译与「测试」按钮共用 |
+| `aurora/infra/linetrans.py` | `LineTranslator(plugin_getter=…)`：选了插件引擎先走插件（带上下文 / 术语表 / 流式回调），**没结果再落原有的 LLM → 免费兜底链**（保证「插件坏了也有译文」）并记下 `fallback_from`；缓存键加 `engine` 段，避免换引擎后吃到别的引擎的旧译文（非插件模式不加，老键不变） |
+| `aurora/app/services/translation.py` / `core/events.js` / `views/vntext.js` | 失败如实回执：简介翻译把 `error`（`plugin-unavailable` / `plugin-failed`）带回前端弹提示；逐句面板在兜底行标「插件未响应，已兜底 llm / free」——**不做静默兜底** |
+| `gl/api.py` | 装配 `TranslatorRegistry`，注入 `LineTranslator` 与 `TranslationService` |
+| `gl/web/index.html` / `app.css` | 第 8 个页签「插件」：目录说明、`plugin:<id>` 用法、信任模型声明、「重新扫描插件 / 打开数据目录」、状态列表容器 |
+| `gl/web/app/views/settings.js` / `core/dom.js` | `renderPluginRows()`（中文状态标签 / 权限自述 / 来源路径 / 失败次数）、`refreshPluginsPane()`（`list_plugins` / `rescan_plugins`）、`syncTranslateProviderOptions()`（把能用的翻译引擎加进「翻译方式」下拉）、`setSelectValue()`（插件被删时下拉不置空，退回自动） |
+
+**设计取舍（写清楚免得以后误会）**：
+
+1. **简介链路严格、逐句链路兜底**：简介翻译是用户显式选的引擎，插件失败就保持原文（界面能看出原因）；
+   游戏内逐句翻译是高频流，插件失败仍落回 LLM / 免费接口，只是历史里的 provider 会写成 `llm` / `free`。
+2. **缓存归宿主**：插件不许自己缓存（契约约定）；简介走 `gl.translate` 的缓存、逐句走 `linetrans` 的
+   `cache/vntext`，键都带上 provider / engine。
+3. **超时未强制**：宿主目前只能靠 `CallGuard` 计数与自动禁用兜底，**不能打断**插件里卡死的调用
+   （Python 线程无法安全强杀）。契约里「尊重宿主超时」暂时是君子协定，写在这里不装作已解决。
+4. **兜底不静默**：本机 Laya 决策模型（README 自己写明「概率偏高、仅供参考」）对「静默兜底要不要提示用户」
+   给出的 `noul ≈ 0.90`，所以逐句链路补了 `fallback_from` 标记与面板提示；它对失败策略本身没给出可信偏好
+   （分布接近均匀、confidence 0.03），策略仍按上面的工程约束定，不拿模型当依据。
+
+**验收**：
+
+| 项 | 结果 |
+| --- | --- |
+| `pytest` | **82 passed**（新增 6 个：适配器归一与流式回执、简介链路走插件、插件缺失/连续失败被禁用、测试按钮、逐句链路优先插件、插件失败落兜底并标记来源） |
+| `run_all` | **10/10** |
+| `e2e` | **94/94（0 skipped）**（新增 4 条：插件区渲染中文状态与权限、翻译方式下拉出现 `plugin:<id>`、「重新扫描插件」回执、简介翻译真的走 `plugin:e2e-trans`） |
+| `visual` | `errors=[]`，ring 判据 `0/347.0`、`±16/283.2`、`32/232.5` 逐项不变 |
+| 真机探针 | `_sandbox/p64_plugins_probe.py` **PASS**（插件区两行、重扫回执、下拉选项、`test_translation`、简介与逐句两条链路都走插件，`__auroraErrors` 为空） |
+| 契约快照 | `update_contract.py --write`：前端调用点 97 → **99**（`list_plugins` / `rescan_plugins` 被前端用上） |
+
+**守卫当场拦下的一处**：`refreshPluginsPane` 最初写成 `call(rescan ? "rescan_plugins" : "list_plugins")`，
+契约守卫的正则只认 `call("字面量")`，于是这两个调用点**没被登记**。改成
+`rescan ? await call("rescan_plugins") : await call("list_plugins")` 后守卫立刻报
+「新增调用 ['list_plugins','rescan_plugins']」，再跑 `update_contract.py --write` 落快照 —— 正是它该做的事。
+
+**P6 全部完成**：P6.1 引擎规则包、P6.2 插件加载器、P6.3 资料源接入、P6.4 翻译引擎接入 +
+设置页插件区。下一步是 P7 治理收口（CI 全量、诊断包、README 与开发文档同步）。
 

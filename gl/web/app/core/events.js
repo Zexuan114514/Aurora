@@ -135,14 +135,21 @@ export function createEventRouter(ctx) {
     "translate:done": (payload) => {
       // 只有手动点「翻译简介」才回执，自动翻译安静进行
       if (!payload.manual) return;
+      const provider = String(payload.provider || "");
       if (payload.changed) {
-        ctx.toast(payload.provider === "llm" ? "已用 LLM 翻译简介" : "已用免费接口翻译简介");
+        // P6.4：插件引擎也要如实回执（provider = plugin:<id>）
+        if (provider.startsWith("plugin:")) ctx.toast(`已用插件 ${provider.slice(7)} 翻译简介`);
+        else ctx.toast(provider === "llm" ? "已用 LLM 翻译简介" : "已用免费接口翻译简介");
       } else if (payload.error === "empty") {
         ctx.toast("这款游戏还没有简介可翻译");
       } else if (payload.error === "stale") {
         ctx.toast("简介刚被更新，请再翻译一次");
       } else if (payload.error === "busy") {
         ctx.toast("正在翻译中…");
+      } else if (payload.error === "plugin-unavailable") {
+        ctx.toast("翻译插件不可用（没加载或已被禁用），详情见「设置 → 插件」");
+      } else if (payload.error === "plugin-failed") {
+        ctx.toast("翻译插件调用失败，简介保持原文；详情见「设置 → 插件」");
       } else if (payload.error) {
         ctx.toast("翻译失败：" + payload.error);
       } else {

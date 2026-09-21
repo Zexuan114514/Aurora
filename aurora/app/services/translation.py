@@ -2,6 +2,9 @@
 
 从 aurora/ui/bridge/metadata.py 原样搬出；事件改为向默认总线发布（Api 通配订阅推前端）。
 翻译请求本身由注入的 LineTranslator 负责（它自带缓存/流式/术语表）。
+
+P6.4：`translate_provider = plugin:<id>` 时把插件引擎接进同一条链（provider 选择处在这里，
+适配器与状态在 aurora/app/services/translators.py）。
 """
 from __future__ import annotations
 
@@ -16,11 +19,13 @@ from gl import config, translate   # TODO(P3.8): 收口到 aurora.infra
 class TranslationService:
     """简介翻译：单条、批量与常驻队列（状态都在本服务内）。"""
 
-    def __init__(self, library, pm, translator, tasks) -> None:
+    def __init__(self, library, pm, translator, tasks, plugin_getter=None) -> None:
         self._library = library
         self._pm = pm
         self._translator = translator
         self._tasks = tasks
+        #: P6.4：`plugin:<id>` → 插件翻译引擎（拿不到就按「插件不可用」处理）
+        self._plugin_getter = plugin_getter or (lambda pid: None)
         self._translating: set[str] = set()
         self._queue: "queue.Queue[tuple[str, bool]]" = queue.Queue()
         self._worker_started = False
@@ -50,7 +55,8 @@ class TranslationService:
             settings = dict(self._library.settings)
             res = translate.translate_text(
                 text, target=str(settings.get("translate_target") or translate.TARGET_DEFAULT),
-                settings=settings)
+                settings=settings,
+                plugin_translate=self._plugin_engine(settings.get("translate_provider")))
             # 陈旧保护：翻译期间若被并发重新抓取换掉了简介，就丢弃这次结果
             current = self._library.get(game_id)
             if not current or (current.get("description_original")
@@ -64,7 +70,9 @@ class TranslationService:
             if updated:
                 default_bus().publish("game:updated", _public(updated, self._pm))
             return {"ok": bool(res.get("changed")), "changed": bool(res.get("changed")),
-                    "provider": res.get("provider"), "lang": res.get("lang")}
+                    "provider": res.get("provider"), "lang": res.get("lang"),
+                    # P6.4：插件失败/不可用时带上原因（批量统计会把它算成 failed，手动翻译会弹提示）
+                    "error": res.get("error") or ""}
         finally:
             with self._lock:
                 self._translating.discard(game_id)
@@ -139,4 +147,19 @@ class TranslationService:
         settings = dict(self._library.settings)
         if isinstance(overrides, dict):
             settings.update({k: v for k, v in overrides.items() if v is not None})
-        return translate.test_provider(settings)
+        return translate.test_provider(
+            settings, plugin_translate=self._plugin_engine(settings.get("translate_provider")))
+
+    def _plugin_engine(self, provider):
+        """把 `plugin:<id>` 翻成 `gl.translate` 要的回调；其它 provider 返回 None。"""
+        text = str(provider or "")
+        if not text.startswith("plugin:"):
+            return None
+        try:
+            adapter = self._plugin_getter(text.split(":", 1)[1].strip())
+        except Exception as exc:                            # noqa: BLE001
+            config.log(f"translate plugin lookup failed: {exc}")
+            return None
+        if adapter is None or not adapter.available():
+            return None
+        return lambda raw, target=translate.TARGET_DEFAULT: adapter.translate(raw, target=target)

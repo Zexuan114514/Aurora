@@ -189,14 +189,18 @@ def _cached(provider: str, model: str, target: str, text: str, fn):
 
 
 def translate_text(text: str, *, target: str = TARGET_DEFAULT,
-                   settings: dict | None = None) -> dict:
+                   settings: dict | None = None, plugin_translate=None) -> dict:
     """把简介翻译成目标语言。
 
     返回 {text, provider, changed, lang}：
     - text     最终文本（失败时就是原文）
-    - provider 'llm' | 'free' | 'none'
+    - provider 'llm' | 'free' | 'plugin:<id>' | 'none'
     - changed  是否真的翻译了
     - lang     原文语言（zh / ja / en / other / empty）
+
+    `plugin_translate`：P6.4 起由服务层注入的插件引擎回调
+    `fn(text, target=…) -> str|None`；只有 `translate_provider` 写成 `plugin:<id>` 时才会用到。
+    显式选了插件就**不静默换引擎**（和「仅 LLM / 仅免费」同一套语义），失败时保持原文并附 `error`。
     """
     cfg = settings or {}
     raw = clean_html(text or "").strip()
@@ -210,6 +214,19 @@ def translate_text(text: str, *, target: str = TARGET_DEFAULT,
 
     mode = str(cfg.get("translate_provider") or "auto").lower()
     model = str(cfg.get("translate_model") or "deepseek-chat").strip()
+
+    if mode.startswith("plugin:"):
+        out = None
+        if callable(plugin_translate):
+            out = _cached(mode, model, target, raw,
+                          lambda: plugin_translate(raw, target=target))
+        if out:
+            result.update(text=out, provider=mode, changed=True)
+        else:
+            result["provider"] = mode
+            result["error"] = ("plugin-failed" if callable(plugin_translate)
+                               else "plugin-unavailable")
+        return result
 
     if mode in ("auto", "llm"):
         out = _cached("llm", model, target, raw,
@@ -231,13 +248,23 @@ def translate_text(text: str, *, target: str = TARGET_DEFAULT,
     return result
 
 
-def test_provider(settings: dict | None = None) -> dict:
+def test_provider(settings: dict | None = None, plugin_translate=None) -> dict:
     """设置面板的「测试」按钮：用一段样例文本实时验证接口是否可用（绕过缓存）。"""
     cfg = settings or {}
     sample = ("The story follows a young swordsman who must protect his hometown "
               "from an invading army.")
     mode = str(cfg.get("translate_provider") or "auto").lower()
     errors: list[str] = []
+
+    if mode.startswith("plugin:"):
+        name = mode.split(":", 1)[1].strip() or mode
+        if not callable(plugin_translate):
+            return {"ok": False, "provider": mode,
+                    "error": f"插件 {name} 不可用（没加载或已被自动禁用）"}
+        out = plugin_translate(sample, target=TARGET_DEFAULT)
+        if out:
+            return {"ok": True, "provider": mode, "text": out}
+        return {"ok": False, "provider": mode, "error": f"插件 {name} 翻译失败"}
 
     if mode in ("auto", "llm"):
         if not str(cfg.get("translate_api_key") or "").strip():

@@ -18,7 +18,7 @@
       "method_count": 150,
       "public_method_count": 108,
       "internal_method_count": 42,
-      "frontend_call_count": 97,
+      "frontend_call_count": 99,
       "excluded_members": [
         "__init__"
       ],
@@ -1096,7 +1096,7 @@
           "returns": "dict",
           "kind": "query",
           "internal": false,
-          "called_by_frontend": false
+          "called_by_frontend": true
         },
         {
           "name": "list_shelves",
@@ -1480,7 +1480,7 @@
           "returns": "dict",
           "kind": "command",
           "internal": false,
-          "called_by_frontend": false
+          "called_by_frontend": true
         },
         {
           "name": "reset_name",

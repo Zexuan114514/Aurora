@@ -217,3 +217,178 @@ def test_source_plugin_becomes_host_source(tmp_path):
     make_plugin(tmp_path, "sources", "plug-bad", body="raise RuntimeError('炸')\n")
     manager.set_plugin_statuses(plugins.discover(tmp_path))
     assert all(s.id != "plug-bad" for s in manager.sources())
+
+
+# --------------------------------------------------------------------------- #
+# P6.4 翻译引擎插件
+# --------------------------------------------------------------------------- #
+def _registry(tmp_path):
+    """`PluginsService(data_dir)` 自己拼 `data_dir/plugins`，所以插件要建在 plugins 子目录下。"""
+    from aurora.app.services.plugins import PluginsService
+    from aurora.app.services.translators import TranslatorRegistry
+
+    return TranslatorRegistry(PluginsService(tmp_path))
+
+
+def _plug_root(tmp_path) -> Path:
+    root = tmp_path / "plugins"
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def test_translator_plugin_becomes_host_engine(tmp_path):
+    """插件翻译引擎的适配：入参归一、流式回调透传、provider 带 plugin: 前缀。"""
+    body = (
+        "class Plugin:\n"
+        "    requires_key = True\n"
+        "    supports_stream = True\n"
+        "    def translate(self, text, *, context, target, glossary, on_delta):\n"
+        "        on_delta('【流式】')\n"
+        "        return {'text': '【插件】' + text, 'provider': 'demo'}\n"
+    )
+    make_plugin(_plug_root(tmp_path), "translators", "plug-trans", body=body)
+    adapter = _registry(tmp_path).get("plug-trans")
+    assert adapter is not None and adapter.available()
+    assert adapter.provider == "plugin:plug-trans"
+    assert adapter.requires_key and adapter.supports_stream
+
+    seen: list[str] = []
+    out = adapter.translate("こんにちは", context=["上文"], glossary={"私": "我"},
+                            target="zh-CN", on_delta=seen.append)
+    assert out == "【插件】こんにちは"
+    assert seen == ["【流式】"]
+
+    # 插件只给整段、不吐 delta 时，宿主补一段流式回执
+    make_plugin(_plug_root(tmp_path), "translators", "whole-only", body=(
+        "class Plugin:\n"
+        "    def translate(self, text, **kw):\n"
+        "        return '【整段】' + text\n"))
+    adapter2 = _registry(tmp_path).get("whole-only")
+    got: list[str] = []
+    assert adapter2.translate("テスト", on_delta=got.append) == "【整段】テスト"
+    assert got == ["【整段】テスト"]
+
+
+def test_description_translation_uses_plugin_engine(tmp_path):
+    """简介链路：`translate_provider = plugin:<id>` 时真的走插件（缓存归宿主）。"""
+    from gl import translate
+
+    make_plugin(_plug_root(tmp_path), "translators", "desk-trans", body=(
+        "class Plugin:\n"
+        "    def translate(self, text, *, context, target, glossary, on_delta):\n"
+        "        return {'text': '【简介】' + text[:6]}\n"))
+    service = _translation_service(tmp_path)
+    mode = "plugin:desk-trans"
+    res = translate.translate_text(
+        "The story follows a young swordsman.", settings={"translate_provider": mode},
+        plugin_translate=service._plugin_engine(mode))
+    assert res["changed"] is True
+    assert res["provider"] == mode and res["text"] == "【简介】The st"
+
+    # 已经中文的文本不进翻译
+    skip = translate.translate_text("中文简介", settings={"translate_provider": mode},
+                                    plugin_translate=service._plugin_engine(mode))
+    assert skip["changed"] is False
+
+
+def test_plugin_engine_missing_and_failing(tmp_path):
+    """插件不可用 / 插件失败：保持原文、provider 是 plugin:<id>，并给出 error。"""
+    from gl import translate
+
+    service = _translation_service(tmp_path)          # 目录里没有任何插件
+    mode = "plugin:gone"
+    res = translate.translate_text("The story follows a young swordsman.",
+                                   settings={"translate_provider": mode},
+                                   plugin_translate=service._plugin_engine(mode))
+    assert res["changed"] is False and res["provider"] == mode
+    assert res["error"] == "plugin-unavailable"
+
+    make_plugin(_plug_root(tmp_path), "translators", "boom-trans", body=(
+        "class Plugin:\n"
+        "    def translate(self, text, **kw):\n"
+        "        raise RuntimeError('引擎炸了')\n"))
+    service = _translation_service(tmp_path)
+    mode = "plugin:boom-trans"
+    engine = service._plugin_engine(mode)
+    for _ in range(3):
+        res = translate.translate_text("The story follows a young swordsman.",
+                                       settings={"translate_provider": mode},
+                                       plugin_translate=engine)
+        assert res["changed"] is False and res["error"] == "plugin-failed"
+    status = [s for s in service.plugins_service.statuses() if s.id == "boom-trans"][0]
+    assert status.state == "disabled" and "已自动禁用" in status.detail
+    # 禁用后再取：拿不到引擎 → 状态变成「不可用」，界面据此提示
+    assert service._plugin_engine(mode) is None
+
+
+def _translation_service(tmp_path):
+    """只借 TranslationService 的 provider 选择逻辑（不拉整棵 Api）。"""
+    from aurora.app.services.plugins import PluginsService
+    from aurora.app.services.translation import TranslationService
+    from aurora.app.services.translators import TranslatorRegistry
+
+    class _Lib:
+        settings: dict = {}
+
+    plugins_service = PluginsService(tmp_path)
+    registry = TranslatorRegistry(plugins_service)
+    service = TranslationService(_Lib(), None, None, None, plugin_getter=registry.get)
+    service.plugins_service = plugins_service      # 测试用把手
+    return service
+
+
+def test_test_provider_reports_plugin(tmp_path):
+    """设置页「测试」按钮：选了插件就用插件测。"""
+    from gl import translate
+
+    make_plugin(_plug_root(tmp_path), "translators", "probe-trans", body=(
+        "class Plugin:\n"
+        "    def translate(self, text, **kw):\n"
+        "        return '【测试】' + text[:4]\n"))
+    service = _translation_service(tmp_path)
+    mode = "plugin:probe-trans"
+    good = translate.test_provider({"translate_provider": mode},
+                                   plugin_translate=service._plugin_engine(mode))
+    assert good["ok"] and good["provider"] == mode
+    bad = translate.test_provider({"translate_provider": "plugin:nope"})
+    assert bad["ok"] is False and "不可用" in bad["error"]
+
+
+def test_line_translator_prefers_plugin_engine(tmp_path, monkeypatch):
+    """游戏内逐句链路：选了插件引擎就先走插件（带上下文 / 术语表 / 流式回调）。"""
+    from aurora.infra import linetrans
+
+    make_plugin(_plug_root(tmp_path), "translators", "line-trans", body=(
+        "class Plugin:\n"
+        "    def translate(self, text, *, context, target, glossary, on_delta):\n"
+        "        on_delta('【流】')\n"
+        "        return {'text': '【插件】' + text}\n"))
+    monkeypatch.setattr(linetrans.config, "CACHE_DIR", tmp_path / "cache")
+    cfg = {"translate_provider": "plugin:line-trans", "translate_target": "zh-CN"}
+    translator = linetrans.LineTranslator(settings_getter=lambda: cfg, on_event=None,
+                                          plugin_getter=_registry(tmp_path).get)
+    translator._run({"text": "彼女は静かに微笑んだ。", "game_id": "", "source": "test",
+                     "token": 1})
+    rows = translator.history()
+    assert rows and rows[-1]["provider"] == "plugin:line-trans"
+    assert rows[-1]["translation"] == "【插件】彼女は静かに微笑んだ。"
+
+
+def test_line_translator_falls_back_when_plugin_fails(tmp_path, monkeypatch):
+    """插件没给出结果：落回兜底链，并把「兜底来自插件」记进历史（界面据此提示）。"""
+    from aurora.infra import linetrans
+    from gl import translate
+
+    make_plugin(_plug_root(tmp_path), "translators", "dead-trans", body=(
+        "class Plugin:\n"
+        "    def translate(self, text, **kw):\n"
+        "        raise RuntimeError('插件挂了')\n"))
+    monkeypatch.setattr(linetrans.config, "CACHE_DIR", tmp_path / "cache")
+    monkeypatch.setattr(translate, "free_translate", lambda text, **kw: "【兜底】" + text)
+    cfg = {"translate_provider": "plugin:dead-trans", "translate_target": "zh-CN"}
+    translator = linetrans.LineTranslator(settings_getter=lambda: cfg, on_event=None,
+                                          plugin_getter=_registry(tmp_path).get)
+    translator._run({"text": "テスト台詞", "game_id": "", "source": "test", "token": 1})
+    row = translator.history()[-1]
+    assert row["provider"] == "free" and row["fallback_from"] == "plugin:dead-trans"
+    assert row["translation"] == "【兜底】テスト台詞"

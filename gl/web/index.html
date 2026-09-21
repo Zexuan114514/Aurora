@@ -602,6 +602,7 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
         <button class="set-tab" data-pane="net">网络</button>
         <button class="set-tab" data-pane="locale">转区启动</button>
         <button class="set-tab" data-pane="vntext">游戏内翻译</button>
+        <button class="set-tab" data-pane="plugins">插件</button>
         <button class="set-tab" data-pane="about">关于</button>
       </nav>
 
@@ -829,6 +830,23 @@ document.write('<link rel="stylesheet" href="app.css?v=' + window.__ASSET_V + '"
           </div>
           <div class="glossary-list" id="glossaryList"></div>
 <p class="set-note">钩子拿到的是游戏里的真实文本，最准确；OCR 模式识别的是屏幕上框选的区域（默认取窗口下部 34%，可在「翻译」面板里框选微调），需要系统安装「日语 OCR」组件。<b>Textractor 的钩子覆盖率有限</b>：TVP/KIRIKIRI（如 DRACU RIOT）用 GetTextExtentPoint32W 那条钩子通常没问题；<b>WillPlus/AdvHD</b> 这类游戏 Textractor 自带的引擎钩子会挂错模块，Aurora 会用<b>内存补全</b>把缺字版配成完整台词（只读扫内存，不需要地址；本机实测过的作品还会自动带上专用 hook 码 <code>HQ-4@偏移:exe名</code>，Q=UTF-16、S=字节串、V=UTF-8），实在配不出再退回 OCR 模式。翻译沿用上方「简介翻译」里的 LLM 配置。<b>日文原版强烈建议先用「⋯ → 转区启动…」开启转区再翻译</b>：不转区时游戏产出的文本本身就是乱码，钩子拿到的也只能是乱码。</p>
+        </div>
+
+        <!-- 插件（P6.4 / ADR-0009：加载失败、版本不兼容、自动禁用必须有界面呈现） -->
+        <div class="set-pane" data-pane="plugins">
+          <h3>插件</h3>
+          <p class="set-note">插件目录在 <code>data/plugins/</code> 下：<code>sources/&lt;id&gt;</code> 是资料源、
+            <code>translators/&lt;id&gt;</code> 是翻译引擎（目录名必须等于它 <code>plugin.json</code> 里的 <code>id</code>，
+            契约见 <code>docs/plugins.md</code>）。翻译引擎装好后会出现在「简介翻译 → 翻译方式」里，
+            值形如 <code>plugin:&lt;id&gt;</code>。加载失败、版本不兼容、连续出错被自动禁用的插件都会列在下面并写清原因。</p>
+          <div class="set-actions">
+            <button class="btn glass-btn" id="btnPluginRescan"><span>重新扫描插件</span></button>
+            <button class="btn glass-btn" id="btnPluginOpenDir"><span>打开数据目录</span></button>
+          </div>
+          <div class="plugin-list" id="pluginList"></div>
+          <p class="set-note" id="pluginDir"></p>
+          <p class="set-note"><b>插件与 Aurora 同进程、以你的用户权限运行，能读文件、能联网。</b>
+            宿主只保证「插件出错不会带崩 Aurora」，不保证插件不做坏事 —— 只装你信任来源的插件。</p>
         </div>
 
         <!-- 关于 -->

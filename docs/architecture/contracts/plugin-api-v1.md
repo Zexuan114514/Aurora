@@ -157,6 +157,18 @@ class Plugin:
 | 优先级 | 内置规则包 → 用户规则包（同指纹时用户覆盖，并写一条诊断日志） |
 | 校验时机 | 加载时做 schema 校验；CI 用同一套 schema 校验内置规则 |
 
+## 宿主实现状态（P6.4 起）
+
+| 契约部分 | 落地位置 | 状态 |
+| --- | --- | --- |
+| 资料源插件 → 宿主 `Source` | `gl/sources/plugin_source.py` + `SourceManager.plugin_sources()` | ✅ P6.3：参与搜索 / 详情 / `describe()`，只有 `state == ok` 的插件生效 |
+| 翻译引擎插件 → 简介翻译 | `aurora/app/services/translators.py` + `gl/translate.py` 的 `plugin_translate` | ✅ P6.4：`translate_provider = plugin:<id>`，显式选择不静默换引擎 |
+| 翻译引擎插件 → 游戏内逐句翻译 | 同上 + `aurora/infra/linetrans.py` 的 `plugin_getter` | ✅ P6.4：带 `context` / `glossary` / `on_delta`；插件失败落回 LLM / 免费兜底 |
+| 引擎规则包（内置 + 用户覆盖） | `aurora/infra/rules.py` + `aurora/rules/engines/*.json` | ✅ P6.1：schema 校验、同指纹用户覆盖并记日志 |
+| 状态 / 权限 / 来源的界面呈现 | 设置页「插件」页签（`gl/web/app/views/settings.js`） | ✅ P6.4：中文状态、失败原因、权限自述、来源路径、「重新扫描插件」 |
+| `settings` schema → 宿主渲染与持久化 | —— | ⏳ 未实现：manifest 里的 `settings` 目前只在状态里携带，表单与 `settings.json` 的 `plugins.<id>` 持久化留给后续阶段 |
+| 调用超时强制中断 | —— | ⏳ 未实现：只有 `CallGuard` 计数与三连失败自动禁用，插件自己负责超时 |
+
 ## 文档生成
 
 `docs/engines.md` 的「已通过测试」表格由内置规则包生成（一条规则一行：引擎 / 作品 / 结论 / 备注），

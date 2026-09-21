@@ -4,9 +4,9 @@
   "app_version": "1.0.0",
   "python": "3.13",
   "bridge": {
-    "public_methods": 106,
-    "internal_methods": 41,
-    "frontend_call_points": 96,
+    "public_methods": 108,
+    "internal_methods": 42,
+    "frontend_call_points": 99,
     "overlay_methods": 4,
     "event_topics": 14,
     "overlay_actions": 8,
@@ -59,7 +59,7 @@
     },
     {
       "path": "aurora/app/services/translation.py",
-      "lines": 142
+      "lines": 165
     },
     {
       "path": "aurora/app/services/vntext.py",
@@ -111,7 +111,7 @@
     },
     {
       "path": "aurora/infra/linetrans.py",
-      "lines": 314
+      "lines": 351
     },
     {
       "path": "aurora/infra/netproxy.py",
@@ -235,7 +235,7 @@
     },
     {
       "path": "gl/api.py",
-      "lines": 186
+      "lines": 191
     },
     {
       "path": "aurora/infra/plugins.py",
@@ -244,6 +244,10 @@
     {
       "path": "aurora/app/services/plugins.py",
       "lines": 37
+    },
+    {
+      "path": "aurora/app/services/translators.py",
+      "lines": 134
     },
     {
       "path": "gl/config.py",
@@ -363,7 +367,7 @@
     },
     {
       "path": "gl/translate.py",
-      "lines": 259
+      "lines": 286
     },
     {
       "path": "gl/tray.py",
@@ -375,7 +379,7 @@
     },
     {
       "path": "gl/web/app.css",
-      "lines": 2058
+      "lines": 2088
     },
     {
       "path": "gl/web/app.js",
@@ -383,7 +387,7 @@
     },
     {
       "path": "gl/web/index.html",
-      "lines": 896
+      "lines": 915
     },
     {
       "path": "gl/web/overlay.html",
@@ -407,7 +411,7 @@
     },
     {
       "path": "gl/web/app/core/dom.js",
-      "lines": 79
+      "lines": 80
     },
     {
       "path": "gl/web/app/core/time.js",
@@ -423,7 +427,7 @@
     },
     {
       "path": "gl/web/app/core/events.js",
-      "lines": 190
+      "lines": 197
     },
     {
       "path": "gl/web/app/core/actions.js",
@@ -443,7 +447,7 @@
     },
     {
       "path": "gl/web/app/views/settings.js",
-      "lines": 379
+      "lines": 469
     },
     {
       "path": "gl/web/app/views/hall.js",
@@ -459,7 +463,7 @@
     },
     {
       "path": "gl/web/app/views/vntext.js",
-      "lines": 452
+      "lines": 453
     },
     {
       "path": "gl/web/app/views/toolbar.js",
@@ -1838,6 +1842,25 @@
         {
           "from": "插件只能在 data/plugins 里加载，不参与任何流程",
           "to": "gl/sources/plugin_source.py + SourceManager.plugin_sources()（资料源插件真正生效）"
+        }
+      ]
+    },
+    {
+      "phase": "P6.4",
+      "date": "2026-09-21",
+      "note": "翻译引擎插件接入 + 设置页「插件」区（ADR-0009 收尾）：新增 aurora/app/services/translators.py（PluginTranslator 适配器：入参/返回归一、插件只给整段时补流式回执、调用走 CallGuard；TranslatorRegistry 按 plugin:<id> 现查现建，重新扫描后自动换新实例）；gl/translate.py 的 translate_text / test_provider 新增 plugin_translate 回调，provider 写成 plugin:<id>（显式选插件就不静默换引擎）；TranslationService 在 provider 选择处注入插件引擎并把失败原因带回前端；LineTranslator 新增 plugin_getter，选了插件先走插件、没结果再落 LLM/免费兜底并记 fallback_from（逐句面板会标「插件未响应，已兜底 …」），缓存键加 engine 段避免换引擎吃旧译文；设置页新增「插件」页签（状态中文标签 / 权限 / 来源路径 / 失败次数 + 重新扫描按钮），翻译方式下拉动态加 plugin:<id>；e2e 90 → 94 判据（插件区渲染 / 下拉选项 / 重新扫描回执 / 简介翻译走插件引擎）；pytest 76 → 82（新增 6 个翻译插件用例）、run_all 10/10、e2e 94/94（0 skipped）、visual errors=[] 且 ring 判据逐项不变",
+      "moves": [
+        {
+          "from": "翻译引擎只能改 gl/translate.py / gl/linetrans.py（ADR-0009 背景里的现状）",
+          "to": "aurora/app/services/translators.py + data/plugins/translators/<id>（plugin:<id> 引擎）"
+        },
+        {
+          "from": "设置页只有 7 个页签，插件状态无处可看",
+          "to": "gl/web/index.html 第 8 个页签「插件」+ gl/web/app/views/settings.js 的 refreshPluginsPane"
+        },
+        {
+          "from": "桥接快照：99 个前端调用点（list_plugins / rescan_plugins 被前端用上）",
+          "to": "docs/architecture/contracts/bridge-contract.json（update_contract.py --write 重新生成）"
         }
       ]
     }

@@ -112,7 +112,8 @@ export function createVntextView(ctx) {
 
     const history = status.history || [];
     el.vnHistory.innerHTML = history.slice(-6).reverse().map((row) => `
-      <div class="vn-row"><i>${esc(row.text)}</i>${esc(row.translation)}</div>`).join("")
+      <div class="vn-row"><i>${esc(row.text)}</i>${esc(row.translation)}${row.fallback_from
+        ? `<b class="vn-fb">插件未响应，已兜底 ${esc(row.provider)}</b>` : ""}</div>`).join("")
       || '<div class="vn-row"><i>还没有译文</i>开启翻译后，游戏里的日文会实时出现在这里和悬浮窗上。</div>';
   }
 

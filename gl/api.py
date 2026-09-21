@@ -26,6 +26,7 @@ from aurora.app.services.hooksearch import HookSearchService
 from aurora.app.services.launch import LaunchService
 from aurora.app.services.metadata import MetadataService
 from aurora.app.services.translation import TranslationService
+from aurora.app.services.translators import TranslatorRegistry
 from aurora.app.services.vntext import VnTextService
 from aurora.app.services.settings import SettingsService
 from aurora.app.services.plugins import PluginsService
@@ -58,6 +59,8 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._plugins_service = PluginsService(config.DATA_DIR, logger=config.log)
         #: P6.3：把加载成功的插件资料源接进 SourceManager
         self._sources.set_plugin_statuses(self._plugins_service.statuses())
+        #: P6.4：翻译引擎插件（`plugin:<id>`）的取用口；重新扫描后自动换新实例
+        self._plugin_translators = TranslatorRegistry(self._plugins_service, logger=config.log)
         self._library_service = LibraryService(self._library, self._pm,
                                              auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
                                              apply_window_icon=self.apply_window_icon)
@@ -73,11 +76,13 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._events.subscribe("*", self._dispatch_event)
         self._translator = linetrans.LineTranslator(
             settings_getter=lambda: self._library.settings,
-            on_event=None)                # P3.7：译文事件改走总线
+            on_event=None,                # P3.7：译文事件改走总线
+            plugin_getter=self._plugin_translators.get)   # P6.4：插件引擎（没配就是 None）
         self._vn_engine = vntext.VnTextEngine(
             settings_getter=lambda: self._library.settings,
             on_line=None, on_status=None)   # P3.7：文本/状态改走总线
-        self._translation = TranslationService(self._library, self._pm, self._translator, self._tasks)
+        self._translation = TranslationService(self._library, self._pm, self._translator, self._tasks,
+                                               plugin_getter=self._plugin_translators.get)
         self._metadata = MetadataService(self._library, self._pm, self._sources, self._tasks,
                                          translation=self._translation, import_one=self._import_one)
         # P3.7：核心模块（翻译 / 文本源 / 会话 / 下载）没有回调时向默认总线发内部事件，这里订阅接上

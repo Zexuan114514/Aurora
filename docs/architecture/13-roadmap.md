@@ -105,7 +105,7 @@
 | P6.1 引擎规则包（`infra/rules.py` + `aurora/rules/engines/*.json` + 文档生成） | ✅ 已完成（2026-09-21） | 同上 P6.1 小节：导出脚本 `tools/export_engine_rules.py`（与 domain 常量逐字一致）；用户规则 `data/rules/engines/*.json` 同指纹覆盖并记日志；`run_all` 9 → 10 项（新增 `check_engine_rules`，改一个偏移即变红）；`pytest` 58 passed、`e2e` 90/90（0 skipped） |
 | P6.2 插件加载器（`infra/plugins.py` + `app/services/plugins.py` + 桥接查询） | ✅ 已完成（2026-09-21） | 同上 P6.2 小节：manifest 门禁（api_version/kind/id/字段类型）、`importlib` 加载不改 `sys.path`、逐插件状态与失败隔离、连续 3 次失败自动禁用；`pytest` 75 passed（新增 17 个插件用例）、`run_all` 10/10、`e2e` 90/90（0 skipped）；贡献者文档 [`docs/plugins.md`](../plugins.md) |
 | P6.3 插件接入资料源（`gl/sources/plugin_source.py` + `SourceManager` 集成） | ✅ 已完成（2026-09-21） | 同上 P6.3 小节：插件源参与 `sources()` / `describe()`，`search` 返回 dict 自动归一成 `Candidate`、`fetch` → `Metadata`；调用走 `CallGuard`（三连失败自动禁用）；`pytest` 76 passed、`run_all` 10/10、`e2e` 90/90（0 skipped） |
-| P6.4 翻译引擎插件接入 + 设置页「插件」区（状态 / 权限 / 来源 / 重新扫描） | 待开始 | 契约 [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md)、ADR-0009：「加载失败、版本不兼容、自动禁用必须有界面呈现」 |
+| P6.4 翻译引擎插件接入 + 设置页「插件」区（状态 / 权限 / 来源 / 重新扫描） | ✅ 已完成（2026-09-21） | 同上 P6.4 小节：`aurora/app/services/translators.py`（适配器 + 注册表）、`plugin:<id>` 走简介与逐句两条链路、设置页第 8 个页签「插件」；契约 [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md)、ADR-0009「加载失败 / 版本不兼容 / 自动禁用必须有界面呈现」已满足；`pytest` 82 passed、`run_all` 10/10、`e2e` 94/94（0 skipped） |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

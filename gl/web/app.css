@@ -689,6 +689,32 @@ body.settings-open #btnSort { display: none; }
 .net-line .name { flex: none; width: 138px; }
 .net-line .detail { font-size: 11px; color: var(--text-3); }
 .le-profiles { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* 插件区（P6.4）：一行一个插件，状态点 + 名字 + 种类 + 中文状态 + 来源/权限 */
+.plugin-list { display: flex; flex-direction: column; gap: 8px; max-width: 720px; }
+.plugin-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--srf050);
+}
+.plugin-line { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: 12.5px; }
+.plugin-line .dot { width: 8px; height: 8px; border-radius: 50%; background: #FF6B61; flex: none; }
+.plugin-row.ok .plugin-line .dot { background: #30D158; }
+.plugin-line .plugin-name { font-weight: 600; color: var(--ink-strong); }
+.plugin-state { font-size: 11.5px; color: #FF9F0A; }
+.plugin-row.ok .plugin-state { color: #30D158; }
+.plugin-meta { font-size: 11px; color: var(--text-3); }
+.plugin-detail { font-size: 11.5px; line-height: 1.6; color: #FF9F0A; }
+.plugin-foot {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 11px; color: var(--text-3);
+}
+.plugin-path {
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 10.5px; color: var(--text-3);
+  overflow-wrap: anywhere;
+}
 .session-list { display: flex; flex-direction: column; gap: 4px; max-width: 460px; }
 .session-row {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;
@@ -2027,6 +2053,10 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .vn-history .vn-row i {
   display: block; font-style: normal; font-size: 11px;
   color: var(--text-3); margin-bottom: 2px;
+}
+.vn-history .vn-row .vn-fb {
+  display: block; margin-top: 3px;
+  font-size: 10.5px; font-weight: 500; color: #FF9F0A;
 }
 
 .frame-box {
