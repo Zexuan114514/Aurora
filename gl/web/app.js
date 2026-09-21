@@ -9,6 +9,7 @@ import { createGameView } from "./app/views/game.js";
 import { createSourcesView } from "./app/views/sources.js";
 import { createVntextView } from "./app/views/vntext.js";
 import { createToolbarView } from "./app/views/toolbar.js";
+import { createEventRouter } from "./app/core/events.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
 import { hours, clock, sessionSeconds } from "./app/core/time.js";
@@ -1994,27 +1995,30 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   }
 
   /* ---------------------------------------------------------- 推送事件 */
-  /* 转区启动的落点提示：LE 没装或带不动时照样启动，只说明一句 */
-  function notifyLocaleStart(mode) {
-    if (mode === "no-le") {
-      toast("没检测到 Locale Emulator，已按普通方式启动", 4600);
-    } else if (mode === "unsupported-target") {
-      toast("目标不是 32 位 exe，Locale Emulator 带不动，已按普通方式启动", 4600);
-    } else if (mode === "locale") {
-      toast("已用指定的 LE 配置转区启动");
-    } else if (mode === "locale-default") {
-      toast("已用 LE 默认配置转区启动");
-    }
-  }
-
-  /* 搜索结束却没有封面：说明图片是界面侧加载（走系统代理），同一个游戏只提醒一次 */
-  const coverHinted = new Set();
-  function hintCoverOnce(game) {
-    if (!game || !game.id || coverHinted.has(game.id)) return;
-    if (game.cover || game.custom_cover || (game.cover_sources || []).length) return;
-    coverHinted.add(game.id);
-    toast("没抓到封面：图片由界面直接加载（走系统代理），可在「设置 → 网络」测试连通性", 5400);
-  }
+  /* 14 个主题的处理表在 ./app/core/events.js（P4.3-r）；
+     这里只注入渲染、焦点与各视图的更新口子（一律箭头延迟取值） */
+  const events = createEventRouter({
+    render: (...a) => render(...a),
+    renderHall: (...a) => renderHall(...a),
+    refreshLibrary: (...a) => refreshLibrary(...a),
+    setFocus: (...a) => setFocus(...a),
+    scheduleBackground: (...a) => scheduleBackground(...a),
+    currentGame: () => currentGame(),
+    upsertGame: (...a) => upsertGame(...a),
+    pushGame: (...a) => pushGame(...a),
+    patchGame: (...a) => patchGame(...a),
+    setBusy: (...a) => setBusy(...a),
+    findGame: (...a) => findGame(...a),
+    toast: (...a) => toast(...a),
+    openCandidates: (...a) => gameView.openCandidates(...a),
+    updateSteamHint: (...a) => sourcesView.updateSteamHint(...a),
+    vntext: {
+      renderPanel: (...a) => vntextView.renderPanel(...a),
+      onHookSearch: (...a) => vntextView.onHookSearch(...a),
+      renderGlossary: (...a) => vntextView.renderGlossary(...a),
+      refresh: (...a) => vntextView.refresh(...a),
+    },
+  });
 
   window.__aurora = {
     /* 自检用：大厅环形队列状态 / 布局读数 —— 取数逻辑在 ./app/views/hall.js（P4.3-d） */
@@ -2025,124 +2029,8 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       layoutName: ring.layoutName(),
       flatClass: document.body.classList.contains("hall-flat"),
     }),
-    emit(event, payload) {
-      try {
-        if (event === "game:updated" || event === "game:stopped" || event === "game:running") {
-          const running = event === "game:running" ? true
-            : event === "game:stopped" ? false : payload.running;
-          const isNew = upsertGame(payload, { running });
-          setBusy(payload.id, false);
-          render();
-          if (event === "game:running") notifyLocaleStart(payload.locale);
-          if (event === "game:updated" && payload.metadata_state === "ok") hintCoverOnce(payload);
-          // 库里原本没有这个游戏（导入/拖放）时，把焦点挪过去并换上它的壁纸
-          if (isNew && !currentGame()) setFocus(payload.id);
-          // 当前游戏换了壁纸（背景面板 / 其它来源）时跟着换
-          else if (payload.id === state.focus) scheduleBackground();
-        } else if (event === "metadata:searching") {
-          setBusy(payload.id, true);
-          renderHall();
-        } else if (event === "games:imported") {
-          // 拖放/导入进来的游戏：并进大厅并聚焦最后一个
-          (payload.games || []).forEach((g) => upsertGame(g));
-          const ids = payload.ids || [];
-          render();
-          if (ids.length) setFocus(ids[ids.length - 1]);
-          const ignored = payload.ignored || 0;
-          toast(ids.length ? `已导入 ${ids.length} 个游戏` : "没有可导入的 exe"
-                + (ignored ? "（已忽略非 exe 文件）" : ""), ids.length ? 2600 : 4000);
-        } else if (event === "metadata:notfound") {
-          setBusy(payload.id, false);
-          let g = findGame(payload.id);
-          if (!g && payload.game) {
-            pushGame(payload.game);
-            if (!currentGame()) state.focus = payload.id;
-            g = payload.game;
-          }
-          if (g) {
-            patchGame(payload.id, { metadata_state: "notfound",
-                                    metadata_note: payload.note });
-          }
-          render();
-          // 只有正看着这个游戏时才弹候选面板；
-          // 大厅里、以及设置页里都只提示一句，别把面板盖到别的界面上
-          if (state.focus === payload.id && state.page === "game" && !payload.quiet
-              && !state.settingsOpen) {
-            gameView.openCandidates(payload.candidates, "",
-                                    payload.note || "没有找到匹配结果");
-            toast(payload.note || "没有找到匹配结果");
-          } else if (g && !payload.quiet) {
-            toast(`${g.name}：${payload.note || "没有找到匹配结果"}`, 3600);
-          }
-        } else if (event === "batch:progress") {
-          const batch = state.batch;
-          if (!batch) return;
-          batch.done = payload.done;
-          batch.total = payload.total;
-          if (batch.kind === "steam") {
-            el.steamImport.textContent = `导入中 ${payload.done}/${payload.total}`;
-          } else if (batch.kind === "translate") {
-            $("translateHint").textContent = `${payload.done}/${payload.total}`;
-          } else {
-            $("refreshHint").textContent = `${payload.done}/${payload.total}`;
-          }
-        } else if (event === "batch:done") {
-          const batch = state.batch;
-          state.batch = null;
-          $("refreshHint").textContent = "";
-          $("translateHint").textContent = "";
-          if (batch && batch.kind === "steam") {
-            sourcesView.updateSteamHint();
-            toast(`Steam 导入完成：${payload.imported || 0} 个游戏`);
-            refreshLibrary().catch(() => {});
-          } else if (batch && batch.kind === "translate") {
-            toast(`简介翻译完成：翻译 ${payload.translated || 0} 个，跳过 ${payload.skipped || 0} 个`
-              + (payload.failed ? `，失败 ${payload.failed} 个` : ""), 4200);
-            refreshLibrary().catch(() => {});
-          } else {
-            toast(`已重新抓取 ${payload.total} 个游戏的信息`);
-          }
-        } else if (event === "metadata:error") {
-          setBusy(payload.id, false);
-          render();
-          toast("搜索出错：" + payload.note);
-        } else if (event === "translate:done") {
-          // 只有手动点「翻译简介」才回执，自动翻译安静进行
-          if (!payload.manual) return;
-          if (payload.changed) {
-            toast(payload.provider === "llm" ? "已用 LLM 翻译简介" : "已用免费接口翻译简介");
-          } else if (payload.error === "empty") {
-            toast("这款游戏还没有简介可翻译");
-          } else if (payload.error === "stale") {
-            toast("简介刚被更新，请再翻译一次");
-          } else if (payload.error === "busy") {
-            toast("正在翻译中…");
-          } else if (payload.error) {
-            toast("翻译失败：" + payload.error);
-          } else {
-            toast("简介已经是中文，无需翻译");
-          }
-        } else if (event === "vntext:status") {
-          if (el.vntextPanel.classList.contains("open")) vntextView.renderPanel(payload);
-        } else if (event === "hooksearch:status") {
-          // 查找器的每一步都从总线推过来，面板即时更新（不再只靠 1.5s 轮询兜底）
-          vntextView.onHookSearch(payload);
-        } else if (event === "vntext:line") {
-          if (state.settingsOpen && state.settingsTab === "vntext") vntextView.renderGlossary();
-          if (el.vntextPanel.classList.contains("open")) vntextView.refresh();
-        } else if (event === "downloads:status") {
-          if (payload.kind === "warn") {
-            toast(payload.text || "下载目录里有个文件处理不了", 5200);
-          } else if (payload.kind === "extracted") {
-            toast(`已自动解压 ${payload.name}`, 2600);
-          } else if (payload.kind === "imported") {
-            const n = payload.count || 0;
-            toast(n ? `下载目录里发现 ${n} 个游戏，已自动导入` : "下载目录有更新", 3800);
-            refreshLibrary().then(() => render()).catch(() => {});
-          }
-        }
-      } catch (err) { console.error(err); }
-    },
+    /* 后端推送：14 个主题的处理表在 ./app/core/events.js（P4.3-r） */
+    emit: (event, payload) => events.emit(event, payload),
   };
 
   /* ---------------------------------------------------------- 启动 */

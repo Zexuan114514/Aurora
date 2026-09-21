@@ -745,3 +745,27 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 `boot()` 与设置页里的剩余绑定。建议先拆推送分发 → `core/events.js`（每个主题一段处理，
 主模块只留 `__aurora.emit` 的入口与 `render()` 调用），再收窗口/背景。
 
+### P4.3-r 推送事件分发进 core/events.js（2026-09-21 12:55）
+
+后端 14 个主题的那条 if/else 长链搬成一张处理表：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `core/events.js`（新） | `createEventRouter(ctx)`：`game:updated/stopped/running`（合一个实体状态处理）、`metadata:searching/notfound/error`、`games:imported`、`batch:progress/done`、`translate:done`、`vntext:status`、`hooksearch:status`、`vntext:line`、`downloads:status` |
+| 同上 | `notifyLocaleStart`（转区启动提示）与 `hintCoverOnce`（没抓到封面只提醒一次）跟着搬进事件层 —— 它们本来就只被事件用 |
+
+`ctx` 注入渲染与各视图口子（`render` / `renderHall` / `refreshLibrary` / `setFocus` /
+`scheduleBackground` / `currentGame` / store 的实体更新 helper / `toast` /
+`gameView.openCandidates` / `sourcesView.updateSteamHint` / `vntext.{renderPanel,onHookSearch,renderGlossary,refresh}`），
+主模块的 `__aurora.emit` 变成一行：`emit: (event, payload) => events.emit(event, payload)`。
+未知主题直接忽略；单个主题抛错只记 console（与拆分前一致）。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90（0 skipped）**、`visual` `errors=[]`
+且 ring 判据不变；真机探针这一刀加了**直接推事件**的检查 —— 合成一条 `games:imported`
+（含 1 个假游戏）后：大厅多出一格、提示冒泡到 toast「已导入 1 个游戏」、分类墙也跟着出现该游戏、
+再推一个不存在的主题不抛错。`app.js` 2233 → 2121 行，`core/events.js` 190 行。
+
+**下一刀（P4.3-s）**：只剩窗口 / 背景绑定与 `boot()` 了 —— 可以把窗口控制（拖拽、缩放、
+最小化/最大化）与背景层（双缓冲、淡入、图片回退链）各拆一个模块，之后 P4 就只剩「打包清单
+与文档同步」这一项收尾。
+

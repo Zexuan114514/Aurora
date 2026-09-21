@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 2233
+      "lines": 2121
     },
     {
       "path": "gl/web/index.html",
@@ -400,6 +400,10 @@
     {
       "path": "gl/web/app/core/query.js",
       "lines": 64
+    },
+    {
+      "path": "gl/web/app/core/events.js",
+      "lines": 190
     },
     {
       "path": "gl/web/app/views/categories.js",
@@ -1604,6 +1608,21 @@
         {
           "from": "app.js: syncScopePill/setScope/scopeRow/renderScopeMenu/openScopeMenu/syncSortMenu + 排序菜单开合",
           "to": "gl/web/app/views/toolbar.js: createToolbarView"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-r",
+      "date": "2026-09-21",
+      "note": "14 个主题的推送分发进 core/events.js（createEventRouter）：主模块的 __aurora.emit 变成一行转发，处理表按主题分函数；notifyLocaleStart/hintCoverOnce 跟着搬进事件层；e2e 90/90（0 skipped）、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: window.__aurora.emit 里的 14 个主题 if/else 链",
+          "to": "gl/web/app/core/events.js: createEventRouter"
+        },
+        {
+          "from": "app.js: notifyLocaleStart / hintCoverOnce / coverHinted",
+          "to": "gl/web/app/core/events.js（事件层内部）"
         }
       ]
     }
