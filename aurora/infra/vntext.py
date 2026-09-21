@@ -79,10 +79,30 @@ def willplus_hook_code(exe: str | Path) -> str:
     fp = file_fingerprint(exe)
     if not fp:
         return ""
-    row = match_willplus_hook(fp["name"], fp["size"], fp["crc32"])
+    row = match_willplus_hook(fp["name"], fp["size"], fp["crc32"], rules=_auto_hook_rows())
     if not row:
         return ""
     return build_hook_code(row, Path(str(exe)).name)
+
+
+_AUTO_HOOK_ROWS: list[dict] | None = None
+
+
+def _auto_hook_rows() -> list[dict] | None:
+    """规则包里的 hook 记录（内置 + 用户覆盖）；读不出来就退回 None（用内置常量）。"""
+    global _AUTO_HOOK_ROWS
+    if _AUTO_HOOK_ROWS is None:
+        try:
+            from aurora.infra import rules as rules_mod
+
+            loaded, problems = rules_mod.load_engine_rules()
+            for problem in problems:
+                config.log(f"engine rule skipped: {problem}")
+            _AUTO_HOOK_ROWS = rules_mod.to_hook_rows(loaded) if loaded else []
+        except Exception as exc:                        # noqa: BLE001
+            config.log(f"engine rules load failed: {exc}")
+            _AUTO_HOOK_ROWS = []
+    return _AUTO_HOOK_ROWS or None
 
 
 

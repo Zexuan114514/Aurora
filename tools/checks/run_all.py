@@ -23,6 +23,7 @@ CHECKS = (
     "check_tools_manifest",
     "check_architecture_baseline",
     "check_bridge_targets",
+    "check_engine_rules",
     "check_layers",
     "check_packaging",
     "check_startup",

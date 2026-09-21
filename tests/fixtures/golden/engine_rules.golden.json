@@ -111,6 +111,8 @@
         "offset": -4,
         "mode": "Q",
         "game": "少女之剑与秘密的协奏曲",
+        "date": "2026-09-19",
+        "sample": "１０年以上前の、初恋のことを。",
         "note": "地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。"
       }
     },

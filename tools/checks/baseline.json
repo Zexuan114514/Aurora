@@ -75,7 +75,7 @@
     },
     {
       "path": "aurora/domain/engine_rules.py",
-      "lines": 279
+      "lines": 288
     },
     {
       "path": "aurora/domain/matching.py",
@@ -147,7 +147,11 @@
     },
     {
       "path": "aurora/infra/vntext.py",
-      "lines": 1364
+      "lines": 1434
+    },
+    {
+      "path": "aurora/infra/rules.py",
+      "lines": 147
     },
     {
       "path": "aurora/platform/__init__.py",
@@ -1781,6 +1785,21 @@
         {
           "from": "桥接层素材 URL：userbg/… / usercovers/… / usericon/…",
           "to": "assets/{backgrounds,covers,icons}/…（老记录由 app/projection.py 投影时改写）"
+        }
+      ]
+    },
+    {
+      "phase": "P6.1",
+      "date": "2026-09-21",
+      "note": "引擎规则包（ADR-0008）：新增 aurora/infra/rules.py（内置 aurora/rules/engines/*.json + 用户 data/rules/engines/*.json，schema 校验、用户覆盖内置并记日志、规则→内部行转换）；tools/export_engine_rules.py 从 domain 常量机械导出规则包与 docs/engines.md 生成表；vntext 的自动 hook 码改走规则包（读不出来退回内置常量）；新增离线检查 check_engine_rules（schema + 整包逐字比对 + 文档表一致，改一个偏移就会变红）；run_all 9 → 10 项；e2e 90/90（0 skipped）、visual 判据不变",
+      "moves": [
+        {
+          "from": "aurora/domain/engine_rules.py: WILLPLUS_AUTO_HOOKS（唯一数据源）",
+          "to": "aurora/rules/engines/hooks.json（导出产物）+ docs/engines.md 生成表"
+        },
+        {
+          "from": "aurora/infra/vntext.py: willplus_hook_code 直接读常量",
+          "to": "经 aurora/infra/rules.py 加载规则包（内置 + 用户覆盖）"
         }
       ]
     }

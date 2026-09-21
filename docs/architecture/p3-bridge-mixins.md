@@ -978,3 +978,31 @@ ADR-0005 的落地：用户素材只留一份（`data/{backgrounds,covers,icons}
 **没验到的**：本机只有 Edge WebView2，Qt 内核（备选）没装，所以「双内核」只实测了 WebView2 那一半；
 页面走的是标准 `http://127.0.0.1`，Qt 侧理论上等价，等有环境再补测（ADR-0005 的回退开关仍保留选项 1 的思路）。
 
+## P6.1 引擎规则包（2026-09-21 17:45）
+
+ADR-0008 落地：实测 hook 码从「写死在 Python 常量里」变成「一份 JSON 规则包」，
+贡献者只写 JSON，文档表格与规则包同源。
+
+| 改动 | 内容 |
+| --- | --- |
+| `aurora/rules/engines/hooks.json`（新，内置） | 两条实测规则（WillPlus/AdvHD、Artemis/Emote），字段按契约：`fingerprint`（文件名+字节数+CRC32）、`hook_code`（模块内 RVA，不写绝对地址）、`text`、`profile`（白名单键）、`evidence`（date/game/sample/note） |
+| `aurora/infra/rules.py`（新） | 加载内置 + 用户两处目录；schema 校验（id 正则、CRC32/RVA 必须 `0x…`、profile 白名单、mode 合法）；同指纹用户覆盖内置并记日志；`to_hook_rows()` 把规则转成 domain 那套内部行 |
+| `aurora/domain/engine_rules.py` | 两条记录补 `date` / `sample`（导出脚本的数据源）；`match_willplus_hook(..., rules=None)` 多一个可选参数 —— domain 还是纯计算，不碰文件 |
+| `aurora/infra/vntext.py` | 自动 hook 码改走规则包（`_auto_hook_rows()` 懒加载 + 失败退回内置常量），读不出来的问题逐条写日志 |
+| `tools/export_engine_rules.py`（新） | 从 domain 常量机械导出规则包**与** `docs/engines.md` 的规则表；`--write` 才落盘，平时跑是「只对比」 |
+| 打包 | PyInstaller 加 `--add-data aurora/rules;aurora/rules`；`bundled_dir()` 在打包后指向 `_MEIPASS` |
+
+**验收**：
+
+| 项 | 结果 |
+| --- | --- |
+| `tools/checks/run_all.py` | **10/10**（新增第 10 项 `check_engine_rules`：schema + **整包逐字比对** + 文档表一致） |
+| 守卫自测 | 把规则包里的 `offset` 从 `-4` 改成 `-6` → `[FAIL] 引擎规则包`；恢复后 10/10（满足「故意违规能让 CI 变红」） |
+| `pytest` | **58 passed**（新增 `tests/test_engine_rules.py` 7 个：schema 拒绝、用户覆盖优先、导出与常量一致、规则包→H-code 逐字不变、vntext 接线端到端） |
+| `e2e` / `visual` | `90/90（0 skipped）` / `errors=[]` 且 ring 判据不变 |
+| 金样本 | `tests/fixtures/golden/engine_rules.golden.json` 的 `match_hook_hit` 用例同步补上 `date`/`sample` 两个字段（这是本阶段唯一有意变更的 domain 返回值） |
+
+**P6 还剩**：插件框架（`data/plugins/{sources,translators}/<id>/plugin.json` + 宿主 `HostContext` +
+界面上的插件状态与「重新扫描」）—— 契约已冻结在 [`contracts/plugin-api-v1.md`](../architecture/contracts/plugin-api-v1.md)、
+决策见 [ADR-0009](../adr/ADR-0009-plugin-api-v1.md)。
+

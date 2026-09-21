@@ -145,6 +145,8 @@ WILLPLUS_AUTO_HOOKS = [
         "offset": -4,       # H-code 的 data_offset（Textractor 对负数会再按 ITH 减 4）
         "mode": "Q",        # Q = USING_STRING|USING_UNICODE（UTF-16）
         "game": "少女之剑与秘密的协奏曲",
+        "date": "2026-09-19",
+        "sample": "１０年以上前の、初恋のことを。",
         "note": "地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；"
                 "实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能"
                 "吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。",
@@ -163,6 +165,8 @@ WILLPLUS_AUTO_HOOKS = [
         "mode": "S",        # S = 字节串（这份文本是 UTF-8，见下面的 codepage）
         "codepage": 65001,  # HS65001#… = UTF-8
         "game": "アマカノ３（甜蜜女友 3）",
+        "date": "2026-09-19",
+        "sample": "明らかに、詩夢の顔が青い。",
         "note": "地址来自 MisakaHookFinder 搜出的 `HS65001#-6C@1401B1F70`；"
                 "实测能完整提取对话（`明らかに、詩夢の顔が青い。`）。",
     },
@@ -176,15 +180,20 @@ WILLPLUS_AUTO_HOOKS = [
 HOOK_CODE_MODES = ("S", "Q", "V", "A", "B", "W", "H", "M")
 
 
-def match_willplus_hook(name: str, size: int, crc32: int) -> dict | None:
-    """按指纹查我们自己的 WillPlus 实测记录；查不到返回 None。"""
+def match_willplus_hook(name: str, size: int, crc32: int,
+                        rules: list[dict] | None = None) -> dict | None:
+    """按指纹查我们自己的 WillPlus 实测记录；查不到返回 None。
+
+    `rules` 由调用方给（P6 起是规则包加载出来的行）；不传时用内置常量，
+    这样 domain 依旧是纯计算、不碰文件。
+    """
     low = str(name or "").lower()
     try:
         size = int(size)
         crc32 = int(crc32)
     except Exception:
         return None
-    for row in WILLPLUS_AUTO_HOOKS:
+    for row in (rules if rules is not None else WILLPLUS_AUTO_HOOKS):
         if row["name"].lower() == low and int(row["size"]) == size \
                 and int(row["crc32"]) == crc32:
             return dict(row)

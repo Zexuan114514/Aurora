@@ -12,6 +12,7 @@
   },
   "scripts": [
     { "path": "tools/check_bridge.py", "kind": "offline", "phase": "P0", "expected": "后端缺失：无（前 96 个调用点全部有实现）" },
+    { "path": "tools/export_engine_rules.py", "kind": "build", "phase": "P6", "expected": "从 domain 常量生成内置规则包与 docs/engines.md 规则表（--write）" },
     { "path": "tools/check_library.py", "kind": "offline", "phase": "P0", "expected": "现有库文件结构完好（无损坏字段）" },
     { "path": "tools/meta_offline.py", "kind": "offline", "phase": "P1", "expected": "用本地缓存校验元数据解析通过" },
     { "path": "tools/vntext_probe.py", "kind": "local-process", "phase": "P1", "expected": "全部通过（协议 / 清洗规则 / 缓存 / 术语表）" },

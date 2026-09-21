@@ -1,0 +1,69 @@
+{
+  "schema": "aurora.engine-rules/1",
+  "rules": [
+    {
+      "id": "willplus-advhd-crack-1992192",
+      "fingerprint": {
+        "name": "advhd_crack.exe",
+        "size": 1992192,
+        "crc32": "0x52EA5D63"
+      },
+      "engine": "WillPlus",
+      "hook_code": {
+        "mode": "Q",
+        "offset": -4,
+        "rva": "0xA22E",
+        "module": "<exe>",
+        "codepage": null
+      },
+      "text": {
+        "encoding": "utf-16",
+        "codepage": null
+      },
+      "profile": {
+        "name_prefix": true,
+        "collapse_doubling": true,
+        "dedupe_window": 8.0,
+        "hook_hint": "WillPlus/AdvHD：Textractor 自带的 WillPlus 系钩子对不上这类 exe（实测少女之剑：WillPlus 找不到函数、WillPlusW/A 找不到特征码、WillPlus2 把地址算到 Intel 显卡驱动的 igc32.dll 上 → 乱码），只剩按字形抓的 GDI 钩子，而字形有缓存 → 缺字。Aurora 会用**内存补全**把缺字版配成完整台词（只读扫内存，不需要地址）；如果还想更稳，可以在「翻译」面板里填一条专用钩子码 `HQ-4@<模块内偏移>:<exe文件名>`（Q = UTF-16，S = 字节串，V = UTF-8）。本机实测过的作品 Aurora 会自动带出这条码。"
+      },
+      "evidence": {
+        "date": "2026-09-19",
+        "game": "少女之剑与秘密的协奏曲",
+        "sample": "１０年以上前の、初恋のことを。",
+        "note": "地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。"
+      }
+    },
+    {
+      "id": "artemis-emote-amakano3-5170176",
+      "fingerprint": {
+        "name": "amakano3.exe",
+        "size": 5170176,
+        "crc32": "0xA1FF529B"
+      },
+      "engine": "Artemis/Emote",
+      "hook_code": {
+        "mode": "S",
+        "offset": -108,
+        "rva": "0x1B1F70",
+        "module": "<exe>",
+        "codepage": 65001
+      },
+      "text": {
+        "encoding": "utf-8",
+        "codepage": 65001
+      },
+      "profile": {
+        "name_prefix": true,
+        "collapse_doubling": true,
+        "dedupe_window": 8.0,
+        "hook_hint": "Artemis/Emote：引擎自己用 D3D11 画字（emotedriver.dll 只导入KERNEL32 + D3DCOMPILER_47），GDI 文本钩子全空；Textractor 也没有这个引擎的专用钩子。点「找不到文本？开始侦测」让 Aurora 自己找：它会按绘制函数特征码定位候选、逐个试寄存器偏移，实测 アマカノ３ 十秒内就能拿到 HS65001#-6C@1B1F70:Amakano3.exe；本机实测过的作品还会自动带出这条码。临时也可以用 OCR 模式。"
+      },
+      "evidence": {
+        "date": "2026-09-19",
+        "game": "アマカノ３（甜蜜女友 3）",
+        "sample": "明らかに、詩夢の顔が青い。",
+        "note": "地址来自 MisakaHookFinder 搜出的 `HS65001#-6C@1401B1F70`；实测能完整提取对话（`明らかに、詩夢の顔が青い。`）。"
+      }
+    }
+  ]
+}

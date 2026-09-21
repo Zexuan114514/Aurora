@@ -102,6 +102,8 @@
 | P4.3-x 全局外壳（`core/shell.js`）+ 打包清单守卫（`check_packaging.py`） | ✅ 已完成（2026-09-21） | 同上 P4.3-x 小节：`app.js` 746 → 692 行；`run_all` 9/9（新增第 9 项检查）；`e2e` 90/90（0 skipped） |
 | **P4 前端 ES 模块化** | ✅ 已完成（2026-09-21） | `app.js` 3688 → 692 行（只剩工厂装配 + `boot()`）；16 个模块（`core/` 10 + `views/` 8）各司其职；打包清单单一来源且有守卫；`e2e` 90/90（0 skipped）、`visual` errors=[] 且 ring 判据自 P4.3-d 起逐项不变 |
 | P5 资产服务化（`infra/webserver.py` + `/assets/` 映射，取消素材复制） | ✅ 已完成（2026-09-21） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) P5 小节：`sync_user_assets` 与三个副本目录删除；离线探针 15/15（首页/模块树/素材可读、4 类穿越与未挂载目录被拒、POST 405、老 URL 投影改写）；真机探针确认素材由 `http://127.0.0.1:<port>/assets/…` 200 返回；`e2e` 90/90（0 skipped）、`visual` 判据不变 |
+| P6.1 引擎规则包（`infra/rules.py` + `aurora/rules/engines/*.json` + 文档生成） | ✅ 已完成（2026-09-21） | 同上 P6.1 小节：导出脚本 `tools/export_engine_rules.py`（与 domain 常量逐字一致）；用户规则 `data/rules/engines/*.json` 同指纹覆盖并记日志；`run_all` 9 → 10 项（新增 `check_engine_rules`，改一个偏移即变红）；`pytest` 58 passed、`e2e` 90/90（0 skipped） |
+| P6.2 插件框架（`data/plugins/*` + manifest + 宿主 ctx + 界面状态） | 待开始 | 契约 [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md)、ADR-0009 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

@@ -97,3 +97,12 @@ OCR 取当前台词 → 在内存里定位它的缓冲区（精确匹配；查�
 
 - Textractor 源码（引擎钩子清单、注入日志格式）：<https://github.com/Artikash/Textractor>
 - 项目 README 的「游戏内翻译」小节：排错步骤与本机依赖（TextractorCLI、日语 OCR 组件、转区）
+
+## 规则包生成表（由内置规则包生成，勿手改）
+
+<!-- generated:engine-rules -->
+| 引擎 | 实测作品 | 结论 | 规则 / 证据 |
+| --- | --- | --- | --- |
+| **WillPlus** | 少女之剑与秘密的协奏曲 | ✅ 可用（实测 hook 码 `HQ-4@A22E:<exe 文件名>`） | 规则 `willplus-advhd-crack-1992192` · 2026-09-19 实测（样例：`１０年以上前の、初恋のことを。`）；用户可在 `data/rules/engines/*.json` 里按指纹覆盖。地址来自 LunaTranslator 日志的 `注入钩子: WillPlus3 0040A22E`；实测同一条地址在 Textractor 里用 `HQ-4@A22E:AdvHD_crack.exe` 就能吐完整正文（`１０年以上前の、初恋のことを。`），不再缺字。 |
+| **Artemis/Emote** | アマカノ３（甜蜜女友 3） | ✅ 可用（实测 hook 码 `HS65001#-6C@1B1F70:<exe 文件名>`） | 规则 `artemis-emote-amakano3-5170176` · 2026-09-19 实测（样例：`明らかに、詩夢の顔が青い。`）；用户可在 `data/rules/engines/*.json` 里按指纹覆盖。地址来自 MisakaHookFinder 搜出的 `HS65001#-6C@1401B1F70`；实测能完整提取对话（`明らかに、詩夢の顔が青い。`）。 |
+<!-- /generated:engine-rules -->

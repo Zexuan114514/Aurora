@@ -104,6 +104,8 @@ def build(python: Path) -> int:
         "--icon", str(ICON),
         "--add-data", f"{web};gl/web",
         "--add-data", f"{ROOT / 'gl' / 'assets'};gl/assets",
+        # P6：引擎规则包（内置）随包分发，供 aurora/infra/rules.py 加载
+        "--add-data", f"{ROOT / 'aurora' / 'rules'};aurora/rules",
         "--collect-data", "webview",
         "--hidden-import", "webview.platforms.winforms",
         "--hidden-import", "webview.platforms.edgechromium",
