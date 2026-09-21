@@ -89,6 +89,7 @@
 | P4.3-k 游戏页渲染面（`views/game.js` + `core/time.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-k 小节：`app.js` 3345 → 3223 行；`e2e` 90/90、`visual` 判据不变 |
 | P4.3-l 详情 / 背景面板（`renderDetail`、`renderBgPanel`+`syncBgZoomUi`） | ✅ 已完成（2026-09-21） | 同上 P4.3-l 小节：`app.js` 3223 → 3120 行；`e2e` 90/90、`visual` 判据不变 |
 | P4.3-m 换封面 / 手动匹配面板（含 `sourceName` 归位） | ✅ 已完成（2026-09-21） | 同上 P4.3-m 小节：`app.js` 3120 → 2995 行；中途 `ctx.sourceName` 残留被 e2e 拦下（27/46），修复后 90/90 |
+| P4.3-n 资料源 / Steam / 获取游戏（新模块 `views/sources.js`） | ✅ 已完成（2026-09-21） | 同上 P4.3-n 小节：`app.js` 2995 → 2800 行；`e2e` 90/90、`visual` 判据不变 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

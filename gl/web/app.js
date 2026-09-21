@@ -6,6 +6,7 @@ import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
 import { createRing, layoutReadout, hallKeysOf, ringMod } from "./app/views/hall.js";
 import { createGameView } from "./app/views/game.js";
+import { createSourcesView } from "./app/views/sources.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { hours, clock, sessionSeconds } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
@@ -1222,143 +1223,12 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   }
 
   /* ---------------------------------------------------------- Steam 扫描 */
-  function renderSteamList() {
-    const rows = state.steam || [];
-    if (!rows.length) {
-      el.steamList.innerHTML = `<div class="list-empty">没有找到可导入的游戏</div>`;
-      return;
-    }
-    el.steamList.innerHTML = rows.map((row) => `
-      <label class="steam-row${row.already ? " off" : ""}">
-        <input type="checkbox" class="switch sm" data-exe="${esc(row.exe)}"
-               ${state.picked.has(row.exe) ? "checked" : ""} ${row.already ? "disabled" : ""}>
-        <div class="steam-body">
-          <div class="steam-name">${esc(row.name)}
-            ${row.already ? '<span class="src-badge">已在库中</span>' : ""}</div>
-          <div class="steam-meta">${esc(row.exe_name)} · ${esc(row.dir)}</div>
-        </div>
-        <span class="src-badge">${esc(String(row.appid))}</span>
-      </label>`).join("");
-    updateSteamHint();
-  }
-
-  function updateSteamHint() {
-    const picked = state.picked.size;
-    const active = (state.steam || []).filter((r) => !r.already).length;
-    el.steamPickHint.textContent = picked ? `已选 ${picked} 个` : `可导入 ${active} 个`;
-    el.steamImport.disabled = !picked;
-    el.steamImport.textContent = picked ? `导入选中的 ${picked} 个游戏` : "导入选中的游戏";
-  }
-
-  async function openSteamPanel() {
-    closeAll();
-    state.steam = [];
-    state.picked = new Set();
-    openPanel(el.steamPanel);
-    el.steamSub.textContent = "正在读取 Steam 清单…";
-    el.steamList.innerHTML = `<div class="list-empty">正在扫描 Steam 库，第一次可能要十几秒…</div>`;
-    el.steamImport.disabled = true;
-    try {
-      const res = await call("scan_steam");
-      if (!res || !res.ok) {
-        el.steamSub.textContent = (res && res.error === "no-steam")
-          ? "没有在注册表里找到 Steam" : "扫描失败：" + ((res && res.error) || "未知错误");
-        el.steamList.innerHTML = `<div class="list-empty">没找到可导入的 Steam 游戏</div>`;
-        return;
-      }
-      state.steam = res.games || [];
-      state.steam.forEach((row) => { if (!row.already) state.picked.add(row.exe); });
-      el.steamSub.textContent =
-        `找到 ${state.steam.length} 个游戏 · ${(res.libraries || []).length} 个库目录`;
-      renderSteamList();
-    } catch (e) {
-      el.steamSub.textContent = "扫描失败：" + e.message;
-      el.steamList.innerHTML = `<div class="list-empty">扫描失败</div>`;
-    }
-  }
-
-  async function importSteam() {
-    const items = (state.steam || [])
-      .filter((row) => state.picked.has(row.exe))
-      .map((row) => ({ exe: row.exe, appid: row.appid, name: row.name }));
-    if (!items.length) return;
-    state.batch = { kind: "steam", done: 0, total: items.length };
-    el.steamImport.disabled = true;
-    el.steamImport.textContent = `导入中 0/${items.length}`;
-    const res = await call("import_steam_games", items);
-    if (!res || !res.ok) {
-      state.batch = null;
-      updateSteamHint();
-      toast("导入失败：" + ((res && res.error) || "未知错误"));
-    }
-  }
+  /* 扫描 / 列表 / 导入在 ./app/views/sources.js（P4.3-n） */
 
   /* ---------------------------------------------------------- 批量重新抓取 */
 
   /* ---------------------------------------------------------- 获取游戏 */
-  function renderSites() {
-    const sites = state.sites || [];
-    if (!sites.length) {
-      el.getSites.innerHTML = '<span class="get-hint">还没有资源站，点右边「＋ 添加站点」加一个</span>';
-      return;
-    }
-    el.getSites.innerHTML = sites.map((row) => `
-      <span class="site-chip">
-        <button class="link-chip" data-site="${esc(row.id)}"
-                title="${esc(row.url)}">${esc(row.name)}</button>
-        <button class="site-del" data-del="${esc(row.id)}" title="删除这个站点">×</button>
-      </span>`).join("");
-  }
-
-  async function refreshSites() {
-    try {
-      const res = await call("list_sites");
-      state.sites = (res && res.sites) || [];
-    } catch (_) {
-      state.sites = state.sites || [];
-    }
-    renderSites();
-  }
-
-  async function openSite(siteId) {
-    const res = await call("open_site", siteId, el.getQuery.value.trim());
-    if (!res || !res.ok) toast("打不开这个站点：" + ((res && res.error) || ""));
-  }
-
-  async function addSite() {
-    const name = $("getSiteName").value.trim();
-    const url = $("getSiteUrl").value.trim();
-    if (!name || !url) { toast("名称和地址都要填"); return; }
-    const res = await call("add_site", name, url);
-    if (!res || !res.ok) {
-      toast(res && res.error === "bad-url" ? "地址要以 http:// 或 https:// 开头" : "添加失败");
-      return;
-    }
-    state.sites = res.sites || [];
-    renderSites();
-    el.getSiteForm.hidden = true;
-    toast(`已添加资源站：${name}`);
-  }
-
-  async function refreshDownloadSettings() {
-    try {
-      const s = await call("get_download_settings");
-      if (!s || !s.ok) return;
-      el.getDir.textContent = s.dir || "—";
-      el.getWatch.checked = !!s.watch;
-      el.getExtract.checked = !!s.extract;
-      el.getDirHint.textContent = s.extractor
-        ? `· 解压工具：${s.extractor} 已就绪`
-        : "· 没找到解压工具（.zip 内置；.rar/.7z 需装 7-Zip 或 WinRAR）";
-    } catch (_) { /* 面板还没准备好就忽略 */ }
-  }
-
-  async function openGetPanel() {
-    closeAll();
-    openPanel(el.getPanel);
-    await refreshSites();
-    await refreshDownloadSettings();
-  }
+  /* 资源站与下载设置面板在 ./app/views/sources.js（P4.3-n） */
 
   /* ---------------------------------------------------------- 批量重新抓取 */
   async function startRefreshAll() {
@@ -1396,79 +1266,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
      在 ./app/views/game.js（P4.3-m） */
 
   /* ---------------------------------------------------------- 资料源管理 */
-  function renderSources() {
-    const list = state.sources || [];
-    if (!list.length) {
-      el.sourceList.innerHTML = `<div class="list-empty">还没有启用任何资料源</div>`;
-      return;
-    }
-    el.sourceList.innerHTML = list.map((s, index) => `
-      <div class="src-row${s.enabled ? "" : " off"}" data-id="${esc(s.id)}">
-        <div class="src-arrow-group" style="display:flex;flex-direction:column;gap:2px">
-          <button class="src-arrow" data-move="-1" ${index === 0 ? "disabled" : ""}>▲</button>
-          <button class="src-arrow" data-move="1"
-                  ${index === list.length - 1 ? "disabled" : ""}>▼</button>
-        </div>
-        <div class="src-body">
-          <div class="src-name">
-            ${esc(s.name)}
-            <span class="src-badge${s.kind === "link" ? " link" : ""}">
-              ${s.kind === "link" ? "跳转" : "API"}${s.builtin ? "" : " · 自定义"}</span>
-          </div>
-          <div class="src-meta">${esc(s.search_url || s.homepage || "")}</div>
-        </div>
-        <button class="src-act" data-act="test">测试</button>
-        ${s.builtin ? "" : '<button class="src-act danger" data-act="remove">删除</button>'}
-        <input type="checkbox" class="switch" data-act="toggle" ${s.enabled ? "checked" : ""}>
-      </div>`).join("");
-  }
-
-  async function refreshSources() {
-    const rows = await call("list_sources");
-    state.sources = rows || [];
-    renderSources();
-    applySourcesHint();
-  }
-
-  function applySourcesHint() {
-    const enabled = (state.sources || []).filter((s) => s.enabled).length;
-    $("sourcesHint").textContent = `${enabled} 个启用`;
-  }
-
-  function syncSourceForm() {
-    $("srcApiFields").hidden = $("srcKind").value !== "api";
-  }
-
-  async function addCustomSource() {
-    const name = $("srcName").value.trim();
-    const url = $("srcUrl").value.trim();
-    if (!name || !url) { toast("名称和搜索地址都要填"); return; }
-    const cfg = { name, kind: $("srcKind").value, search_url: url };
-    if (cfg.kind === "api") {
-      cfg.results_path = $("srcResults").value.trim() || "data";
-      const raw = $("srcFields").value.trim();
-      if (raw) {
-        try {
-          cfg.fields = JSON.parse(raw);
-        } catch (e) {
-          toast("字段映射不是合法的 JSON");
-          return;
-        }
-      } else {
-        cfg.fields = {};
-      }
-    }
-    const res = await call("add_custom_source", cfg);
-    state.sources = res.sources || state.sources;
-    renderSources();
-    applySourcesHint();
-    el.sourceForm.hidden = true;
-    toast("已添加：" + name);
-    const test = await call("test_source", res.source.id);
-    if (test.kind === "link") toast(`${name} 已添加（跳转型，候选面板里可直接点）`);
-    else if (test.ok) toast(`${name} 可用：${test.count} 个结果 · ${(test.sample || []).join(" / ")}`);
-    else toast(`${name} 没有返回结果，请检查地址与字段映射`);
-  }
+  /* 资料源列表 / 自定义源表单在 ./app/views/sources.js（P4.3-n） */
 
   /* ---------------------------------------------------------- 事件：面板开关 */
   const openPanel = (node) => node.classList.add("open");
@@ -1485,6 +1283,13 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     el.addMenu.hidden = true;
     el.scopeMenu.hidden = true;
   };
+
+  /* 资料源 / Steam / 获取游戏三块面板在 ./app/views/sources.js（P4.3-n） */
+  const sourcesView = createSourcesView({
+    closeAll: (...a) => closeAll(...a),
+    openPanel: (node) => openPanel(node),
+    toast: (...a) => toast(...a),
+  });
 
   /* ---------------------------------------------------------- 动作 */
   async function importGames() {
@@ -1512,8 +1317,8 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       state.focus = state.games[0]?.id || ADD_KEY;
     }
     applySettingsToUi();
-    renderSources();
-    applySourcesHint();
+    sourcesView.renderSources();
+    sourcesView.applySourcesHint();
     await refreshShelves();
   }
 
@@ -2302,7 +2107,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     };
     $("btnSources").onclick = async () => {
       closeAll();
-      await refreshSources();
+      await sourcesView.refreshSources();
       openPanel(el.sourcePanel);
     };
     $("setTray").onchange = async (e) => {
@@ -2311,7 +2116,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
         ? "已开启：关窗口时缩到托盘，游戏继续跑"
         : "已关闭：关窗口即退出");
     };
-    $("btnSteamScan").onclick = openSteamPanel;
+    $("btnSteamScan").onclick = () => sourcesView.openSteamPanel();
     $("btnRefreshAll").onclick = startRefreshAll;
     $("btnTranslateAll").onclick = startTranslateAll;
     $("setTransEnabled").onchange = (e) => saveSetting("translate_enabled", e.target.checked);
@@ -2522,43 +2327,43 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     $("steamClose").onclick = () => closePanel(el.steamPanel);
     $("steamAll").onclick = () => {
       (state.steam || []).forEach((row) => { if (!row.already) state.picked.add(row.exe); });
-      renderSteamList();
+      sourcesView.renderSteamList();
     };
-    $("steamNone").onclick = () => { state.picked.clear(); renderSteamList(); };
-    $("steamImport").onclick = importSteam;
+    $("steamNone").onclick = () => { state.picked.clear(); sourcesView.renderSteamList(); };
+    $("steamImport").onclick = () => sourcesView.importSteam();
     el.steamList.addEventListener("change", (e) => {
       const box = e.target.closest("input[data-exe]");
       if (!box) return;
       if (box.checked) state.picked.add(box.dataset.exe);
       else state.picked.delete(box.dataset.exe);
-      updateSteamHint();
+      sourcesView.updateSteamHint();
     });
     // 重试按输入框里的词再搜一次（手动面板里用户可能刚改过关键词）
     $("matchRetry").onclick = () => doSearch(el.matchQuery.value.trim() || null);
 
     // 获取游戏（下载大厅）
-    $("btnGetGames").onclick = openGetPanel;
+    $("btnGetGames").onclick = () => sourcesView.openGetPanel();
     $("getClose").onclick = () => closePanel(el.getPanel);
     $("getChangeDir").onclick = async () => {
       const res = await call("pick_download_dir");
       if (!res || res.cancelled) return;
       if (!res.ok) { toast("设置失败：" + ((res && res.error) || "")); return; }
-      await refreshDownloadSettings();
+      await sourcesView.refreshDownloadSettings();
       toast("下载目录已更新");
     };
     $("getOpenDir").onclick = () => call("open_download_dir");
     $("getWatch").onchange = async (e) => {
       await call("set_download_option", "download_watch", e.target.checked);
-      await refreshDownloadSettings();
+      await sourcesView.refreshDownloadSettings();
       toast(e.target.checked ? "已开启下载目录监听" : "已暂停下载目录监听");
     };
     $("getExtract").onchange = async (e) => {
       await call("set_download_option", "download_extract", e.target.checked);
-      await refreshDownloadSettings();
+      await sourcesView.refreshDownloadSettings();
     };
     $("getScan").onclick = async () => {
       const res = await call("scan_downloads");
-      await refreshDownloadSettings();
+      await sourcesView.refreshDownloadSettings();
       if (!res || !res.ok) { toast("扫描失败"); return; }
       const n = res.imported || 0;
       toast(n ? `扫描完成：导入 ${n} 个游戏` : "扫描完成：没有发现新的游戏");
@@ -2571,18 +2376,18 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       $("getSiteName").focus();
     };
     $("getSiteCancel").onclick = () => { el.getSiteForm.hidden = true; };
-    $("getSiteSave").onclick = addSite;
+    $("getSiteSave").onclick = () => sourcesView.addSite();
     $("getSiteUrl").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") addSite();
+      if (e.key === "Enter") sourcesView.addSite();
     });
     el.getSites.addEventListener("click", async (e) => {
       const open = e.target.closest("button[data-site]");
-      if (open) { openSite(open.dataset.site); return; }
+      if (open) { sourcesView.openSite(open.dataset.site); return; }
       const del = e.target.closest("button[data-del]");
       if (!del) return;
       const res = await call("remove_site", del.dataset.del);
       state.sites = (res && res.sites) || [];
-      renderSites();
+      sourcesView.renderSites();
       toast("已删除该资源站");
     });
     el.addMenu.addEventListener("click", (e) => {
@@ -2590,7 +2395,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (!btn) return;
       el.addMenu.hidden = true;
       if (btn.dataset.addAct === "import") importGames();
-      else openGetPanel();
+      else sourcesView.openGetPanel();
     });
 
     // 资料源管理
@@ -2602,12 +2407,12 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       $("srcResults").value = "";
       $("srcFields").value = "";
       $("srcKind").value = "api";
-      syncSourceForm();
+      sourcesView.syncSourceForm();
       $("srcName").focus();
     };
     $("srcCancel").onclick = () => { el.sourceForm.hidden = true; };
-    $("srcKind").onchange = syncSourceForm;
-    $("srcSave").onclick = addCustomSource;
+    $("srcKind").onchange = () => sourcesView.syncSourceForm();
+    $("srcSave").onclick = () => sourcesView.addCustomSource();
     el.sourceList.addEventListener("click", async (e) => {
       const row = e.target.closest(".src-row");
       if (!row) return;
@@ -2616,7 +2421,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (arrow) {
         const res = await call("move_source", id, Number(arrow.dataset.move));
         state.sources = res.sources || state.sources;
-        renderSources();
+        sourcesView.renderSources();
         return;
       }
       const act = e.target.closest("[data-act]");
@@ -2631,8 +2436,8 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       } else if (act.dataset.act === "remove") {
         const res = await call("remove_custom_source", id);
         state.sources = res.sources || state.sources;
-        renderSources();
-        applySourcesHint();
+        sourcesView.renderSources();
+        sourcesView.applySourcesHint();
         toast("已删除");
       }
     });
@@ -2642,8 +2447,8 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       const row = toggle.closest(".src-row");
       const res = await call("toggle_source", row.dataset.id, toggle.checked);
       state.sources = res.sources || state.sources;
-      renderSources();
-      applySourcesHint();
+      sourcesView.renderSources();
+      sourcesView.applySourcesHint();
     });
 
     // 搜索过滤
@@ -2849,7 +2654,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
           $("refreshHint").textContent = "";
           $("translateHint").textContent = "";
           if (batch && batch.kind === "steam") {
-            updateSteamHint();
+            sourcesView.updateSteamHint();
             toast(`Steam 导入完成：${payload.imported || 0} 个游戏`);
             refreshLibrary().catch(() => {});
           } else if (batch && batch.kind === "translate") {

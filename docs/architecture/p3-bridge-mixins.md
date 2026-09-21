@@ -639,3 +639,27 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 与各面板的开关）与资料源管理 / Steam 扫描 / 获取游戏（`renderSources` / `renderSteamList` /
 `renderSites` 这一组），之后 P4 只剩设置页内部的渲染。
 
+### P4.3-n 资料源 / Steam / 获取游戏进 views/sources.js（2026-09-21 11:50）
+
+这三个面板讲的是同一件事「游戏从哪来」，所以合成一个新模块 `views/sources.js`：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/sources.js`（新） | 资料源管理：`renderSources` / `refreshSources` / `applySourcesHint` / `syncSourceForm` / `addCustomSource` |
+| 同上 | Steam 扫描导入：`openSteamPanel` / `renderSteamList` / `updateSteamHint` / `importSteam` |
+| 同上 | 获取游戏：`openGetPanel` / `renderSites` / `refreshSites` / `openSite` / `addSite` / `refreshDownloadSettings` |
+
+`createSourcesView(ctx)` 注入三样：`closeAll` / `openPanel` / `toast` —— 面板管路仍是主模块的
+事（`openPanel`/`closePanel`/`closeAll` 这一刀没动）。主模块的调用点全部改成
+`sourcesView.*`，其中 `bindUi` 里的 `.onclick = fn`（如 `$("steamImport").onclick`）
+改成 `() => sourcesView.fn()`，保持箭头延迟取值的规矩。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**（下载大厅面板打开且不溢出、
+新增/删除资源站、下载目录设置已持久化全过）、`visual` `errors=[]` 且 ring 判据不变；
+另外用 `_sandbox/p43m_probe.py` 真机确认：设置页可开、资料源面板渲染出 3 行、
+获取游戏面板能开且无未捕获异常。`app.js` 2995 → 2800 行，`views/sources.js` 234 行。
+
+**下一刀（P4.3-o）**：面板管路（`openPanel`/`closePanel`/`closeAll` 与各面板开关）——
+它是 `views/game.js`、`views/settings.js`、`views/sources.js` 三边都要用的最后一块公共设施，
+搬完就可以把「谁开哪个面板」也交给视图，`app.js` 只剩工具条与设置页内部渲染。
+
