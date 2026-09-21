@@ -769,3 +769,29 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 最小化/最大化）与背景层（双缓冲、淡入、图片回退链）各拆一个模块，之后 P4 就只剩「打包清单
 与文档同步」这一项收尾。
 
+### P4.3-s 窗口外壳与背景层（2026-09-21 13:05）
+
+主模块里最后两块「非业务」的界面逻辑各自成模块：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `core/window.js`（新） | 无边框窗口的拖拽 / 四边缩放 / 最小化 · 最大化 · 关闭按钮 / 双击标题栏最大化 / 「鼠标在窗口外松开」的状态清理。`drag`、`resize` 两个指针状态变成模块内部私有；大厅的划封面拖动由 `ctx.onPointerReset`（主模块传 `() => ring.endDrag()`）通知 |
+| `views/background.js`（新） | 双缓冲背景层（`bgSide` / `bgCurrent` 私有）、`applyBackground`（预加载成功再淡入、渐变直接切）、`fallbackBackground` + `hashHue` + `DEFAULT_BACKGROUND`、`scheduleBackground`（延迟淡入 + 预取左右邻居）、`updateBgView`（缩放 + 350ms 防抖持久化）、`chooseBackground` / `pickLocalBackground`、背景面板的按钮与缩放滑杆，以及全局图片回退链（`data-srcs`） |
+
+`ctx` 注入：`currentGame` / `hallKeys` / `syncBgZoomUi` / `renderBgPanel` / `toast`。
+设置页改 Ken Burns 那一处改走 `background.applyKenBurns(value)`；`cssUrl` 只剩背景层用，
+跟着搬进 `views/background.js`（主模块删掉）。`boot()` 的绑定循环改成
+`[["窗口", () => bindWindowControls({ onPointerReset: () => ring.endDrag() })], ["背景", () => background.bind()], ["界面", bindUi]]`。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90（0 skipped）**——
+窗口那组（拖拽移动窗口、拖拽缩放窗口、最小尺寸被钳制、最大化窗口、还原窗口）与背景那组
+（背景图已应用、切换背景生效、缩放滑杆生效、背景缩放复位）全过；`visual` `errors=[]`、
+ring 判据与 `zoom` 判据（滑杆 180 → `scale(1.8)`）不变；探针跑完全部界面无未捕获异常。
+`app.js` 2121 → **1862 行**，`core/window.js` 92 行、`views/background.js` 227 行。
+
+**下一刀（P4.3-t）**：`app.js` 只剩「拼装 + 业务动作」了 —— `boot()`、`bindUi` 里剩下的
+设置页 / 详情 / 匹配面板绑定、`refreshLibrary` / `importGames` / `togglePlay` / 匹配流程。
+建议先把设置页那一大组绑定（主题、资料源、转区、网络、备份）搬进 `views/settings.js` 的
+`bind()`，再把「游戏动作」（启动 / 结束 / 导入 / 批量）收进 `views/game.js` 或新的
+`core/actions.js`，之后 P4 只剩打包清单与文档同步收尾。
+

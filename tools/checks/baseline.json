@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 2121
+      "lines": 1862
     },
     {
       "path": "gl/web/index.html",
@@ -406,6 +406,10 @@
       "lines": 190
     },
     {
+      "path": "gl/web/app/core/window.js",
+      "lines": 92
+    },
+    {
       "path": "gl/web/app/views/categories.js",
       "lines": 118
     },
@@ -432,6 +436,10 @@
     {
       "path": "gl/web/app/views/toolbar.js",
       "lines": 118
+    },
+    {
+      "path": "gl/web/app/views/background.js",
+      "lines": 227
     }
   ],
   "threads": [
@@ -1623,6 +1631,29 @@
         {
           "from": "app.js: notifyLocaleStart / hintCoverOnce / coverHinted",
           "to": "gl/web/app/core/events.js（事件层内部）"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-s",
+      "date": "2026-09-21",
+      "note": "窗口外壳（拖拽/缩放/标题栏按钮/失焦清理）进 core/window.js；背景层（双缓冲淡入、兜底渐变、缩放滑杆、预取邻居、图片回退链、背景面板）进 views/background.js；drag/resize 与 bgSide/bgCurrent 变成模块私有状态；e2e 90/90（0 skipped）、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: bindWindowControls + drag/resize 状态",
+          "to": "gl/web/app/core/window.js: bindWindowControls"
+        },
+        {
+          "from": "app.js: applyBackground/applyBgView/bgViewOf/bgTransform/bgLayer/fallbackBackground/hashHue/DEFAULT_BACKGROUND",
+          "to": "gl/web/app/views/background.js"
+        },
+        {
+          "from": "app.js: scheduleBackground/updateBgView/chooseBackground/pickLocalBackground + 背景面板与滑杆绑定 + 图片回退链",
+          "to": "gl/web/app/views/background.js: createBackgroundView"
+        },
+        {
+          "from": "app.js: cssUrl（只剩 background.js 用）",
+          "to": "gl/web/app/views/background.js（模块内）"
         }
       ]
     }

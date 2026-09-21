@@ -4,12 +4,14 @@
 import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
-import { createRing, layoutReadout, hallKeysOf, ringMod } from "./app/views/hall.js";
+import { createRing, layoutReadout, hallKeysOf } from "./app/views/hall.js";
 import { createGameView } from "./app/views/game.js";
 import { createSourcesView } from "./app/views/sources.js";
 import { createVntextView } from "./app/views/vntext.js";
 import { createToolbarView } from "./app/views/toolbar.js";
 import { createEventRouter } from "./app/core/events.js";
+import { bindWindowControls } from "./app/core/window.js";
+import { createBackgroundView } from "./app/views/background.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
 import { hours, clock, sessionSeconds } from "./app/core/time.js";
@@ -28,16 +30,9 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   /* P4.3：元素表与 $ 在 ./app/core/dom.js（视图模块也要用同一份） */
 
   let pywebviewReady = false;
-  let drag = null;
-  let resize = null;
   let toastTimer = null;
-  let bgCurrent = null;
-  let bgSide = "a";
-  let bgTimer = null;            // 焦点切换后的背景防抖
 
   /* ---------------------------------------------------------- 工具 */
-  const cssUrl = (u) => `url("${String(u).replace(/"/g, '\\"')}")`;
-
   /* 选择器里安全地写 id（游戏 id 是十六进制，理论上够用，仍然兜一层） */
   const cssEscape = (value) => (window.CSS && CSS.escape
     ? CSS.escape(String(value))
@@ -91,82 +86,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
 
 
   /* 时长 / 时钟 / 会话时间戳在 ./app/core/time.js（P4.3-k） */
-  function hashHue(text) {
-    let h = 0;
-    for (let i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) % 360;
-    return h;
-  }
-
-  function fallbackBackground(game) {
-    const hue = hashHue(game.name || game.id || "aurora");
-    return `linear-gradient(150deg,
-      hsl(${hue} 46% 26%) 0%,
-      hsl(${(hue + 42) % 360} 40% 15%) 48%,
-      hsl(${(hue + 96) % 360} 34% 9%) 100%)`;
-  }
-
-  /* 空库时的默认极光背景 */
-  const DEFAULT_BACKGROUND = [
-    "radial-gradient(120% 92% at 12% 4%, rgba(38,66,150,.85) 0%, rgba(38,66,150,0) 56%)",
-    "radial-gradient(108% 82% at 90% 8%, rgba(104,52,140,.78) 0%, rgba(104,52,140,0) 58%)",
-    "radial-gradient(130% 100% at 52% 112%, rgba(14,86,110,.72) 0%, rgba(14,86,110,0) 62%)",
-    "linear-gradient(162deg, #0b1024 0%, #080a15 52%, #05050a 100%)",
-  ].join(", ");
-
-  /* ---------------------------------------------------------- 背景 */
-  const bgLayer = () => (bgSide === "a" ? $("bg-a") : $("bg-b"));
-
-  function bgViewOf(game) {
-    return {
-      scale: Math.max(1, Number(game && game.bg_scale) || 1),
-      x: 0,
-      y: 0,
-    };
-  }
-
-  function bgTransform(view) {
-    return view.scale === 1 && !view.x && !view.y
-      ? "" : `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`;
-  }
-
-  function applyBgView(view, layer) {
-    (layer || bgLayer()).style.transform = bgTransform(view);
-  }
-
-  function applyBackground(source, view, animate = true) {
-    const a = $("bg-a"), b = $("bg-b");
-    const cur = bgSide === "a" ? a : b;
-    const nxt = bgSide === "a" ? b : a;
-    if (bgCurrent === source) { applyBgView(view, cur); return; }
-    bgCurrent = source;
-
-    if (!source) {
-      cur.classList.remove("on");
-      nxt.classList.remove("on");
-      return;
-    }
-
-    const isGradient = source.startsWith("linear-gradient") || source.startsWith("radial-gradient");
-    const ken = !!state.settings.ken_burns && !isGradient;
-
-    const swap = () => {
-      const inner = nxt.querySelector(".bg-img");
-      inner.style.backgroundImage = isGradient ? source : cssUrl(source);
-      inner.classList.toggle("ken", ken);
-      applyBgView(view, nxt);
-      void nxt.offsetWidth;
-      nxt.classList.add("on");
-      if (animate) cur.classList.remove("on");
-      else { cur.classList.remove("on"); nxt.style.transition = "none"; void nxt.offsetWidth; nxt.style.transition = ""; }
-      bgSide = bgSide === "a" ? "b" : "a";
-    };
-
-    if (isGradient) { swap(); return; }
-    const probe = new Image();
-    probe.onload = swap;
-    probe.onerror = () => { bgCurrent = null; toast("背景图加载失败"); };
-    probe.src = source;
-  }
+  /* 背景层（双缓冲 / 淡入 / 兜底渐变）在 ./app/views/background.js（P4.3-s） */
 
   /* ---------------------------------------------------------- 渲染 */
   /* 筛选 / 排序 / 作用域的纯逻辑在 ./app/core/query.js（P4.3-q） */
@@ -310,23 +230,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     el.hallSub.textContent = bits.filter(Boolean).join(" · ") || game.exe_name;
   }
 
-  /* 焦点变化 → 背景延迟淡入 + 预取邻居 */
-  function scheduleBackground() {
-    const game = currentGame();
-    if (!game) return;
-    clearTimeout(bgTimer);
-    bgTimer = setTimeout(() => {
-      applyBackground(game.background || fallbackBackground(game), bgViewOf(game));
-      // 预取左右邻居（环上就是前后各一张，首尾相接）
-      const keys = hallKeys();
-      const index = Math.max(0, keys.indexOf(state.focus));
-      [-1, 1].forEach((d) => {
-        const near = state.games.find((g) => g.id === keys[ringMod(index + d, keys.length)]);
-        if (near && near.background) { const img = new Image(); img.src = near.background; }
-      });
-    }, 140);
-  }
-
+  /* 焦点变化 → 背景延迟淡入 + 预取邻居：在 ./app/views/background.js（P4.3-s） */
   function setFocus(id, opts = {}) {
     if (!id || id === state.focus) {
       if (opts.scroll !== false && !ring.dragging()) ring.update();
@@ -344,7 +248,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     syncFocusUi();
     // 拖动过程中焦点由手指决定，别再让环拉回 state.focus
     if (opts.scroll !== false && !ring.dragging()) ring.update();
-    scheduleBackground();
+    background.scheduleBackground();
     if (opts.persist !== false) {
       try { localStorage.setItem("aurora.focus", state.focus); } catch (_) {}
     }
@@ -379,7 +283,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     el.view.hidden = false;
     document.body.classList.add("page-game");
     closeAll();
-    scheduleBackground();
+    background.scheduleBackground();
   }
 
   function closeGame() {
@@ -397,6 +301,15 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     startLiveTicker: () => startLiveTicker(),
     statusOrder: () => STATUS_ORDER,
     statusLabel: () => STATUS_LABEL,
+  });
+
+  /* 背景层与背景面板在 ./app/views/background.js（P4.3-s） */
+  const background = createBackgroundView({
+    currentGame: () => currentGame(),
+    hallKeys: () => hallKeys(),
+    syncBgZoomUi: (...a) => gameView.syncBgZoomUi(...a),
+    renderBgPanel: (...a) => gameView.renderBgPanel(...a),
+    toast: (...a) => toast(...a),
   });
 
   function render() {
@@ -672,24 +585,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
 
   /* 背景面板与缩放 UI 在 ./app/views/game.js（P4.3-l） */
 
-  /* 修改当前游戏的背景缩放（缩放只由滑杆控制） */
-  let bgViewTimer = null;
-
-  function updateBgView(next, persist = true) {
-    const g = currentGame();
-    if (!g) return;
-    const view = { scale: Math.max(1, Math.min(3, Number(next.scale) || 1)), x: 0, y: 0 };
-    g.bg_scale = view.scale;
-    g.bg_x = 0;
-    g.bg_y = 0;
-    applyBgView(view);
-    gameView.syncBgZoomUi(g);
-    if (!persist) return;
-    clearTimeout(bgViewTimer);
-    bgViewTimer = setTimeout(() => {
-      call("set_background_view", g.id, g.bg_scale, g.bg_x, g.bg_y).catch(() => {});
-    }, 350);
-  }
+  /* 背景缩放（滑杆 → 视图 → 防抖持久化）在 ./app/views/background.js（P4.3-s） */
 
   /* ---------------------------------------------------------- 详情面板 */
   /* 详情面板在 ./app/views/game.js（P4.3-l） */
@@ -804,15 +700,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     if (game) { game.running = true; render(); }
   }
 
-  async function chooseBackground(url, kind) {
-    const g = currentGame();
-    if (!g) return;
-    g.background = url;
-    g.background_kind = kind;
-    applyBackground(url, bgViewOf(g));
-    gameView.renderBgPanel();
-    await call("set_background", g.id, url, kind);
-  }
+  /* chooseBackground / pickLocalBackground 在 ./app/views/background.js（P4.3-s） */
 
   /* 运行中的实时计时（只改那一颗 chip，避免整页重绘） */
   let liveTimer = null;
@@ -825,18 +713,6 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       if (!g || !g.running) return;
       node.innerHTML = `运行中 · <b>${clock(sessionSeconds(g))}</b>`;
     }, 1000);
-  }
-
-  async function pickLocalBackground() {
-    const g = currentGame();
-    if (!g) return;
-    const res = await call("pick_local_background", g.id);
-    if (!res || res.cancelled) return;
-    if (!res.ok) { toast("选择失败：" + (res.error || "")); return; }
-    Object.assign(g, res.game);
-    applyBackground(g.background, bgViewOf(g));
-    gameView.renderBgPanel();
-    toast("已应用本地背景图");
   }
 
   /* 手动匹配的三块渲染（快捷词 / 候选列表 / 提示文案）在 ./app/views/game.js（P4.3-m） */
@@ -1150,131 +1026,14 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     state.settings[key] = value;
     applySettingsToUi();
     if (key === "ken_burns") {
-      const inner = bgLayer().querySelector(".bg-img");
-      if (inner) inner.classList.toggle("ken", !!value);
+      background.applyKenBurns(value);
     }
     await call("set_setting", key, value);
   }
 
   /* ---------------------------------------------------------- 窗口拖拽 / 缩放 */
-  function bindWindowControls() {
-    $("btnMin").onclick = () => call("window_cmd", "minimize");
-    $("btnMax").onclick = () => call("window_cmd", "toggle_maximize");
-    $("btnClose").onclick = () => call("window_cmd", "close");
-
-    document.addEventListener("mousedown", async (e) => {
-      if (e.button !== 0) return;
-
-      const rz = e.target.closest(".rz");
-      if (rz) {
-        e.preventDefault();
-        resize = { edge: rz.dataset.edge, sx: e.screenX, sy: e.screenY, base: null, queued: false };
-        resize.base = await call("resize_start");
-        return;
-      }
-
-      const handle = e.target.closest("[data-drag]");
-      if (!handle) return;
-      if (e.target.closest("[data-nodrag],button,input,select,textarea,a,.gi,.bg-item,.match-item")) return;
-      e.preventDefault();
-      drag = { sx: e.screenX, sy: e.screenY, queued: false };
-      await call("drag_start");
-    });
-
-    document.addEventListener("mousemove", (e) => {
-      if (resize && resize.base) {
-        if (resize.queued) return;
-        resize.queued = true;
-        const sx = e.screenX, sy = e.screenY;
-        requestAnimationFrame(() => {
-          resize.queued = false;
-          if (!resize || !resize.base) return;
-          const d = window.devicePixelRatio || 1;
-          const dx = (sx - resize.sx) * d;
-          const dy = (sy - resize.sy) * d;
-          const b = resize.base;
-          let { x, y, w, h } = b;
-          if (resize.edge.includes("e")) w = b.w + dx;
-          if (resize.edge.includes("s")) h = b.h + dy;
-          if (resize.edge.includes("w")) { w = b.w - dx; x = b.x + dx; }
-          if (resize.edge.includes("n")) { h = b.h - dy; y = b.y + dy; }
-          call("resize_apply", Math.round(x), Math.round(y), Math.round(w), Math.round(h),
-               resize.edge);
-        });
-        return;
-      }
-      if (drag) {
-        if (drag.queued) return;
-        drag.queued = true;
-        const dx = e.screenX - drag.sx;
-        const dy = e.screenY - drag.sy;
-        requestAnimationFrame(() => {
-          drag.queued = false;
-          if (drag) call("drag_move", dx * (window.devicePixelRatio || 1),
-                         dy * (window.devicePixelRatio || 1));
-        });
-      }
-    });
-
-    /* 鼠标在窗口外松开、或窗口切走时收不到 mouseup，状态必须主动清掉，
-       否则会出现「没按键也在拖窗口 / 划封面」这种鬼畜行为 */
-    function dropPointerState() {
-      if (drag) { drag = null; call("drag_end"); }
-      if (resize) { resize = null; }
-      ring.endDrag();
-    }
-    document.addEventListener("mouseup", dropPointerState);
-    window.addEventListener("blur", dropPointerState);
-    document.addEventListener("mouseleave", dropPointerState);
-
-    // 双击拖拽区域最大化 / 还原
-    document.addEventListener("dblclick", (e) => {
-      if (e.target.closest("[data-drag]") &&
-          !e.target.closest("[data-nodrag],button,input,select,a,.gi")) {
-        call("window_cmd", "toggle_maximize");
-      }
-    });
-  }
-
-  /* ---------------------------------------------------------- 背景缩放 / 图片回退 */
-  function bindBgView() {
-    // 图片加载失败 -> 依次尝试备用地址，全部失败则显示占位
-    document.addEventListener("error", (e) => {
-      const img = e.target;
-      if (!img || img.tagName !== "IMG" || !img.dataset) return;
-      let chain = [];
-      try { chain = JSON.parse(img.dataset.srcs || "[]"); } catch (_) { chain = []; }
-      if (chain.length) {
-        img.dataset.srcs = JSON.stringify(chain.slice(1));
-        img.src = chain[0];
-        return;
-      }
-      img.classList.add("img-broken");
-      const holder = img.parentElement;
-      if (holder) holder.classList.add("img-broken");
-      const item = img.closest(".bg-item, .gi-cover");
-      if (item) item.classList.add("img-broken");
-    }, true);
-
-    // 面板里的缩放滑杆
-    $("bgZoom").oninput = (e) => {
-      const g = currentGame();
-      if (!g) return;
-      updateBgView({ scale: Number(e.target.value) / 100 }, false);
-    };
-    $("bgZoom").onchange = (e) => {
-      const g = currentGame();
-      if (!g) return;
-      updateBgView({ scale: Number(e.target.value) / 100 });
-    };
-    $("bgViewReset").onclick = () => {
-      updateBgView({ scale: 1 });
-      toast("背景已复位");
-    };
-
-    /* 滚轮切换游戏（大厅与游戏页一致）在 ./app/views/hall.js（P4.3-j），
-       ring.bind() 时挂到 #app 上 */
-  }
+  /* 窗口控制（拖动 / 缩放 / 最小化最大化 / 失焦清理）在 ./app/core/window.js（P4.3-s） */
+  /* 背景缩放滑杆与图片回退链在 ./app/views/background.js（P4.3-s） */
 
   /* ---------------------------------------------------------- 绑定 */
   /* 排序菜单的选中态与开合在 ./app/views/toolbar.js（P4.3-q） */
@@ -1315,29 +1074,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       }).observe(el.hallViewport);
     }
 
-    $("btnBackgrounds").onclick = () => {
-      const opening = !el.bgPanel.classList.contains("open");
-      closeAll();
-      if (opening) { gameView.renderBgPanel(); openPanel(el.bgPanel); }
-    };
-    $("bgClose").onclick = () => closePanel(el.bgPanel);
-    el.bgGrid.addEventListener("click", (e) => {
-      const item = e.target.closest(".bg-item");
-      if (item) chooseBackground(item.dataset.url, item.dataset.kind);
-    });
-    $("btnLocalBg").onclick = pickLocalBackground;
-    $("btnResetBg").onclick = async () => {
-      const g = currentGame();
-      if (!g) return;
-      const res = await call("clear_background", g.id);
-      if (res.game) Object.assign(g, res.game);
-      const first = (g.images || [])[0];
-      if (first) { g.background = first.url; g.background_kind = first.kind; }
-      g.bg_scale = 1; g.bg_x = 0; g.bg_y = 0;
-      applyBackground(g.background || fallbackBackground(g), { scale: 1, x: 0, y: 0 });
-      gameView.syncBgZoomUi(g);
-      gameView.renderBgPanel();
-    };
+    /* 背景面板（按钮 / 缩略图 / 缩放滑杆）在 ./app/views/background.js（P4.3-s） */
 
     $("btnDetails").onclick = () => {
       const opening = !el.detailPanel.classList.contains("open");
@@ -1350,7 +1087,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       if (link) { call("open_url", link.dataset.url); return; }
       const shot = e.target.closest(".shot");
       if (shot) {
-        chooseBackground(shot.dataset.shot, shot.dataset.kind || "screenshot");
+        background.chooseBackground(shot.dataset.shot, shot.dataset.kind || "screenshot");
         toast("已设为背景");
       }
     });
@@ -2002,7 +1739,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     renderHall: (...a) => renderHall(...a),
     refreshLibrary: (...a) => refreshLibrary(...a),
     setFocus: (...a) => setFocus(...a),
-    scheduleBackground: (...a) => scheduleBackground(...a),
+    scheduleBackground: (...a) => background.scheduleBackground(...a),
     currentGame: () => currentGame(),
     upsertGame: (...a) => upsertGame(...a),
     pushGame: (...a) => pushGame(...a),
@@ -2036,7 +1773,11 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   /* ---------------------------------------------------------- 启动 */
   async function boot() {
     // 逐个绑定并兜住异常：某一处出错也不至于让整个界面不响应
-    for (const [name, fn] of [["窗口", bindWindowControls], ["背景", bindBgView], ["界面", bindUi]]) {
+    for (const [name, fn] of [
+      ["窗口", () => bindWindowControls({ onPointerReset: () => ring.endDrag() })],
+      ["背景", () => background.bind()],
+      ["界面", bindUi],
+    ]) {
       try {
         fn();
       } catch (err) {
@@ -2074,7 +1815,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     }
     state.focus = has(want) ? want : (state.games[0]?.id || ADD_KEY);
     render();
-    scheduleBackground();
+    background.scheduleBackground();
     el.boot.classList.add("done");
     setTimeout(() => el.boot.remove(), 600);
 
