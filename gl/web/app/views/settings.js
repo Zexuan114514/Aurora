@@ -5,6 +5,7 @@
  */
 import { call } from "../core/api.js";
 import { $, el } from "../core/dom.js";
+import { closeAll } from "../core/panels.js";
 import { state } from "../core/store.js";
 
 export function createSettingsView(ctx) {
@@ -20,7 +21,7 @@ export function createSettingsView(ctx) {
 
     async function openSettings(tab) {
       state.settingsOpen = true;
-      ctx.closeAll();
+      closeAll();
       ctx.render();
       setSettingsTab(tab || state.settingsTab);
       await refreshSettingsPanes();

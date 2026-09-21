@@ -663,3 +663,27 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 它是 `views/game.js`、`views/settings.js`、`views/sources.js` 三边都要用的最后一块公共设施，
 搬完就可以把「谁开哪个面板」也交给视图，`app.js` 只剩工具条与设置页内部渲染。
 
+### P4.3-o 面板管路进 core/panels.js（2026-09-21 11:55）
+
+面板的「开 / 关 / 全关」是三边都要用的公共设施，所以它不进任何视图，而是单独成 core 模块：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `core/panels.js`（新） | `openPanel` / `closePanel` / `closeAll`（9 个浮层 + 4 个工具条菜单），只做类名与菜单开关，不碰内容 |
+| `views/game.js` | 新增 `openCoverPanel()`（全关 → 渲染候选 → 开面板）——「谁开哪个面板」跟着面板内容走 |
+| `views/sources.js` | 新增 `openSourcePanel()`（全关 → 拉列表 → 开面板），`openSteamPanel` / `openGetPanel` 里的开合改成直接 import |
+
+`createGameView` 的 ctx 从五项减到四项（去掉 `openPanel`），`createSourcesView` 的 ctx 从三项减到一项
+（只剩 `toast`），`createSettingsView` 去掉 `closeAll`（`openSettings` 里改成 import）。
+主模块保留 `closePanel(el.…面板)` 这类一行关闭按钮的绑定（它们本来就在 `bindUi`）。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**、`visual` `errors=[]` 且 ring 判据不变；
+真机探针另外确认：设置页可开、资料源面板 3 行、获取游戏面板可开、
+**更多菜单 → 更换封面… 打开面板并渲染出 24 个候选**（e2e 没直接覆盖这一条，靠探针补上），
+全程 `__auroraErrors=[]`、无未捕获异常。`app.js` 2800 → 2774 行。
+
+**下一刀（P4.3-p）**：游戏内翻译面板那一组（`renderVntextPanel` / `renderVntextSettings` /
+`refreshVntext` / `renderGlossary` / `setGlossary` / `openVntextPanel` / `openFraming` /
+`bindVntext`，约 250 行）—— 它是 `app.js` 里剩下最大的一块，玩法照旧：渲染进视图、
+后端调用留在视图、事件绑定按需一起搬。
+

@@ -8,6 +8,7 @@ import { createRing, layoutReadout, hallKeysOf, ringMod } from "./app/views/hall
 import { createGameView } from "./app/views/game.js";
 import { createSourcesView } from "./app/views/sources.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
+import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
 import { hours, clock, sessionSeconds } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
@@ -458,7 +459,6 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     startLiveTicker: () => startLiveTicker(),
     statusOrder: () => STATUS_ORDER,
     statusLabel: () => STATUS_LABEL,
-    openPanel: (node) => openPanel(node),
   });
 
   function render() {
@@ -1185,7 +1185,6 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     refreshLocalePane: (...a) => refreshLocalePane(...a),
     refreshVntext: (...a) => refreshVntext(...a),
     renderGlossary: (...a) => renderGlossary(...a),
-    closeAll: (...a) => closeAll(...a),
   });
   const { setSettingsTab, openSettings, closeSettings, refreshSettingsPanes } = settingsView;
 
@@ -1214,13 +1213,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   /* 详情面板在 ./app/views/game.js（P4.3-l） */
 
   /* ---------------------------------------------------------- 封面面板 */
-  /* 换封面面板的渲染在 ./app/views/game.js（P4.3-m） */
-
-  function openCoverPanel() {
-    closeAll();
-    gameView.renderCoverPanel();
-    openPanel(el.coverPanel);
-  }
+  /* 换封面面板的渲染与开关在 ./app/views/game.js（P4.3-m / P4.3-o） */
 
   /* ---------------------------------------------------------- Steam 扫描 */
   /* 扫描 / 列表 / 导入在 ./app/views/sources.js（P4.3-n） */
@@ -1269,25 +1262,10 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   /* 资料源列表 / 自定义源表单在 ./app/views/sources.js（P4.3-n） */
 
   /* ---------------------------------------------------------- 事件：面板开关 */
-  const openPanel = (node) => node.classList.add("open");
-  const closePanel = (node) => node.classList.remove("open");
-  const closeAll = () => {
-    closePanel(el.bgPanel); closePanel(el.detailPanel); closePanel(el.matchPanel);
-    closePanel(el.sourcePanel);
-    closePanel(el.coverPanel); closePanel(el.steamPanel);
-    closePanel(el.localePanel);
-    closePanel(el.vntextPanel);
-    closePanel(el.getPanel);
-    el.moreMenu.hidden = true;
-    el.sortMenu.hidden = true;
-    el.addMenu.hidden = true;
-    el.scopeMenu.hidden = true;
-  };
+  /* openPanel / closePanel / closeAll 在 ./app/core/panels.js（P4.3-o） */
 
   /* 资料源 / Steam / 获取游戏三块面板在 ./app/views/sources.js（P4.3-n） */
   const sourcesView = createSourcesView({
-    closeAll: (...a) => closeAll(...a),
-    openPanel: (node) => openPanel(node),
     toast: (...a) => toast(...a),
   });
 
@@ -1967,7 +1945,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
         render();
         toast("已恢复自动命名，正在重新搜索…");
       }
-      else if (act === "cover") { openCoverPanel(); }
+      else if (act === "cover") { gameView.openCoverPanel(); }
       else if (act === "icon") {
         const res = await call("pick_custom_icon", g.id);
         if (!res || res.cancelled) return;
@@ -2105,11 +2083,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (state.settings.sources) state.settings.sources.merge_images = res.merge_images;
       toast(e.target.checked ? "已开启多源补图" : "已关闭多源补图");
     };
-    $("btnSources").onclick = async () => {
-      closeAll();
-      await sourcesView.refreshSources();
-      openPanel(el.sourcePanel);
-    };
+    $("btnSources").onclick = () => sourcesView.openSourcePanel();
     $("setTray").onchange = async (e) => {
       await saveSetting("close_to_tray", e.target.checked);
       toast(e.target.checked

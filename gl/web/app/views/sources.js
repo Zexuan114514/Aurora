@@ -6,10 +6,11 @@
  *   - 获取游戏（`openGetPanel` / `renderSites` / 下载目录设置）
  *
  * 与其它视图同规矩：只 import core；面板开合与提示仍由主模块注入
- * （`closeAll` / `openPanel` / `toast`），事件绑定留在主模块的 bindUi。
+ * （提示 `toast` 由主模块注入），面板开合走 core/panels.js，事件绑定留在主模块。
  */
 import { call } from "../core/api.js";
 import { $, el, esc } from "../core/dom.js";
+import { closeAll, openPanel } from "../core/panels.js";
 import { state } from "../core/store.js";
 
 export function createSourcesView(ctx) {
@@ -43,10 +44,10 @@ export function createSourcesView(ctx) {
   }
 
   async function openSteamPanel() {
-    ctx.closeAll();
+    closeAll();
     state.steam = [];
     state.picked = new Set();
-    ctx.openPanel(el.steamPanel);
+    openPanel(el.steamPanel);
     el.steamSub.textContent = "正在读取 Steam 清单…";
     el.steamList.innerHTML = `<div class="list-empty">正在扫描 Steam 库，第一次可能要十几秒…</div>`;
     el.steamImport.disabled = true;
@@ -145,8 +146,8 @@ export function createSourcesView(ctx) {
   }
 
   async function openGetPanel() {
-    ctx.closeAll();
-    ctx.openPanel(el.getPanel);
+    closeAll();
+    openPanel(el.getPanel);
     await refreshSites();
     await refreshDownloadSettings();
   }
@@ -226,9 +227,17 @@ export function createSourcesView(ctx) {
     else ctx.toast(`${name} 没有返回结果，请检查地址与字段映射`);
   }
 
+  /** 打开资料源管理面板（先全关，再拉一次列表）。 */
+  async function openSourcePanel() {
+    closeAll();
+    await refreshSources();
+    openPanel(el.sourcePanel);
+  }
+
   return {
     renderSteamList, updateSteamHint, openSteamPanel, importSteam,
     renderSites, refreshSites, openSite, addSite, refreshDownloadSettings, openGetPanel,
     renderSources, refreshSources, applySourcesHint, syncSourceForm, addCustomSource,
+    openSourcePanel,
   };
 }

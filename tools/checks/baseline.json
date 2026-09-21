@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 2800
+      "lines": 2774
     },
     {
       "path": "gl/web/index.html",
@@ -392,6 +392,10 @@
     {
       "path": "gl/web/app/core/time.js",
       "lines": 36
+    },
+    {
+      "path": "gl/web/app/core/panels.js",
+      "lines": 30
     },
     {
       "path": "gl/web/app/views/categories.js",
@@ -1531,6 +1535,25 @@
         {
           "from": "app.js: renderSources/refreshSources/applySourcesHint/syncSourceForm/addCustomSource",
           "to": "gl/web/app/views/sources.js: createSourcesView"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-o",
+      "date": "2026-09-21",
+      "note": "面板管路进 core/panels.js（openPanel/closePanel/closeAll），三个视图与主模块共同引用，ctx 里不再注入；换封面面板开关归 views/game.js（openCoverPanel）、资料源面板开关归 views/sources.js（openSourcePanel）；e2e 90/90、visual 判据不变",
+      "moves": [
+        {
+          "from": "app.js: openPanel/closePanel/closeAll",
+          "to": "gl/web/app/core/panels.js"
+        },
+        {
+          "from": "app.js: openCoverPanel",
+          "to": "gl/web/app/views/game.js: createGameView.openCoverPanel"
+        },
+        {
+          "from": "app.js: btnSources 里的 closeAll + refreshSources + openPanel",
+          "to": "gl/web/app/views/sources.js: createSourcesView.openSourcePanel"
         }
       ]
     }

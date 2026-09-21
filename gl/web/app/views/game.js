@@ -8,6 +8,7 @@
  * 且一律用**箭头延迟取值**包装 —— 避开 P4.3-c 的 TDZ 坑。
  */
 import { $, el, esc, imgHtml } from "../core/dom.js";
+import { closeAll, openPanel } from "../core/panels.js";
 import { state } from "../core/store.js";
 import { hours, clock, sessionSeconds, stamp } from "../core/time.js";
 
@@ -49,7 +50,6 @@ export function detailBody(g) {
  *   startLiveTicker(),    // 运行中的秒表（主模块）
  *   statusOrder(),        // 游玩状态的顺序（主模块的 STATUS_ORDER）
  *   statusLabel(),        // 游玩状态的文案（主模块的 STATUS_LABEL）
- *   openPanel(node),      // 面板开合还是主模块的事（P4.3-m 只搬渲染）
  * }
  */
 export function createGameView(ctx) {
@@ -273,6 +273,13 @@ export function createGameView(ctx) {
       </button>`).join("");
   }
 
+  /** 打开换封面面板（先全关，避免叠在别的浮层上）。 */
+  function openCoverPanel() {
+    closeAll();
+    renderCoverPanel();
+    openPanel(el.coverPanel);
+  }
+
   /* ---------------------------------------------------------- 手动匹配 */
   const matchHintText = (text) => { el.matchHint.textContent = text || ""; };
 
@@ -356,7 +363,7 @@ export function createGameView(ctx) {
   function openCandidates(rows, query, note) {
     renderQuickQueries(ctx.currentGame());
     renderMatches(rows, query);
-    ctx.openPanel(el.matchPanel);
+    openPanel(el.matchPanel);
     if (rows && rows.length) {
       const best = Math.round((rows[0].score || 0) * 100);
       matchHintText(`共 ${rows.length} 条候选，按匹配度从高到低排列` +
@@ -370,6 +377,7 @@ export function createGameView(ctx) {
   }
 
   return { renderGameContent, renderBgPanel, syncBgZoomUi, renderDetail,
-           renderCoverPanel, matchHintText, renderQuickQueries, renderMatches,
+           renderCoverPanel, openCoverPanel,
+           matchHintText, renderQuickQueries, renderMatches,
            openCandidates };
 }
