@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 1571
+      "lines": 1355
     },
     {
       "path": "gl/web/index.html",
@@ -406,6 +406,10 @@
       "lines": 190
     },
     {
+      "path": "gl/web/app/core/actions.js",
+      "lines": 113
+    },
+    {
       "path": "gl/web/app/core/window.js",
       "lines": 92
     },
@@ -423,7 +427,7 @@
     },
     {
       "path": "gl/web/app/views/game.js",
-      "lines": 383
+      "lines": 526
     },
     {
       "path": "gl/web/app/views/sources.js",
@@ -1677,6 +1681,25 @@
         {
           "from": "app.js bindUi 里的设置页绑定（页签/网络/转区/外观/翻译/资料源/备份）",
           "to": "gl/web/app/views/settings.js: createSettingsView.bind"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-u",
+      "date": "2026-09-21",
+      "note": "游戏动作进 core/actions.js（导入/整库刷新/启动结束/批量重抓与翻译/秒表）；手动匹配流程与单个游戏的转区面板进 views/game.js；第一次 e2e 抓到 game.js 漏 import call（转区开关与手动搜索静默失败：61/64/65 三项），补上后 90/90（0 skipped）",
+      "moves": [
+        {
+          "from": "app.js: importGames/refreshLibrary/togglePlay/startRefreshAll/startTranslateAll/startLiveTicker",
+          "to": "gl/web/app/core/actions.js: createActions"
+        },
+        {
+          "from": "app.js: openMatchPanel/doSearch/researchGame/applyCandidate",
+          "to": "gl/web/app/views/game.js: createGameView"
+        },
+        {
+          "from": "app.js: renderLocalePanel/openLocalePanel/saveGameLocale",
+          "to": "gl/web/app/views/game.js: createGameView"
         }
       ]
     }

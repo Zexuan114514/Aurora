@@ -7,6 +7,7 @@
  * （当前游戏、背景缩放 UI、实时计时、资料源名字）由 `createGameView(ctx)` 注入，
  * 且一律用**箭头延迟取值**包装 —— 避开 P4.3-c 的 TDZ 坑。
  */
+import { call } from "../core/api.js";
 import { $, el, esc, imgHtml } from "../core/dom.js";
 import { closeAll, openPanel } from "../core/panels.js";
 import { state } from "../core/store.js";
@@ -50,6 +51,8 @@ export function detailBody(g) {
  *   startLiveTicker(),    // 运行中的秒表（主模块）
  *   statusOrder(),        // 游玩状态的顺序（主模块的 STATUS_ORDER）
  *   statusLabel(),        // 游玩状态的文案（主模块的 STATUS_LABEL）
+ *   render(),             // 整页重绘（主模块）
+ *   toast(msg, ms),       // 提示
  * }
  */
 export function createGameView(ctx) {
@@ -376,8 +379,148 @@ export function createGameView(ctx) {
     return Boolean(rows && rows.length);
   }
 
+  /* 「⋯ → 手动匹配…」：预填名字（匹配过的用当前名字，没匹配的用文件名推断词）开面板并搜一次 */
+  async function openMatchPanel() {
+    const g = ctx.currentGame();
+    if (!g) return;
+    closeAll();
+    // 已经匹配上的用当前名字搜（最准）；没匹配上的用文件名推断出的关键词
+    const query = (g.metadata_state === "ok" && g.name)
+      ? g.name : ((g.queries || [])[0] || g.name || "");
+    renderQuickQueries(g);
+    renderMatches([], query);
+    el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
+    matchHintText(query ? `正在按「${query}」搜索…` : "");
+    $("matchRetry").hidden = true;
+    openPanel(el.matchPanel);
+    if (query) await doSearch(query);
+    else {
+      matchHintText("输入游戏名（中文 / 日文原名 / 英文名都行）再点搜索。");
+      el.matchQuery.focus();
+    }
+  }
+
+  /* 手动搜索：只把候选列出来，库里的匹配结果要等用户点某一条才会变 */
+  async function doSearch(query) {
+    const g = ctx.currentGame();
+    if (!g) return;
+    const q = (query || "").trim();
+    const btn = $("matchGo");
+    btn.disabled = true;
+    el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
+    matchHintText(q ? `正在搜索「${q}」…` : "正在按文件名推断的关键词搜索…");
+    try {
+      const res = await call("search", g.id, q || null);
+      const asked = q || (res.queries || [])[0] || "";
+      if (!openCandidates(res.candidates, asked, res.reason === "network"
+          ? "网络不通，没能拿到候选；可以点「重试」再来一次。"
+          : "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。")) {
+        ctx.toast("没有找到匹配结果");
+      }
+    } catch (e) {
+      el.matchList.innerHTML =
+        `<div class="list-empty">搜索出错，可以换个关键词重试。</div>`;
+      matchHintText("搜索出错：" + e.message);
+      $("matchRetry").hidden = false;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* 「⋯ → 重新搜索游戏信息」：自动流程，匹配度够高就直接采纳（保持原样） */
+  async function researchGame() {
+    const g = ctx.currentGame();
+    if (!g) return;
+    ctx.toast("正在重新搜索…");
+    try {
+      const res = await call("search", g.id, null, true, false);
+      if (res.applied) {
+        if (res.game) Object.assign(g, res.game);
+        closeAll();
+        ctx.render();
+        ctx.toast("已匹配：" + g.name);
+        return;
+      }
+      closeAll();
+      openCandidates(res.candidates, (res.queries || [])[0] || "",
+                     "匹配置信度不足，请手动选择");
+      ctx.toast("匹配置信度不足，请手动选择");
+    } catch (e) {
+      ctx.toast("搜索失败：" + e.message);
+    }
+  }
+
+  /** 用户点了某条候选 → 让后端按这条重取资料。 */
+  async function applyCandidate(item) {
+    const g = ctx.currentGame();
+    if (!g || !item) return;
+    ctx.toast("正在获取资料…");
+    const res = await call("apply_candidate", g.id, item.dataset.source,
+                           item.dataset.sourceId, item.dataset.name, "manual");
+    if (res.game) Object.assign(g, res.game);
+    closeAll();
+    ctx.render();
+    ctx.toast("已应用：" + g.name);
+  }
+
+  /* ------------------------------------------------------------ 转区启动面板（单个游戏） */
+  async function renderLocalePanel(game) {
+    const g = game || ctx.currentGame();
+    if (!g) return null;
+    $("locSub").textContent = `${g.name} · 转区后以日文区域运行`;
+    $("locSwitch").checked = !!g.locale_enabled;
+    let st = state.locale || {};
+    try {
+      st = (await call("get_locale_status")) || st;
+      state.locale = st;
+    } catch (_) { /* 离线也要能开面板 */ }
+    const profiles = st.profiles || [];
+    const sel = $("locProfile");
+    sel.innerHTML = '<option value="">LE 默认配置</option>'
+      + profiles.map((p) =>
+          `<option value="${esc(p.guid)}">${esc(p.name || p.guid)}</option>`).join("");
+    sel.value = g.locale_guid || "";
+    sel.disabled = !st.available;
+    const note = $("locStatus");
+    if (st.available) {
+      note.textContent = profiles.length
+        ? `已检测到 Locale Emulator：${st.proc}`
+        : `已检测到 Locale Emulator：${st.proc}（没读到 LEConfig.xml，将使用 LE 的默认配置）`;
+    } else if (st.proc) {
+      note.textContent = "指定的 LEProc.exe 不可用（缺少 LoaderDll.dll / LocaleEmulator.dll 等运行时文件），请重新指定。";
+    } else {
+      note.textContent = "没有检测到 Locale Emulator。装好并指定 LEProc.exe 后这里就会生效；"
+        + "没装也不影响启动，只是会按系统区域运行（日文原版可能出现乱码）。";
+    }
+    return st;
+  }
+
+  async function openLocalePanel() {
+    const g = ctx.currentGame();
+    if (!g) return;
+    closeAll();
+    await renderLocalePanel(g);
+    openPanel(el.localePanel);
+  }
+
+  /* 写回单个游戏的转区开关与配置 */
+  async function saveGameLocale(enabled, guid) {
+    const g = ctx.currentGame();
+    if (!g) return;
+    const res = await call("set_game_locale", g.id, !!enabled, guid || "");
+    if (!res || !res.ok) { ctx.toast("保存转区设置失败"); return; }
+    if (res.game) Object.assign(g, res.game);
+    ctx.render();
+    const usable = state.locale && state.locale.available;
+    ctx.toast(enabled
+      ? (usable ? "已开启转区启动" : "已开启：装好 Locale Emulator 后即可生效")
+      : "已关闭转区启动");
+  }
+
   return { renderGameContent, renderBgPanel, syncBgZoomUi, renderDetail,
            renderCoverPanel, openCoverPanel,
            matchHintText, renderQuickQueries, renderMatches,
-           openCandidates };
+           openCandidates,
+           openMatchPanel, doSearch, researchGame, applyCandidate,
+           renderLocalePanel, openLocalePanel, saveGameLocale };
 }

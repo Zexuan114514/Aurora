@@ -825,3 +825,34 @@ TextractorCLI、浅色主题生效、配色预设切换、切回深色+默认配
 以及 `boot()` 与全局快捷键。建议把「游戏动作」收进 `core/actions.js`、转区面板与匹配流程
 收进 `views/game.js`，最后一刀只剩 `boot()`。
 
+### P4.3-u 游戏动作进 core/actions.js、匹配与转区面板进 views/game.js（2026-09-21 16:40）
+
+| 搬到 | 内容 |
+| --- | --- |
+| `core/actions.js`（新） | `importGames`（选 exe → 刷新 → 聚焦 → 回大厅）、`refreshLibrary`（bootstrap 是唯一来源）、`togglePlay`（启动失败的两类人话提示）、`startRefreshAll` / `startTranslateAll`（先占位再收事件）、`startLiveTicker`（只改 `#chipLive`，不整页重绘） |
+| `views/game.js` | 手动匹配流程：`openMatchPanel` / `doSearch` / `researchGame` / `applyCandidate`；单个游戏的转区面板：`renderLocalePanel` / `openLocalePanel` / `saveGameLocale`（转区面板从「设置页那一栏」分出来，归到游戏页这边） |
+
+`createActions(ctx)` 注入 `render` / `setFocus` / `closeGame` / `toast` / `currentGame` /
+`applySettingsToUi` / `renderSources` / `applySourcesHint` / `refreshShelves`；
+`createGameView(ctx)` 的注入项加上 `render` 与 `toast`。主模块的调用点全部改走
+`actions.*` / `gameView.*`，顺手删掉不再用的 import（`replaceGames`、`clock`、`sessionSeconds`）。
+
+**这一刀踩到的坑（e2e + 探针一起抓到的）**：`views/game.js` 原本不需要 `call`（P4.3-k 只搬渲染），
+这次搬进去的匹配与转区流程要调后端，但 **import 列表里漏了 `call`** —— 于是
+「转区开关写进游戏记录」和「手动搜索只列候选」两项静默失败（`Uncaught (in promise) TypeError: call is not defined`），
+e2e 第一次跑出 61/64/65 三项失败。因为它是 async 函数里的报错，`window.onerror` 抓不到，
+最后靠探针里的 `unhandledrejection` 监听读出来（`_sandbox/p43u_locale_probe.py`）。
+补上 `import { call } from "../core/api.js";` 后，同一条链路回读 `locale_enabled=True`、e2e 回到 90/90。
+教训：往视图里搬**会调后端**的函数时，先把该视图的 import 清单与依赖对一遍；e2e 的报错可能是
+「静默 + 连带」，探针要同时挂 `error` 与 `unhandledrejection`。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90（0 skipped）**——转区面板与开关写入、
+手动匹配候选列表（10 条、按匹配度排序、点候选才应用）、双击封面启动、启动/结束进程全过；
+`visual` `errors=[]` 且 ring 判据不变。`app.js` 1571 → **1355 行**，`core/actions.js` 113 行、
+`views/game.js` 383 → 526 行。
+
+**下一刀（P4.3-v，P4 收尾候选）**：`app.js` 里剩下的基本是「分类工作区渲染 + 更多菜单/分类绑定
++ boot()」。可以先把分类工作区那一组（`DEV_LIMIT` / `catList` / `catItem` / `renderCatRoots`…
+`renderCategories` / `applyShelfPayload` / `refreshShelves`，约 180 行）搬进 `views/categories.js`，
+再把 `bindUi` 里分类与更多菜单的绑定交给各自的 `bind()`，最后 `app.js` 只剩 `boot()` 与拼装。
+

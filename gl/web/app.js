@@ -10,13 +10,14 @@ import { createSourcesView } from "./app/views/sources.js";
 import { createVntextView } from "./app/views/vntext.js";
 import { createToolbarView } from "./app/views/toolbar.js";
 import { createEventRouter } from "./app/core/events.js";
+import { createActions } from "./app/core/actions.js";
 import { bindWindowControls } from "./app/core/window.js";
 import { createBackgroundView } from "./app/views/background.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
-import { hours, clock, sessionSeconds } from "./app/core/time.js";
+import { hours } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
-         replaceGames, replaceShelves, ADD_KEY } from "./app/core/store.js";
+         replaceShelves, ADD_KEY } from "./app/core/store.js";
 import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
          searchHit, sortGames, inScope, scopeName, scopeCount,
          visibleGames } from "./app/core/query.js";
@@ -270,7 +271,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       setFocus(id);
       openGame(id);
     }
-    togglePlay();
+    actions.togglePlay();
   }
 
   /* 大厅 ↔ 游戏页 */
@@ -298,9 +299,24 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
      （P4.3-k / P4.3-l）；这里只把取数与副作用注入进去 */
   const gameView = createGameView({
     currentGame: () => currentGame(),
-    startLiveTicker: () => startLiveTicker(),
+    startLiveTicker: () => actions.startLiveTicker(),
     statusOrder: () => STATUS_ORDER,
     statusLabel: () => STATUS_LABEL,
+    render: (...a) => render(...a),
+    toast: (...a) => toast(...a),
+  });
+
+  /* 游戏动作（导入 / 整库刷新 / 启动结束 / 批量 / 秒表）在 ./app/core/actions.js（P4.3-u） */
+  const actions = createActions({
+    render: (...a) => render(...a),
+    setFocus: (...a) => setFocus(...a),
+    closeGame: (...a) => closeGame(...a),
+    toast: (...a) => toast(...a),
+    currentGame: () => currentGame(),
+    applySettingsToUi: (...a) => settingsView.applySettingsToUi(...a),
+    renderSources: (...a) => sourcesView.renderSources(...a),
+    applySourcesHint: (...a) => sourcesView.applySourcesHint(...a),
+    refreshShelves: (...a) => refreshShelves(...a),
   });
 
   /* 背景层与背景面板在 ./app/views/background.js（P4.3-s） */
@@ -580,9 +596,9 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     applyKenBurns: (...a) => background.applyKenBurns(...a),
     openSourcePanel: (...a) => sourcesView.openSourcePanel(...a),
     openSteamPanel: (...a) => sourcesView.openSteamPanel(...a),
-    startRefreshAll: (...a) => startRefreshAll(...a),
-    startTranslateAll: (...a) => startTranslateAll(...a),
-    refreshLibrary: (...a) => refreshLibrary(...a),
+    startRefreshAll: (...a) => actions.startRefreshAll(...a),
+    startTranslateAll: (...a) => actions.startTranslateAll(...a),
+    refreshLibrary: (...a) => actions.refreshLibrary(...a),
     refreshVntext: (...a) => vntextView.refresh(...a),
     renderGlossary: (...a) => vntextView.renderGlossary(...a),
   });
@@ -606,38 +622,8 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   /* ---------------------------------------------------------- 获取游戏 */
   /* 资源站与下载设置面板在 ./app/views/sources.js（P4.3-n） */
 
-  /* ---------------------------------------------------------- 批量重新抓取 */
-  async function startRefreshAll() {
-    if (state.batch) { toast("已经有一个批量任务在跑"); return; }
-    // 先占位，避免后端第一批进度事件比这里更早到达而被丢掉
-    state.batch = { kind: "refresh", done: 0, total: 0 };
-    const res = await call("refresh_all_metadata");
-    if (!res || !res.ok) {
-      state.batch = null;
-      toast(res && res.error === "empty" ? "库里还没有游戏" : "启动失败，请稍后再试");
-      return;
-    }
-    state.batch.total = res.total;
-    $("refreshHint").textContent = `0/${res.total}`;
-    toast(`开始重新抓取 ${res.total} 个游戏的资料`);
-  }
-
-  /* ---------------------------------------------------------- 批量翻译简介 */
-  async function startTranslateAll() {
-    if (state.batch) { toast("已经有一个批量任务在跑"); return; }
-    state.batch = { kind: "translate", done: 0, total: 0 };
-    const res = await call("translate_all_descriptions");
-    if (!res || !res.ok) {
-      state.batch = null;
-      toast(res && res.error === "empty" ? "库里还没有游戏" : "启动失败，请稍后再试");
-      return;
-    }
-    state.batch.total = res.total;
-    $("translateHint").textContent = `0/${res.total}`;
-    toast(`开始翻译 ${res.total} 个游戏的简介`);
-  }
-
-  /* ---------------------------------------------------------- 候选匹配 */
+  /* ---------------------------------------------------------- 批量任务 / 候选匹配 */
+  /* 批量重抓与批量翻译在 ./app/core/actions.js（P4.3-u） */
   /* sourceName / 候选列表（renderMatches）/ 跳转搜索（renderMatchLinks）
      在 ./app/views/game.js（P4.3-m） */
 
@@ -652,215 +638,11 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     toast: (...a) => toast(...a),
   });
 
-  /* ---------------------------------------------------------- 动作 */
-  async function importGames() {
-    try {
-      const res = await call("pick_executable");
-      if (!res || res.cancelled) return;
-      if (!res.ok) { toast("导入失败：" + (res.error || "未知错误")); return; }
-      const games = res.games || [];
-      if (!games.length) return;
-      await refreshLibrary();
-      render();
-      setFocus(games[games.length - 1].id);
-      closeGame();
-      toast(`已导入 ${games.length} 个游戏`);
-    } catch (e) { toast("导入失败：" + e.message); }
-  }
-
-  async function refreshLibrary() {
-    const data = await call("bootstrap");
-    replaceGames(data.games);
-    state.settings = data.settings || {};
-    state.sources = data.sources || [];
-    state.version = data.version || "";
-    if (state.focus && state.focus !== ADD_KEY && !currentGame()) {
-      state.focus = state.games[0]?.id || ADD_KEY;
-    }
-    settingsView.applySettingsToUi();
-    sourcesView.renderSources();
-    sourcesView.applySourcesHint();
-    await refreshShelves();
-  }
-
-  async function togglePlay() {
-    const g = currentGame();
-    if (!g) return;
-    if (g.running) {
-      await call("stop", g.id);
-      toast("已结束游戏进程");
-      return;
-    }
-    const res = await call("launch", g.id);
-    if (!res || !res.ok) {
-      const map = {
-        "missing-exe": "找不到可执行文件，可能已被移动或删除。",
-        "already-running": "游戏已在运行中。",
-      };
-      toast(map[res && res.error] || "启动失败：" + ((res && res.error) || "未知错误"));
-      return;
-    }
-    toast("游戏已启动");
-    const game = state.games.find((x) => x.id === g.id);
-    if (game) { game.running = true; render(); }
-  }
-
+  /* 动作（导入 / 整库刷新 / 启动结束 / 秒表）在 ./app/core/actions.js（P4.3-u） */
   /* chooseBackground / pickLocalBackground 在 ./app/views/background.js（P4.3-s） */
-
-  /* 运行中的实时计时（只改那一颗 chip，避免整页重绘） */
-  let liveTimer = null;
-  function startLiveTicker() {
-    if (liveTimer) return;
-    liveTimer = setInterval(() => {
-      const node = document.getElementById("chipLive");
-      if (!node) return;
-      const g = currentGame();
-      if (!g || !g.running) return;
-      node.innerHTML = `运行中 · <b>${clock(sessionSeconds(g))}</b>`;
-    }, 1000);
-  }
-
-  /* 手动匹配的三块渲染（快捷词 / 候选列表 / 提示文案）在 ./app/views/game.js（P4.3-m） */
-
-  /* 「⋯ → 手动匹配…」：预填名字（匹配过的用当前名字，没匹配的用文件名推断词）开面板并搜一次 */
-  async function openMatchPanel() {
-    const g = currentGame();
-    if (!g) return;
-    closeAll();
-    // 已经匹配上的用当前名字搜（最准）；没匹配上的用文件名推断出的关键词
-    const query = (g.metadata_state === "ok" && g.name)
-      ? g.name : ((g.queries || [])[0] || g.name || "");
-    gameView.renderQuickQueries(g);
-    gameView.renderMatches([], query);
-    el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
-    gameView.matchHintText(query ? `正在按「${query}」搜索…` : "");
-    $("matchRetry").hidden = true;
-    openPanel(el.matchPanel);
-    if (query) await doSearch(query);
-    else {
-      gameView.matchHintText("输入游戏名（中文 / 日文原名 / 英文名都行）再点搜索。");
-      el.matchQuery.focus();
-    }
-  }
-
-  /* 手动搜索：只把候选列出来，库里的匹配结果要等用户点某一条才会变 */
-  async function doSearch(query) {
-    const g = currentGame();
-    if (!g) return;
-    const q = (query || "").trim();
-    const btn = $("matchGo");
-    btn.disabled = true;
-    el.matchList.innerHTML = `<div class="list-empty">正在搜索…</div>`;
-    gameView.matchHintText(q ? `正在搜索「${q}」…` : "正在按文件名推断的关键词搜索…");
-    try {
-      const res = await call("search", g.id, q || null);
-      const asked = q || (res.queries || [])[0] || "";
-      if (!gameView.openCandidates(res.candidates, asked, res.reason === "network"
-          ? "网络不通，没能拿到候选；可以点「重试」再来一次。"
-          : "没有找到候选：换个写法（中文名 / 日文原名 / 英文名）再搜。")) {
-        toast("没有找到匹配结果");
-      }
-    } catch (e) {
-      el.matchList.innerHTML =
-        `<div class="list-empty">搜索出错，可以换个关键词重试。</div>`;
-      gameView.matchHintText("搜索出错：" + e.message);
-      $("matchRetry").hidden = false;
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  /* 「⋯ → 重新搜索游戏信息」：自动流程，匹配度够高就直接采纳（保持原样） */
-  async function researchGame() {
-    const g = currentGame();
-    if (!g) return;
-    toast("正在重新搜索…");
-    try {
-      const res = await call("search", g.id, null, true, false);
-      if (res.applied) {
-        if (res.game) Object.assign(g, res.game);
-        closeAll();
-        render();
-        toast("已匹配：" + g.name);
-        return;
-      }
-      closeAll();
-      gameView.openCandidates(res.candidates, (res.queries || [])[0] || "",
-                              "匹配置信度不足，请手动选择");
-      toast("匹配置信度不足，请手动选择");
-    } catch (e) {
-      toast("搜索失败：" + e.message);
-    }
-  }
-
-  async function applyCandidate(item) {
-    const g = currentGame();
-    if (!g || !item) return;
-    toast("正在获取资料…");
-    const res = await call("apply_candidate", g.id, item.dataset.source,
-                           item.dataset.sourceId, item.dataset.name, "manual");
-    if (res.game) Object.assign(g, res.game);
-    closeAll();
-    render();
-    toast("已应用：" + g.name);
-  }
-
-  /* ---------------------------------------------------------- 设置 UI */
-  /* ---------------------------------------------------------- 设置：网络 */
-  /* 设置页那几栏（网络 / 转区 / 主题配色 / 外观回填）在 ./app/views/settings.js（P4.3-t） */
-  /* ---------------------------------------------------------- 转区启动面板（单个游戏） */
-  async function renderLocalePanel(game) {
-    const g = game || currentGame();
-    if (!g) return null;
-    $("locSub").textContent = `${g.name} · 转区后以日文区域运行`;
-    $("locSwitch").checked = !!g.locale_enabled;
-    let st = state.locale || {};
-    try {
-      st = (await call("get_locale_status")) || st;
-      state.locale = st;
-    } catch (_) { /* 离线也要能开面板 */ }
-    const profiles = st.profiles || [];
-    const sel = $("locProfile");
-    sel.innerHTML = '<option value="">LE 默认配置</option>'
-      + profiles.map((p) =>
-          `<option value="${esc(p.guid)}">${esc(p.name || p.guid)}</option>`).join("");
-    sel.value = g.locale_guid || "";
-    sel.disabled = !st.available;
-    const note = $("locStatus");
-    if (st.available) {
-      note.textContent = profiles.length
-        ? `已检测到 Locale Emulator：${st.proc}`
-        : `已检测到 Locale Emulator：${st.proc}（没读到 LEConfig.xml，将使用 LE 的默认配置）`;
-    } else if (st.proc) {
-      note.textContent = "指定的 LEProc.exe 不可用（缺少 LoaderDll.dll / LocaleEmulator.dll 等运行时文件），请重新指定。";
-    } else {
-      note.textContent = "没有检测到 Locale Emulator。装好并指定 LEProc.exe 后这里就会生效；"
-        + "没装也不影响启动，只是会按系统区域运行（日文原版可能出现乱码）。";
-    }
-    return st;
-  }
-
-  async function openLocalePanel() {
-    const g = currentGame();
-    if (!g) return;
-    closeAll();
-    await renderLocalePanel(g);
-    openPanel(el.localePanel);
-  }
-
-  /* 写回单个游戏的转区开关与配置 */
-  async function saveGameLocale(enabled, guid) {
-    const g = currentGame();
-    if (!g) return;
-    const res = await call("set_game_locale", g.id, !!enabled, guid || "");
-    if (!res || !res.ok) { toast("保存转区设置失败"); return; }
-    if (res.game) Object.assign(g, res.game);
-    render();
-    const usable = state.locale && state.locale.available;
-    toast(enabled
-      ? (usable ? "已开启转区启动" : "已开启：装好 Locale Emulator 后即可生效")
-      : "已关闭转区启动");
-  }
+  /* 手动匹配流程（openMatchPanel / doSearch / researchGame / applyCandidate）与
+     单个游戏的转区面板（renderLocalePanel / openLocalePanel / saveGameLocale）
+     在 ./app/views/game.js（P4.3-m / P4.3-u） */
 
   /* applySettingsToUi / saveSetting 在 ./app/views/settings.js（P4.3-t） */
 
@@ -885,8 +667,8 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   }
 
   function bindUi() {
-    $("btnImport2").onclick = importGames;
-    el.play.onclick = togglePlay;
+    $("btnImport2").onclick = () => actions.importGames();
+    el.play.onclick = () => actions.togglePlay();
     el.btnBack.onclick = closeGame;
 
     // 大厅交互（悬停 / 单击 / 双击 / 横向拖动 / 滚轮）整块在
@@ -926,17 +708,17 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     });
 
     $("matchClose").onclick = () => closePanel(el.matchPanel);
-    $("matchGo").onclick = () => doSearch(el.matchQuery.value.trim());
+    $("matchGo").onclick = () => gameView.doSearch(el.matchQuery.value.trim());
     el.matchQuery.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") doSearch(el.matchQuery.value.trim());
+      if (e.key === "Enter") gameView.doSearch(el.matchQuery.value.trim());
     });
     el.matchList.addEventListener("click", (e) => {
       const item = e.target.closest(".match-item");
-      if (item) applyCandidate(item);
+      if (item) gameView.applyCandidate(item);
     });
     el.matchQuick.addEventListener("click", (e) => {
       const chip = e.target.closest("[data-q]");
-      if (chip) doSearch(chip.dataset.q);
+      if (chip) gameView.doSearch(chip.dataset.q);
     });
     el.matchLinks.addEventListener("click", (e) => {
       const chip = e.target.closest("[data-link-source]");
@@ -1008,9 +790,9 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       } else if (act === "store") {
         if (g.source_url) call("open_url", g.source_url);
         else toast("还没有匹配到条目");
-      } else if (act === "research") { researchGame(); }
-      else if (act === "match") { openMatchPanel(); }
-      else if (act === "locale") { openLocalePanel(); }
+      } else if (act === "research") { gameView.researchGame(); }
+      else if (act === "match") { gameView.openMatchPanel(); }
+      else if (act === "locale") { gameView.openLocalePanel(); }
       else if (act === "translate") {
         const res = await call("translate_game", g.id);
         if (!res || !res.ok) { toast("翻译启动失败"); return; }
@@ -1035,7 +817,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
         });
         if (!ok) return;
         await call("remove_game", g.id);
-        await refreshLibrary();
+        await actions.refreshLibrary();
         if (state.focus === g.id) {
           state.focus = state.games[0]?.id || ADD_KEY;
           if (state.page === "game") closeGame();
@@ -1051,13 +833,15 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
 
     // 转区启动面板（单个游戏）
     $("locClose").onclick = () => closePanel(el.localePanel);
-    $("locSwitch").onchange = (e) => saveGameLocale(e.target.checked, $("locProfile").value);
-    $("locProfile").onchange = (e) => saveGameLocale($("locSwitch").checked, e.target.value);
+    $("locSwitch").onchange =
+      (e) => gameView.saveGameLocale(e.target.checked, $("locProfile").value);
+    $("locProfile").onchange =
+      (e) => gameView.saveGameLocale($("locSwitch").checked, e.target.value);
     $("locPick").onclick = async () => {
       const res = await call("pick_locale_proc");
       if (!res || res.cancelled) return;
       if (!res.ok) { toast("这个路径不可用：" + ((res && res.error) || "")); return; }
-      await renderLocalePanel();
+      await gameView.renderLocalePanel();
       toast("已设置 Locale Emulator 路径");
     };
     $("locDownload").onclick = () => call("open_url", LE_URL);
@@ -1232,7 +1016,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       sourcesView.updateSteamHint();
     });
     // 重试按输入框里的词再搜一次（手动面板里用户可能刚改过关键词）
-    $("matchRetry").onclick = () => doSearch(el.matchQuery.value.trim() || null);
+    $("matchRetry").onclick = () => gameView.doSearch(el.matchQuery.value.trim() || null);
 
     // 获取游戏（下载大厅）
     $("btnGetGames").onclick = () => sourcesView.openGetPanel();
@@ -1260,7 +1044,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       if (!res || !res.ok) { toast("扫描失败"); return; }
       const n = res.imported || 0;
       toast(n ? `扫描完成：导入 ${n} 个游戏` : "扫描完成：没有发现新的游戏");
-      if (n) { await refreshLibrary(); render(); }
+      if (n) { await actions.refreshLibrary(); render(); }
     };
     $("getAddSite").onclick = () => {
       el.getSiteForm.hidden = false;
@@ -1287,7 +1071,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       const btn = e.target.closest("button[data-add-act]");
       if (!btn) return;
       el.addMenu.hidden = true;
-      if (btn.dataset.addAct === "import") importGames();
+      if (btn.dataset.addAct === "import") actions.importGames();
       else sourcesView.openGetPanel();
     });
 
@@ -1446,7 +1230,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
   const events = createEventRouter({
     render: (...a) => render(...a),
     renderHall: (...a) => renderHall(...a),
-    refreshLibrary: (...a) => refreshLibrary(...a),
+    refreshLibrary: (...a) => actions.refreshLibrary(...a),
     setFocus: (...a) => setFocus(...a),
     scheduleBackground: (...a) => background.scheduleBackground(...a),
     currentGame: () => currentGame(),
@@ -1501,7 +1285,7 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       toast("界面元素缺失：" + list, 6000);
     }
     try {
-      await refreshLibrary();
+      await actions.refreshLibrary();
     } catch (e) {
       console.error(e);
       toast("初始化失败：" + e.message, 6000);
