@@ -582,3 +582,26 @@ LOGO / 背景图已应用 / 界面显示运行中」等游戏页判据）、`vis
 `syncBgZoomUi` / `renderCoverPanel` / `renderMatches` + `openCandidates`，
 每块单独一刀，仍以 `e2e`（详情 / 换封面 / 手动匹配 / 背景面板都有判据）+ `visual` 收口。
 
+### P4.3-l 详情面板与背景面板进 views/game.js（2026-09-21 11:25）
+
+游戏页的两块面板（含背景缩放）跟着渲染面一起归位：
+
+| 搬到 | 内容 |
+| --- | --- |
+| `views/game.js` | `renderDetail`（信息表 / 游玩记录 / 截图墙）与 `renderBgPanel` + `syncBgZoomUi`（缩略图墙与缩放滑杆） |
+| `core/dom.js` | 顺带收一个 `imgHtml`（带 `data-srcs` 备用链的 `<img>`，主模块与视图都要拼） |
+
+主模块的调用点改走 `gameView.renderDetail()` / `gameView.renderBgPanel()` /
+`gameView.syncBgZoomUi(g)`；分类视图的 `ctx.renderDetail` 也指到 `gameView`（箭头包装）。
+事件绑定（`btnDetails` / `btnBackgrounds` / 截图墙点击 / `detailStatus` 改状态 / 缩放滑杆）
+仍留在 `bindUi`，一个字没动。`createGameView(ctx)` 的注入项从五个减到四个：
+`currentGame` / `startLiveTicker` / `sourceName` / `statusOrder+statusLabel`。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**（详情面板改状态、切换背景、
+背景缩放复位、获得多张背景候选全过）、`visual` `errors=[]`、ring 判据与 `zoom` 判据
+（滑杆 180 → `scale(1.8)`、复位后 `transform=""`）与改前相同。`app.js` 3223 → 3120 行。
+
+**下一刀（P4.3-m）**：换封面面板（`renderCoverPanel` + `coverCandidates`）与手动匹配
+（`renderMatches` / `openCandidates` / `renderQuickQueries`）—— 这两块与后端调用耦合更紧，
+每块单独一刀，仍以 `e2e`（更换封面 / 手动匹配 / 候选应用）+ `visual` 收口。
+

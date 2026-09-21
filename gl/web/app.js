@@ -5,9 +5,9 @@ import { call } from "./app/core/api.js";
 import { createCategoriesView } from "./app/views/categories.js";
 import { createSettingsView } from "./app/views/settings.js";
 import { createRing, layoutReadout, hallKeysOf, ringMod } from "./app/views/hall.js";
-import { detailBody, createGameView } from "./app/views/game.js";
-import { $, el, missingIds, esc } from "./app/core/dom.js";
-import { hours, clock, sessionSeconds, stamp } from "./app/core/time.js";
+import { createGameView } from "./app/views/game.js";
+import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
+import { hours, clock, sessionSeconds } from "./app/core/time.js";
 import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
          replaceGames, replaceShelves } from "./app/core/store.js";
 
@@ -231,15 +231,7 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     if (state.view === "home") ring.update();
   }
 
-  /* 图片回退链：img[data-srcs] 里按顺序放备用地址，加载失败自动换下一个 */
-  function imgHtml(cls, sources, attrs = "") {
-    const list = (Array.isArray(sources) ? sources : [sources]).filter(Boolean);
-    if (!list.length) return "";
-    const rest = list.slice(1);
-    return `<img class="${cls}" src="${esc(list[0])}"` +
-      (rest.length ? ` data-srcs="${esc(JSON.stringify(rest))}"` : "") +
-      ` alt="" loading="lazy" decoding="async" ${attrs}>`;
-  }
+  /* imgHtml（图片回退链）在 ./app/core/dom.js（P4.3-l） */
 
   function coverSources(game) {
     // 大厅是大封面：优先用 2 倍图（Steam 的 library_600x900 其实只有 300×450）
@@ -472,13 +464,14 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
     renderHall();
   }
 
-  /* 游戏页渲染面（chip/descText/detailBody/updateShowOriginalBtn/renderGameContent）
-     在 ./app/views/game.js（P4.3-k）；这里只把取数与副作用注入进去 */
+  /* 游戏页（渲染面 + 背景面板 + 详情面板）在 ./app/views/game.js
+     （P4.3-k / P4.3-l）；这里只把取数与副作用注入进去 */
   const gameView = createGameView({
     currentGame: () => currentGame(),
-    syncBgZoomUi: (g) => syncBgZoomUi(g),
     startLiveTicker: () => startLiveTicker(),
     sourceName: (id) => sourceName(id),
+    statusOrder: () => STATUS_ORDER,
+    statusLabel: () => STATUS_LABEL,
   });
 
   function render() {
@@ -768,7 +761,8 @@ import { state, findGame, upsertGame, pushGame, setBusy, patchGame,
   /* P4.3-b：书架/多选/状态整块搬进 ./app/views/categories.js（视图只依赖 core）；
      这里注入主模块的渲染与提示函数，调用点名字保持不变 */
   const categories = createCategoriesView({
-    render, renderCatBar, applyShelfPayload, setScope, renderDetail,
+    render, renderCatBar, applyShelfPayload, setScope,
+    renderDetail: (...a) => gameView.renderDetail(...a),
     toast, modal, cssEscape, STATUS_LABEL,
   });
   const { setOrganizing, togglePick, createShelf, renameShelfFlow, deleteShelfFlow, assignSelected, removeSelectedFromScope, favoriteSelected, setGameStatus } = categories;
@@ -1208,39 +1202,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   });
   const { setSettingsTab, openSettings, closeSettings, refreshSettingsPanes } = settingsView;
 
-  /* ---------------------------------------------------------- 背景面板 */
-  function renderBgPanel() {
-    const g = currentGame();
-    if (!g) return;
-    const images = g.images || [];
-    el.bgCount.textContent = images.length ? `共 ${images.length} 张可选` : "暂无可选图片";
-    if (!images.length) {
-      el.bgGrid.innerHTML = `<div class="list-empty" style="grid-column:1/-1">
-        ${g.metadata_state === "ok" ? "该游戏没有可用图片，试试从本地选择。"
-                                    : "还没有获取到图片，先完成游戏信息搜索。"}</div>`;
-      return;
-    }
-    el.bgGrid.innerHTML = images.map((img) => {
-      const sources = [img.thumb, img.url].filter(Boolean);
-      return `
-      <button class="bg-item${img.url === g.background ? " active" : ""}"
-              data-url="${esc(img.url)}" data-kind="${esc(img.kind)}"
-              title="${esc(img.label || "")}">
-        <span class="bg-thumb">${imgHtml("", sources)}<i>无法预览</i></span>
-        <span class="bg-label">${esc(img.label || "")}</span>
-      </button>`;
-    }).join("");
-    syncBgZoomUi(g);
-  }
-
-  /* 背景缩放 UI 与状态同步 */
-  function syncBgZoomUi(game) {
-    const g = game || currentGame();
-    if (!g) return;
-    const scale = Math.round((Number(g.bg_scale) || 1) * 100);
-    $("bgZoom").value = Math.min(300, Math.max(100, scale));
-    $("bgZoomVal").textContent = scale + "%";
-  }
+  /* 背景面板与缩放 UI 在 ./app/views/game.js（P4.3-l） */
 
   /* 修改当前游戏的背景缩放（缩放只由滑杆控制） */
   let bgViewTimer = null;
@@ -1253,7 +1215,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     g.bg_x = 0;
     g.bg_y = 0;
     applyBgView(view);
-    syncBgZoomUi(g);
+    gameView.syncBgZoomUi(g);
     if (!persist) return;
     clearTimeout(bgViewTimer);
     bgViewTimer = setTimeout(() => {
@@ -1262,72 +1224,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
   }
 
   /* ---------------------------------------------------------- 详情面板 */
-  function renderDetail() {
-    const g = currentGame();
-    if (!g) return;
-    el.dTitle.textContent = g.name;
-    el.dSub.textContent = g.name_original && g.name_original !== g.name
-      ? g.name_original : g.exe_name;
-
-    const srcName = sourceName(g.data_source);
-    const rows = [
-      ["可执行文件", `<span title="${esc(g.exe)}">${esc(g.exe_name)}</span>`],
-      ["所在目录", `<span title="${esc(g.dir)}">${esc(g.dir)}</span>`],
-      ["运行状态", g.running
-        ? `运行中 · PID ${g.play_pid || "-"} · 本次 ${clock(sessionSeconds(g))}` : ""],
-      ["资料源", srcName],
-      ["原名", g.name_original],
-      ["中文名", g.name_cn],
-      ["开发商", g.developers.join("、")],
-      ["发行商", g.publishers.join("、")],
-      ["发行日期", g.release_date],
-      ["类型", g.genres.join("、")],
-      ["特性", g.categories.slice(0, 5).join("、")],
-      ["评分", g.rating],
-      ["状态", `<select id="detailStatus" data-id="${esc(g.id)}">${
-        STATUS_ORDER.map((value) => `<option value="${esc(value)}"${
-          (g.status || "") === value ? " selected" : ""}>${STATUS_LABEL[value]}</option>`).join("")
-      }</select>`],
-      ["分类", (g.bookshelf_ids || [])
-        .map((id) => (state.shelves.find((s) => s.id === id) || {}).name)
-        .filter(Boolean)
-        .map((name) => `<span class="src-badge">${esc(name)}</span>`)
-        .join(" ")],
-      ["启动次数", g.play_count ? `${g.play_count} 次` : ""],
-      ["累计游玩", g.play_time ? hours(g.play_time) : ""],
-      ["转区启动", g.locale_enabled ? "已开启" : ""],
-      ["匹配关键词", g.query_used],
-      ["启动参数", g.launch_args],
-      ["来源页面", g.source_url ? `<a data-url="${esc(g.source_url)}">打开</a>` : ""],
-    ].filter(([, v]) => v);
-
-    let shots = (g.images || []).filter((img) => img.kind === "screenshot");
-    if (!shots.length) shots = (g.images || []).slice(0, 8);
-    const shotWall = shots.length ? `
-       <h4>截图 <span class="hint">点一张可设为背景</span></h4>
-       <div class="shot-grid">${shots.slice(0, 12).map((img) => `
-         <button class="shot" data-shot="${esc(img.url)}" data-kind="${esc(img.kind || "screenshot")}"
-                 title="${esc(img.label || "")}">
-           ${imgHtml("", [img.thumb, img.url])}<i>${esc(img.label || "")}</i>
-         </button>`).join("")}</div>` : "";
-
-    const sessions = (g.sessions || []).slice(-5).reverse();
-    const history = (g.play_count || g.play_time || sessions.length) ? `
-       <h4>游玩记录 <span class="hint">启动 ${g.play_count || 0} 次${
-         g.play_time ? ` · 累计 ${hours(g.play_time)}` : ""}</span></h4>
-       ${sessions.length
-         ? `<div class="session-list">${sessions.map((s) => `
-             <div class="session-row"><span>${esc(stamp(s.started_at))}</span><b>${clock(s.seconds)}</b></div>`)
-             .join("")}</div>`
-         : '<p class="hint">还没有结束过的会话，游戏跑完一次就会记在这里。</p>'}` : "";
-
-    el.detailBody.innerHTML =
-      `<p>${esc(detailBody(g) || "暂无简介。")}</p>
-       <h4>详细信息</h4>
-       <dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join("")}</dl>
-       ${history}
-       ${shotWall}`;
-  }
+  /* 详情面板在 ./app/views/game.js（P4.3-l） */
 
   /* ---------------------------------------------------------- 封面面板 */
   function renderCoverPanel() {
@@ -1736,7 +1633,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     g.background = url;
     g.background_kind = kind;
     applyBackground(url, bgViewOf(g));
-    renderBgPanel();
+    gameView.renderBgPanel();
     await call("set_background", g.id, url, kind);
   }
 
@@ -1761,7 +1658,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     if (!res.ok) { toast("选择失败：" + (res.error || "")); return; }
     Object.assign(g, res.game);
     applyBackground(g.background, bgViewOf(g));
-    renderBgPanel();
+    gameView.renderBgPanel();
     toast("已应用本地背景图");
   }
 
@@ -2287,7 +2184,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
     $("btnBackgrounds").onclick = () => {
       const opening = !el.bgPanel.classList.contains("open");
       closeAll();
-      if (opening) { renderBgPanel(); openPanel(el.bgPanel); }
+      if (opening) { gameView.renderBgPanel(); openPanel(el.bgPanel); }
     };
     $("bgClose").onclick = () => closePanel(el.bgPanel);
     el.bgGrid.addEventListener("click", (e) => {
@@ -2304,14 +2201,14 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
       if (first) { g.background = first.url; g.background_kind = first.kind; }
       g.bg_scale = 1; g.bg_x = 0; g.bg_y = 0;
       applyBackground(g.background || fallbackBackground(g), { scale: 1, x: 0, y: 0 });
-      syncBgZoomUi(g);
-      renderBgPanel();
+      gameView.syncBgZoomUi(g);
+      gameView.renderBgPanel();
     };
 
     $("btnDetails").onclick = () => {
       const opening = !el.detailPanel.classList.contains("open");
       closeAll();
-      if (opening) { renderDetail(); openPanel(el.detailPanel); }
+      if (opening) { gameView.renderDetail(); openPanel(el.detailPanel); }
     };
     $("detailClose").onclick = () => closePanel(el.detailPanel);
     el.detailBody.addEventListener("click", (e) => {
@@ -2670,7 +2567,7 @@ const vnFindHooks = {};        // {render, poll}，由 bindVntext 注入，refre
           togglePick(id);
         } else {
           setFocus(id);
-          renderDetail();
+          gameView.renderDetail();
           openPanel(el.detailPanel);
         }
       }

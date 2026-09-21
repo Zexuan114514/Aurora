@@ -7,9 +7,9 @@
  * （当前游戏、背景缩放 UI、实时计时、资料源名字）由 `createGameView(ctx)` 注入，
  * 且一律用**箭头延迟取值**包装 —— 避开 P4.3-c 的 TDZ 坑。
  */
-import { el, esc } from "../core/dom.js";
+import { $, el, esc, imgHtml } from "../core/dom.js";
 import { state } from "../core/store.js";
-import { hours, clock, sessionSeconds } from "../core/time.js";
+import { hours, clock, sessionSeconds, stamp } from "../core/time.js";
 
 /** 一枚信息条小胶囊（详情面板也用它）。 */
 export function chip(text, accent) {
@@ -46,12 +46,22 @@ export function detailBody(g) {
  *
  * ctx = {
  *   currentGame(),        // 当前焦点游戏（主模块的 currentGame）
- *   syncBgZoomUi(game),   // 背景缩放滑杆与数值（主模块）
  *   startLiveTicker(),    // 运行中的秒表（主模块）
  *   sourceName(id),       // 资料源显示名（主模块）
+ *   statusOrder(),        // 游玩状态的顺序（主模块的 STATUS_ORDER）
+ *   statusLabel(),        // 游玩状态的文案（主模块的 STATUS_LABEL）
  * }
  */
 export function createGameView(ctx) {
+  /* 背景缩放 UI 与状态同步 */
+  function syncBgZoomUi(game) {
+    const g = game || ctx.currentGame();
+    if (!g) return;
+    const scale = Math.round((Number(g.bg_scale) || 1) * 100);
+    $("bgZoom").value = Math.min(300, Math.max(100, scale));
+    $("bgZoomVal").textContent = scale + "%";
+  }
+
   /* 游戏页（以及大厅底部的）文字内容 */
   function renderGameContent() {
     const g = ctx.currentGame();
@@ -64,7 +74,7 @@ export function createGameView(ctx) {
       el.logo.removeAttribute("src");
       return;
     }
-    ctx.syncBgZoomUi(g);
+    syncBgZoomUi(g);
 
     // 标题 / LOGO
     if (g.logo) {
@@ -127,5 +137,100 @@ export function createGameView(ctx) {
     }
   }
 
-  return { renderGameContent };
+  /* 背景图面板：一排可选的壁纸（点一张即应用） */
+  function renderBgPanel() {
+    const g = ctx.currentGame();
+    if (!g) return;
+    const images = g.images || [];
+    el.bgCount.textContent = images.length ? `共 ${images.length} 张可选` : "暂无可选图片";
+    if (!images.length) {
+      el.bgGrid.innerHTML = `<div class="list-empty" style="grid-column:1/-1">
+        ${g.metadata_state === "ok" ? "该游戏没有可用图片，试试从本地选择。"
+                                    : "还没有获取到图片，先完成游戏信息搜索。"}</div>`;
+      return;
+    }
+    el.bgGrid.innerHTML = images.map((img) => {
+      const sources = [img.thumb, img.url].filter(Boolean);
+      return `
+      <button class="bg-item${img.url === g.background ? " active" : ""}"
+              data-url="${esc(img.url)}" data-kind="${esc(img.kind)}"
+              title="${esc(img.label || "")}">
+        <span class="bg-thumb">${imgHtml("", sources)}<i>无法预览</i></span>
+        <span class="bg-label">${esc(img.label || "")}</span>
+      </button>`;
+    }).join("");
+    syncBgZoomUi(g);
+  }
+
+  /* 详情面板：信息表 + 游玩记录 + 截图墙（截图点一下可设为背景） */
+  function renderDetail() {
+    const g = ctx.currentGame();
+    if (!g) return;
+    el.dTitle.textContent = g.name;
+    el.dSub.textContent = g.name_original && g.name_original !== g.name
+      ? g.name_original : g.exe_name;
+
+    const STATUS_ORDER = ctx.statusOrder();
+    const STATUS_LABEL = ctx.statusLabel();
+    const srcName = ctx.sourceName(g.data_source);
+    const rows = [
+      ["可执行文件", `<span title="${esc(g.exe)}">${esc(g.exe_name)}</span>`],
+      ["所在目录", `<span title="${esc(g.dir)}">${esc(g.dir)}</span>`],
+      ["运行状态", g.running
+        ? `运行中 · PID ${g.play_pid || "-"} · 本次 ${clock(sessionSeconds(g))}` : ""],
+      ["资料源", srcName],
+      ["原名", g.name_original],
+      ["中文名", g.name_cn],
+      ["开发商", g.developers.join("、")],
+      ["发行商", g.publishers.join("、")],
+      ["发行日期", g.release_date],
+      ["类型", g.genres.join("、")],
+      ["特性", g.categories.slice(0, 5).join("、")],
+      ["评分", g.rating],
+      ["状态", `<select id="detailStatus" data-id="${esc(g.id)}">${
+        STATUS_ORDER.map((value) => `<option value="${esc(value)}"${
+          (g.status || "") === value ? " selected" : ""}>${STATUS_LABEL[value]}</option>`).join("")
+      }</select>`],
+      ["分类", (g.bookshelf_ids || [])
+        .map((id) => (state.shelves.find((s) => s.id === id) || {}).name)
+        .filter(Boolean)
+        .map((name) => `<span class="src-badge">${esc(name)}</span>`)
+        .join(" ")],
+      ["启动次数", g.play_count ? `${g.play_count} 次` : ""],
+      ["累计游玩", g.play_time ? hours(g.play_time) : ""],
+      ["转区启动", g.locale_enabled ? "已开启" : ""],
+      ["匹配关键词", g.query_used],
+      ["启动参数", g.launch_args],
+      ["来源页面", g.source_url ? `<a data-url="${esc(g.source_url)}">打开</a>` : ""],
+    ].filter(([, v]) => v);
+
+    let shots = (g.images || []).filter((img) => img.kind === "screenshot");
+    if (!shots.length) shots = (g.images || []).slice(0, 8);
+    const shotWall = shots.length ? `
+       <h4>截图 <span class="hint">点一张可设为背景</span></h4>
+       <div class="shot-grid">${shots.slice(0, 12).map((img) => `
+         <button class="shot" data-shot="${esc(img.url)}" data-kind="${esc(img.kind || "screenshot")}"
+                 title="${esc(img.label || "")}">
+           ${imgHtml("", [img.thumb, img.url])}<i>${esc(img.label || "")}</i>
+         </button>`).join("")}</div>` : "";
+
+    const sessions = (g.sessions || []).slice(-5).reverse();
+    const history = (g.play_count || g.play_time || sessions.length) ? `
+       <h4>游玩记录 <span class="hint">启动 ${g.play_count || 0} 次${
+         g.play_time ? ` · 累计 ${hours(g.play_time)}` : ""}</span></h4>
+       ${sessions.length
+         ? `<div class="session-list">${sessions.map((s) => `
+             <div class="session-row"><span>${esc(stamp(s.started_at))}</span><b>${clock(s.seconds)}</b></div>`)
+             .join("")}</div>`
+         : '<p class="hint">还没有结束过的会话，游戏跑完一次就会记在这里。</p>'}` : "";
+
+    el.detailBody.innerHTML =
+      `<p>${esc(detailBody(g) || "暂无简介。")}</p>
+       <h4>详细信息</h4>
+       <dl class="kv">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${v}</dd>`).join("")}</dl>
+       ${history}
+       ${shotWall}`;
+  }
+
+  return { renderGameContent, renderBgPanel, syncBgZoomUi, renderDetail };
 }
