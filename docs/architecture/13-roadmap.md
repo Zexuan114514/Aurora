@@ -85,6 +85,7 @@
 | P4.3-g 环叶子 helper（`ringMod`/`ringSigned`/`clearRingStyles`） | ✅ 已完成（2026-09-21） | 同上 P4.3-g 小节：三处定义改 import、8 处引用不变；`e2e` 90/90、ring 判据数值不变 |
 | P4.3-h 环样式应用与键列表（`applyRingSize`/`hallKeysOf`） | ✅ 已完成（2026-09-21） | 同上 P4.3-h 小节：`e2e` 90/90、ring 判据数值不变 |
 | P4.3-i 平铺排布（`updateFlatRow`） | ✅ 已完成（2026-09-21） | 同上 P4.3-i 小节：两种布局的排布算法都进 hall 模块；`e2e` 90/90、ring 数值不变 |
+| P4.3-j 环本体（`createRing`：帧循环 + 拖拽/键盘） | ✅ 已完成（2026-09-21） | 同上 P4.3-j 小节：`app.js` 3618 → 3345 行；`e2e` 90/90、`visual` ring 判据数值逐项不变 |
 | P4–P7 | 待开始 | 每阶段结束按「固定动作」四项检查后，把状态与证据补进本表 |
 
 ## Evidence vs assumptions

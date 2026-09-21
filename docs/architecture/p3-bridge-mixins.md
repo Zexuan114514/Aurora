@@ -525,3 +525,36 @@ const ringPlace = (node, r) => placeRingTile(node, r, { ring: RING, size: ringSi
 （`ring_check` 数值逐项比对，偏差即回退）。目前环的**几何、单张变换、样式应用、键列表、
 平铺排布**都已归位，这一刀只剩帧循环与输入处理。
 
+### P4.3-j 环本体进 hall 模块（2026-09-21 11:00）
+
+环的最后一刀：`views/hall.js` 新增 `createRing(ctx)`，把「谁在转这个环」整个收进去。
+
+| 搬进 `createRing` | 说明 |
+| --- | --- |
+| `RING` 运行期对象 + `ringSize` | 位置 / 节点表 / 键签名 / 帧句柄改成模块内部持有（几何常量仍来自 P4.3-e） |
+| `ringGeometry` / `ringMeasure` / `ringPlace` | 测量与逐张摆放；单张变换仍用 P4.3-f 的 `placeRingTile` |
+| `ringSync` → `sync(keys)` | 节点复用、内容更新、顺序搬动；**返回列表是否变化**，主模块不再自己比对 `keysSig` |
+| `ringFrame` / `ringRun` → `frame` / `run` | 60fps 帧循环与写入方 |
+| `updateRow` → `update(instant)` | 两种布局的统一入口（平铺走 P4.3-i 的 `updateFlatRow`） |
+| `applyHallLayout` → `applyLayout()` | 切布局时清另一套内联样式 + 直接就位 |
+| `ringIndexOf` / `moveFocus` / `jumpFocus` → `move(delta)` / `jump(edge)` | 循环队列（平铺不循环）的规则一起搬走 |
+| 悬停 / 单击 / 双击 / 横向拖动 / 滚轮 / `←→ Home End Enter` → `bind()` / `handleKey(e)` | 指针与键盘输入整块收口；`moved`（这次是拖还是点）与拖动同处一模块 |
+
+主模块只剩三件事：`hallKeys()`（筛 / 排后的键列表）、`ringTileOf(key)`（每格的
+html / 忙标记 / 标题）、以及 `enterGame` / `playGame` / `openAddMenu` 三个回调 ——
+回调一律用箭头延迟取值包装（P4.3-c 的 TDZ 教训）。`setFocus` 里两处
+`RING.dragActive` 改成 `ring.dragging()`；鼠标在窗口外松开 / 窗口切走时由
+`ring.endDrag()` 补吸附；全局 keydown 只剩 `if (ring.handleKey(e)) return;`。
+
+`window.__aurora.ring()/layout()` 返回结构一个字段没动（`ring.readout()` /
+`ring.layoutName()`），e2e / visual 判据照旧。
+
+验收：`run_all` 8/8、`pytest` 51 passed、`e2e` **90/90**（含滚轮、横向拖动、
+拖动后单击仍进游戏页、双击直接启动等输入相关步骤）、`visual` `errors=[]` 且 ring 判据
+`0/347.0`、`±16/283.2`、`32/232.5`、`focus_center_delta=0.0` 与改前逐项相同。
+`app.js` 3618 → 3345 行，`views/hall.js` 198 → 578 行。
+
+**下一刀（P4.3-k）**：视图清单里只剩 `views/game.js`（游戏页渲染与各处面板）——
+大厅 / 分类 / 设置三块已归位，拆法沿用同一套：纯函数传参、回调用箭头延迟取值、
+`window.__aurora` 与 e2e / visual 判据不变。
+

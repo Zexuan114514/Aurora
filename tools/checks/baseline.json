@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 3618
+      "lines": 3345
     },
     {
       "path": "gl/web/index.html",
@@ -399,7 +399,7 @@
     },
     {
       "path": "gl/web/app/views/hall.js",
-      "lines": 198
+      "lines": 578
     }
   ],
   "threads": [
@@ -1424,6 +1424,25 @@
         {
           "from": "app.js: updateRowFlat 的排布算法",
           "to": "gl/web/app/views/hall.js: updateFlatRow"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-j",
+      "date": "2026-09-21",
+      "note": "环本体收进 views/hall.js 的 createRing：RING 运行期状态、测量、帧循环、拖动/悬停/点击/滚轮/快捷键；主模块只留内容模板与进游戏页回调；e2e 90/90、visual ring 判据数值不变",
+      "moves": [
+        {
+          "from": "app.js: RING/ringSize/ringGeometry/ringMeasure/ringPlace/ringFrame/ringRun",
+          "to": "gl/web/app/views/hall.js: createRing"
+        },
+        {
+          "from": "app.js: ringSync/ringIndexOf/updateRow/updateRowFlat/applyHallLayout/hallLayout",
+          "to": "gl/web/app/views/hall.js: createRing 的 sync/update/applyLayout"
+        },
+        {
+          "from": "app.js: 悬停聚焦/单击/双击/横向拖动/滚轮/←→Home End Enter",
+          "to": "gl/web/app/views/hall.js: createRing 的 bind/handleKey"
         }
       ]
     }
