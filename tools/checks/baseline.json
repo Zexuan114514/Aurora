@@ -359,7 +359,7 @@
     },
     {
       "path": "gl/web/app.js",
-      "lines": 746
+      "lines": 692
     },
     {
       "path": "gl/web/index.html",
@@ -408,6 +408,10 @@
     {
       "path": "gl/web/app/core/actions.js",
       "lines": 113
+    },
+    {
+      "path": "gl/web/app/core/shell.js",
+      "lines": 87
     },
     {
       "path": "gl/web/app/core/window.js",
@@ -1742,6 +1746,17 @@
         {
           "from": "app.js bindUi：视图切换 / 作用域菜单 / 搜索 / 排序绑定",
           "to": "gl/web/app/views/toolbar.js: createToolbarView.bind"
+        }
+      ]
+    },
+    {
+      "phase": "P4.3-x",
+      "date": "2026-09-21",
+      "note": "全局外壳（菜单外点击 / Esc 逐层退出 / F5 与 Ctrl+F / 右键 / 拖放提示）进 core/shell.js；新增离线检查 check_packaging：用 AST 读 build_exe.py 的 WEB_FILES/WEB_MODULE_DIRS/WEB_USER_DIRS 并与 gl/web 实际目录对照，保证「打包清单单一来源」不漏文件（故意放假文件能让 run_all 变红）；run_all 8 → 9 项；P4 阶段收口",
+      "moves": [
+        {
+          "from": "app.js bindUi：全局 click/keydown/contextmenu/拖放",
+          "to": "gl/web/app/core/shell.js: createShell.bind"
         }
       ]
     }

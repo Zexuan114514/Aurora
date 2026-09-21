@@ -12,6 +12,7 @@ import { createToolbarView } from "./app/views/toolbar.js";
 import { createEventRouter } from "./app/core/events.js";
 import { createActions } from "./app/core/actions.js";
 import { bindWindowControls } from "./app/core/window.js";
+import { createShell } from "./app/core/shell.js";
 import { createBackgroundView } from "./app/views/background.js";
 import { $, el, missingIds, esc, imgHtml } from "./app/core/dom.js";
 import { openPanel, closePanel, closeAll } from "./app/core/panels.js";
@@ -548,71 +549,8 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
     // Steam / 获取游戏 / 资料源管理 / 末尾方块菜单：./app/views/sources.js（P4.3-w）
     sourcesView.bind();
 
-    // 全局
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest("#moreMenu, #btnMore")) el.moreMenu.hidden = true;
-      if (!e.target.closest("#sortMenu, #btnSort")) el.sortMenu.hidden = true;
-      if (!e.target.closest("#addMenu, .gi-add")) el.addMenu.hidden = true;
-      if (!e.target.closest("#scopeMenu, #scopePill")) el.scopeMenu.hidden = true;
-    });
-    document.addEventListener("keydown", (e) => {
-      const tag = (e.target && e.target.tagName) || "";
-      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(tag) || e.target?.isContentEditable;
-      if (e.key === "Escape") {
-        const anyOpen = [el.bgPanel, el.detailPanel, el.matchPanel, el.sourcePanel,
-                         el.coverPanel, el.steamPanel, el.localePanel, el.vntextPanel,
-                         el.getPanel]
-          .some((p) => p.classList.contains("open"));
-        const menuOpen = !el.moreMenu.hidden || !el.sortMenu.hidden || !el.addMenu.hidden
-          || !el.scopeMenu.hidden;
-        if (anyOpen || menuOpen) { closeAll(); return; }
-        if (state.settingsOpen) { closeSettings(); return; }
-        if (state.view === "categories") { setView("home"); return; }
-        if (state.page === "game") { closeGame(); return; }
-      }
-      if (e.key === "F5" || (e.ctrlKey && e.key.toLowerCase() === "r")) e.preventDefault();
-      // 设置页是独立界面：除 Esc（上面已处理）外的快捷键一律不抢，
-      // 免得滚动/切页签时顺带把大厅的焦点、背景甚至游戏启动状态也改了
-      if (state.settingsOpen || state.view === "categories") return;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        const box = state.view === "categories" ? el.catQuery : el.search;
-        box.focus();
-        box.select();
-        return;
-      }
-      if (typing || !el.modal.hidden) return;
-      // 大厅快捷键（← → / Home / End / Enter）在 ./app/views/hall.js（P4.3-j）
-      if (ring.handleKey(e)) return;
-    });
-    document.addEventListener("contextmenu", (e) => {
-      if (!e.target.closest("input,textarea,[contenteditable]")) e.preventDefault();
-    });
-    // 拖放：真正的导入由后端（main.py 注册的 drop 监听）完成，
-    // 这里只负责显示提示层、并阻止浏览器把文件当页面打开。
-    const hasFiles = (e) => {
-      const types = (e.dataTransfer && e.dataTransfer.types) || [];
-      return Array.prototype.indexOf.call(types, "Files") >= 0;
-    };
-    let dragDepth = 0;
-    document.addEventListener("dragenter", (e) => {
-      if (!hasFiles(e)) return;
-      dragDepth += 1;
-      el.dropHint.hidden = false;
-    });
-    document.addEventListener("dragover", (e) => {
-      if (hasFiles(e)) e.preventDefault();
-    });
-    document.addEventListener("dragleave", (e) => {
-      if (!hasFiles(e)) return;
-      dragDepth = Math.max(0, dragDepth - 1);
-      if (!dragDepth) el.dropHint.hidden = true;
-    });
-    document.addEventListener("drop", (e) => {
-      dragDepth = 0;
-      el.dropHint.hidden = true;
-      e.preventDefault();
-    });
+    // 全局外壳（菜单外点击 / 快捷键 / 右键 / 拖放提示）：./app/core/shell.js（P4.3-x）
+    shell.bind();
   }
 
   /* ---------------------------------------------------------- 推送事件 */
@@ -639,6 +577,14 @@ import { STATUS_LABEL, STATUS_GLYPH, STATUS_ORDER,
       renderGlossary: (...a) => vntextView.renderGlossary(...a),
       refresh: (...a) => vntextView.refresh(...a),
     },
+  });
+
+  /* 全局外壳（P4.3-x）：Esc 逐层退出 / Ctrl+F / 菜单外点击 / 拖放提示 */
+  const shell = createShell({
+    closeSettings: (...a) => closeSettings(...a),
+    setView: (...a) => setView(...a),
+    closeGame: (...a) => closeGame(...a),
+    handleRingKey: (e) => ring.handleKey(e),
   });
 
   window.__aurora = {

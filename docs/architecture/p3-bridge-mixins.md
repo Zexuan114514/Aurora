@@ -917,3 +917,36 @@ import 列表里只有 `closeAll, openPanel`（以前它们不开面板，用不
 15 个模块各司其职。下一步可选：把 `bindUi` 里最后的全局快捷键/拖放提示也整理成
 `core/shell.js`（纯搬家，无行为变化），或转到路线图的下一项（打包清单与文档同步收尾）。
 
+### P4.3-x 全局外壳与打包清单守卫（P4 收尾，2026-09-21 17:15）
+
+两件收尾活一起做：
+
+| 事项 | 做法 |
+| --- | --- |
+| `core/shell.js`（新） | 全局外壳搬出主模块：点空白收起工具条菜单、`Esc` 逐层退出（面板 → 设置 → 分类 → 游戏页）、拦 `F5`/`Ctrl+R`、`Ctrl+F` 聚焦搜索、其余按键交给大厅（`handleRingKey`）、右键菜单策略、拖放提示层。ctx 只有四项：`closeSettings` / `setView` / `closeGame` / `handleRingKey` |
+| `tools/checks/check_packaging.py`（新） | **打包清单单一来源的可执行守卫**：用 AST 读 `build_exe.py` 里的 `WEB_FILES` / `WEB_MODULE_DIRS` / `WEB_USER_DIRS`，与 `gl/web` 实际目录对照 —— 清单里写的必须存在；`gl/web` 顶层**不允许有未登记条目**（漏登记 = 打包后页面 404） |
+| `run_all.py` | 新检查挂进清单（第 9 项），跑一次即报「4 个顶层文件 + 1 棵模块树（22 个文件）、3 个用户素材目录不进包」 |
+
+守卫的自我验证：往 `gl/web` 放一个未登记的 `stray-probe.js`，`run_all` 立刻变红
+（`gl/web 下有没写进打包清单的文件：stray-probe.js`），删掉即恢复 9/9 —— 满足路线图
+「故意违规能让 CI 变红」的要求。
+
+验收：`run_all` **9/9**、`pytest` 51 passed、`e2e` **90/90（0 skipped）**、
+`visual` `errors=[]` 且 ring 判据不变；`Aurora.exe` 用 `tools/build_exe.py` 重新打包
+（本地产物，`.gitignore` 排除）以便真机直接体验新前端。`app.js` 746 → **692 行**。
+
+### P4 阶段收口小结（2026-09-21）
+
+| 维度 | 起点（P4.0） | 终点（P4.3-x） |
+| --- | --- | --- |
+| `gl/web/app.js` | 3688 行 IIFE | **692 行**（工厂装配 + `boot()` + `__aurora`） |
+| 前端模块 | 0 | 16 个：`core/{api,actions,dom,events,panels,query,shell,store,time,window}.js` + `views/{background,categories,game,hall,settings,sources,toolbar,vntext}.js` |
+| 状态与桥接 | 全局散落 | `core/store.js` 单一状态、`core/api.js` 唯一桥接出口、`core/events.js` 14 主题分发 |
+| 打包清单 | `build_exe.py` 硬编码 4 个文件 | 清单仍是那 4 个文件 + `app/` 模块树，但**有守卫保证不漏**（`check_packaging`） |
+| 离线检查 | 8 项 | **9 项**（新增打包清单检查） |
+| 真机判据 | — | `e2e` 90/90（0 skipped）、`visual` errors=[] 且 ring 判据自 P4.3-d 起逐项未变 |
+
+迁移期共抓到 4 类真实回归（都靠 e2e / 探针拦下并当轮修掉，记录在各自小节）：
+`ctx.sourceName` 残留（P4.3-m）、漏 import `inScope`（P4.3-q）、漏 import `call`（P4.3-u）、
+漏 import `closePanel`（P4.3-w），以及一个**本来就不存在**的 `moveShelf`（P4.3-v 顺手补齐）。
+
