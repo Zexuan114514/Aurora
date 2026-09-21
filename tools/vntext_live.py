@@ -14,6 +14,15 @@
 """
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+import _common  # noqa: E402
+
+_common.setup_console()
+
 import argparse
 import ctypes
 import json
@@ -62,8 +71,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-launch", action="store_true", help="不启动游戏，只挂已在跑的")
     parser.add_argument("--live-data", action="store_true", help="用真实 data/ 目录")
     parser.add_argument("--no-translate", action="store_true", help="只测文本，不调翻译接口")
-    parser.add_argument("--translate-wait", type=float, default=45.0,
-                        help="收完台词后等译文的最长时间")
+    parser.add_argument("--translate-wait", type=float, default=90.0,
+                        help="收完台词后等译文的最长时间。默认 90 秒：本机实测 LLM 单句偶发 "
+                             "40~60 秒，45 秒会把「没等到译文」变成假警报")
     parser.add_argument("--keep-game", action="store_true", help="结束后不关闭游戏")
     parser.add_argument("--no-kill", action="store_true",
                         help="别清残留的 TextractorCLI（你自己开着启动器时用这个）")
@@ -71,15 +81,24 @@ def parse_args() -> argparse.Namespace:
 
 
 def prepare_data(live: bool) -> Path:
-    """默认在沙盒里跑：复制真实库（含设置）过去，别污染用户的会话记录。"""
+    """默认在沙盒里跑：把真实的 v2 状态文件复制过去，别污染用户的会话记录。
+
+    P2 之后库与设置都在 `<数据目录>/state/` 下。老版本只复制 `data/library.json`，
+    迁移完成后这条路直接「找不到库」退出（实测）。现在用应用自己的 Layout 定位，
+    再把 state/ 复制进沙盒；`--live-data` 则原样用真实数据目录。
+    """
     if live:
         return ROOT / "data"
     data = SANDBOX / "data"
-    data.mkdir(parents=True, exist_ok=True)
-    source = ROOT / "data" / "library.json"
+    state = data / "state"
+    state.mkdir(parents=True, exist_ok=True)
+    source = _common.library_file()
     if not source.is_file():
-        raise SystemExit(f"找不到 {source}")
-    shutil.copy2(source, data / "library.json")
+        raise SystemExit(f"找不到库 {source}（先用启动器跑一次，让它完成 v1→v2 迁移）")
+    shutil.copy2(source, state / "library.json")
+    settings = _common.settings_file()
+    if settings.is_file():
+        shutil.copy2(settings, state / "settings.json")
     return data
 
 
@@ -95,7 +114,24 @@ from vntext_advance import advance  # noqa: E402  左键推进（空格在这类
 
 
 def load_library() -> dict:
-    return json.loads((DATA / "library.json").read_text(encoding="utf-8"))
+    return json.loads((DATA / "state" / "library.json").read_text(encoding="utf-8"))
+
+
+def load_settings(library: dict) -> dict:
+    """设置：v2 起是**独立文件** `state/settings.json`。
+
+    老实现只读 `library["settings"]`（v1 的形状），迁移之后那里恒为空 ——
+    于是自检脚本一直没带上用户的 LLM Key，译文实际走的是免费接口（实测 provider=free）。
+    """
+    path = DATA / "state" / "settings.json"
+    if path.is_file():
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(payload.get("settings"), dict):
+                return payload["settings"]
+        except Exception:
+            pass
+    return library.get("settings") or {}
 
 
 def pick_game(library: dict) -> dict:
@@ -188,7 +224,7 @@ def _advance(hwnd: int) -> str:
 
 def main() -> int:
     library = load_library()
-    settings = library.get("settings") or {}
+    settings = load_settings(library)
     game = pick_game(library)
     game_id = str(game.get("id") or "")
     exe = str(game.get("exe") or "")

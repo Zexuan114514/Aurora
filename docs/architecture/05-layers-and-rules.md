@@ -3,13 +3,14 @@
 ## Summary
 
 目标分层是 **`ui → app → domain`**，`infra → domain`（实现 `app` 定义的端口），`platform` 只提供
-Win32 原语，`bootstrap.py` 是唯一组合根。`gl/` 重命名为 `aurora/`，`main.py` 保持唯一进程入口。
+Win32 原语，**组合根只有一个**（设计稿里的 `bootstrap.py`；落地时留在 `gl/api.py` 的 `Api()`）。
+`gl/` 重命名为 `aurora/`，`main.py` 保持唯一进程入口。
 
 ## 目标包结构
 
 ```
 aurora/
-  bootstrap.py          组合根：构建 store / 适配器 / 服务 / 桥接，注入 TaskRunner 与 EventBus
+  （组合根）gl/api.py    Api() 构建 store / 适配器 / 服务 / 桥接，注入 TaskRunner 与 EventBus
   domain/               纯逻辑，无 IO、无 ctypes、无 webview
     library.py          游戏记录、分类书架、状态枚举与不变量
     matching.py         关键词推断与候选打分（现 gl/detect.py + sources/manager._score）
@@ -48,7 +49,7 @@ aurora/
 | `domain` | 纯函数与数据模型、规则判定 | IO、线程、全局状态、`webview`、`ctypes`、`infra`、`ui`、时间与随机（需注入 Clock） |
 | `infra` | 实现端口：HTTP、子进程、文件、WinRT、打包资源定位 | 被 `ui`/`app` 直接 import（只能经端口注入） |
 | `platform` | Win32 原语封装（句柄、窗口、进程、内存、注册表） | 业务判断、持久化、网络 |
-| `bootstrap.py` | 组装一切、生命周期编排（启动/关停顺序） | 承载业务逻辑 |
+| 组合根（`gl/api.py` 的 `Api()`） | 组装一切、生命周期编排（启动/关停顺序） | 承载业务逻辑 |
 
 ## 规则（Allowed / Forbidden）
 
@@ -58,7 +59,7 @@ aurora/
 ui ──▶ app ──▶ domain
               ▲
 infra ────────┘        (infra 实现 app.ports，可 import domain)
-bootstrap ──▶ 全部     (唯一装配点)
+组合根 ─────▶ 全部     (唯一装配点，落地为 gl/api.py 的 Api())
 platform ◀── infra     (infra/platform 之间可双向按需，但不得反向进 domain/ui)
 ```
 

@@ -74,14 +74,22 @@ def check() -> Result:
         if re.search(pattern, blob, re.I):
             result.fail(f"夹具里出现敏感内容（{label}）：/{pattern}/")
 
-    live = ROOT / "data" / "library.json"
+    # P2 之后库在 state/ 下；老版本盯的是 data/library.json，迁移完成后这段静默跳过
+    # （「本机实时库比夹具多了字段」这条告警就再也不会响）。现在两条路径都看：
+    # 有 v2 就真比对，只有 v1 就明确告警，都没有（CI/干净 checkout）才记一行说明。
+    live = ROOT / "data" / "state" / "library.json"
     if live.exists():
-        live_data = load_json("data/library.json")
+        live_data = load_json("data/state/library.json")
         live_union = set().union(*[set(g) for g in live_data["games"]])
         extra = sorted(live_union - union)
         if extra:
             result.warn(f"本机实时库比夹具多了字段（夹具需要重新生成）：{extra}")
         result.note(f"本机实时库：{len(live_data['games'])} 游戏 / {len(live_union)} 字段（仅作对比，不参与判定）")
+    elif (ROOT / "data" / "library.json").exists():
+        result.warn("数据目录还是 v1 布局（data/library.json）——启动器下次启动会迁移；"
+                    "实时库对比这次跳过")
+    else:
+        result.note("没有本机数据目录（CI / 干净 checkout），实时库对比跳过")
 
     result.note(f"夹具 {len(games)} 游戏 / {len(union)} 字段 / {sessions} 会话 / "
                 f"{counts['settings_keys']} 设置项，反查无泄露")

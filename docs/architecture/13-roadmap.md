@@ -55,21 +55,13 @@
 | P1 纯逻辑分层 | ✅ 已完成（2026-09-20） | [`p1-domain-migration.md`](p1-domain-migration.md)：82 个金样本 + 转发 shim + 分层守卫激活；`gl/vntext.py` 2145 → 1359 行 |
 | P2 数据 v2 | ✅ 已完成（2026-09-20） | [`p2-data-v2.md`](p2-data-v2.md)：state/ 分账 + 迁移器 + 单写者；`pytest` 26 passed；真实库迁移计划 24 游戏 / 123 会话 |
 | P3.1 桥接 mixin（窗口 / Shell） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md)：22 个方法搬进 mixin，`api.py` 2232 → 1993 行，契约零漂移 |
-| P3.2 其余 mixin + 服务化 + TaskRunner | 待开始 | 同上文档「还没做的」小节列出了范围 |
 | P3.2 设置类方法（settings mixin） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节：19 个方法 / 223 行搬出，契约仍 106 方法 |
-| P3.3 library / metadata / launch / vntext / downloads + TaskRunner | 待开始 | 同上 |
 | P3.3 游戏库类方法（library mixin） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节：37 个方法 / 491 行搬出，`api.py` → 1292 行，契约仍 106 方法 |
-| P3.4 metadata / launch / vntext / downloads + TaskRunner/EventBus | 待开始 | 同上 |
 | P3.4 元数据 + vntext/钩子/悬浮窗（56 个方法） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节：`api.py` → 309 行（只剩 14 个方法） |
-| P3.5 launch / downloads / bootstrap + TaskRunner/EventBus + gl 依赖收口 | 待开始 | 同上 |
 | P3.5 启动/会话/下载（10 个方法） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md)：`api.py` → 160 行（只剩 4 个方法），7 个 mixin |
-| P3.6 TaskRunner/EventBus + gl 依赖收口 + app/services 服务化 | 待开始 | 同上「P3.6 剩下」 |
 | P3.6 第一批 TaskRunner/EventBus + 平台层 winapi | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 追加小节；`pytest` 31 passed |
-| P3.7 线程收编 + 事件总线接线 + 服务化 + 依赖收口 | 待开始 | 同上「P3.7 待办」 |
 | P3.7 线程收编（17 处）+ 回调改事件 | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 执行记录：裸线程清零、6 个内部事件主题接入、`pytest` 33 passed |
-| P3.8 服务化 + gl 依赖收口 + 真机矩阵/重建 exe | 待开始 | 同上「P3.8 待办」 |
 | P3.8-a 设置类服务化（SettingsService） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) 执行记录 a：11 个桥接方法变一行转发 |
-| P3.8-b library/metadata/launch/vntext 服务化 + 依赖收口 + 真机收尾 | 待开始 | 同上 |
 | P3.9 依赖收口（platform/infra/ui 归位 + 对话框端口） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) P3.9 小节：19 个模块归位，真机矩阵 e2e 90/90 |
 | P3.10 「找钩子」重做（签名播种 + 寄存器偏移 + 磁盘镜像扫描） | ✅ 已完成（2026-09-20） | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) P3.10 小节：アマカノ３ 第一个候选即命中 `HS65001#-6C@1B1F70:Amakano3.exe`，界面/服务两级验收通过，`pytest` 46 passed |
 | P3.10-b 依赖收口（memmatch / hookfinder → `aurora/platform`） | ✅ 已完成（2026-09-20） | 同上 P3.10-b 小节：`gl` 下留透明别名壳，老探针无需改动，`run_all` 7/7 |

@@ -378,7 +378,7 @@ v4.1/
 │  ├─ assets/aurora.ico   程序图标（7 种尺寸）
 │  └─ web/                index.html · app.css · app.js + app/（ES 模块树：core/ 10 + views/ 8）
 ├─ data/                  运行时生成：state/（settings·library·sessions）/ plugins/ / rules/ / vntext/ / logs/ / cache/ / diagnostics/ / 素材目录
-└─ tools/                 自检、打包与调试脚本（可选）
+└─ tools/                 自检、打包与调试脚本（可选；公共入口 _common.py：UTF-8 控制台 + 数据布局）
 ```
 
 > **P3 之后的分层**：主体代码已从 `gl/` 迁到 `aurora/` ——
@@ -410,12 +410,14 @@ python tools\visual.py            # 界面渲染自检：封面/缩略图是否�
                                   #   $env:VISUAL_OFFLINE="1" 可离线跑（用已知 CDN 地址构造数据）
 python tools\visual_summary.py    # 汇总 visual.py 的结果
 python tools\meta_offline.py      # 用本地缓存校验元数据解析（断网时也能跑）
-python tools\check_bridge.py      # 前端调用的方法与后端实现是否一一对应
-python tools\check_library.py     # 检查现有游戏库文件是否完好（字段缺失 / 类型异常）
+python tools\check_bridge.py      # 前端调用的方法与后端实现是否一一对应（扫整个前端模块树 + 悬浮窗动作）
+python tools\check_library.py     # 检查现有游戏库是否完好（id / name / exe、重复 id；在 state\ 下读）
 python tools\checks\run_all.py    # 离线检查全家桶（10 项）：契约快照 / 依赖白名单 / 去敏夹具 / 探针清单 /
                                   #   基线漂移 / 桥接转发目标 / 引擎规则包 / 分层守卫 / 打包清单 / 启动冒烟
+                                  #   探针清单那项还会**真跑** kind=offline 的三个脚本，并挡住
+                                  #   「又有人写死 data\library.json」这类路径漂移
 python tools\checks\update_contract.py  # 桥接契约快照：默认干跑比对，--write 才写入（有意增删方法时用）
-python -m pytest                  # 同一批离线检查 + domain 金样本 + 插件 / 诊断包回归（87 个用例）
+python -m pytest                  # 同一批离线检查 + domain 金样本 + 插件 / 诊断包回归（95 个用例）
 python main.py --check-migration  # 数据迁移干跑：只报告 v1→v2 会迁移多少游戏/会话，不写任何文件
 python tools\collect_diagnostics.py     # 生成诊断包（脱敏设置 / 日志尾巴 / 插件与资料源状态）→ data\diagnostics\*.zip
 python tools\translate_probe.py   # 简介翻译自检：语言检测 + 接口链路 + 缓存
@@ -440,6 +442,11 @@ python tools\snap.py              # 启动应用并截图（配 tools\analyze.py
 python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查封面/布局
 ```
 
+> 探针脚本的公共入口是 `tools\_common.py`：`setup_console()` 只放宽 `errors`（**不**强改
+> 成 UTF-8，否则中文控制台会全屏乱码），这样 `print` 带「⋯」的界面文案不再抛
+> UnicodeEncodeError（实测 `e2e.py` 会跑到一半整批中断）；`layout()` 负责按 v2 布局拿
+> 数据目录 —— 库路径别再自己拼字符串。没接它的脚本会被 `run_all` 的探针清单守卫拦下。
+
 当前结果：
 
 | 脚本 | 结果 |
@@ -462,8 +469,8 @@ python tools\attach_shot.py       # 抓取当前正在运行的窗口并检查�
 | `vntext_live.py`（少女之剑，专用 hook 码） | **全部通过**（WillPlus/AdvHD：`HQ-4@A22E:AdvHD_crack.exe` 由指纹记录自动带上 → 5 句台词全部完整（`姉さんの家は剣術道場をやっていて…` 这种长句不再缺字）、GDI 缺字版全部并掉（`merged=9`）、原始行审计「半截碎片 12 / 漏掉 0」） |
 | `vntext_probe.py`（白色相簿2 场景） | 乱码/菜单/视频窗口标题/文件名四种杂讯线程全部挡掉，只发射真台词三句，活动线程正确指向 `7:3EBC:4`；用 `data/aurora.log` 里的真实会话（28 条钩子行）离线重放，领跑线程自动选为 `7:3EBC:4` |
 | `theme_probe.py` | **全部通过**（4 预设 × 深色/浅色/跟随系统，强调色与 data-theme 正确；深色面板为白色低透明度、文字亮色；浅色面板为白色高透明度、文字深色） |
-| `checks\run_all.py` | **10/10 通过**（契约快照 151 方法 / 14 事件 / 100 个前端调用点、运行时依赖白名单、去敏夹具 24 游戏 / 63 字段 / 123 会话、探针清单 31 个脚本、架构基线漂移、桥接转发目标、引擎规则包、分层守卫、打包清单、启动冒烟） |
-| `pytest` | **87 passed**（离线检查 + domain 金样本 + 数据 v2 迁移/去抖/回滚 + 插件加载与翻译引擎 + 诊断包脱敏） |
+| `checks\run_all.py` | **10/10 通过**（契约快照 151 方法 / 14 事件 / 100 个前端调用点、运行时依赖白名单、去敏夹具 24 游戏 / 63 字段 / 123 会话、探针清单 32 个脚本〔控制台守卫 + 真跑 offline 脚本 + 路径漂移守卫〕、架构基线漂移、桥接转发目标、引擎规则包、分层守卫、打包清单、启动冒烟） |
+| `pytest` | **95 passed**（离线检查 + domain 金样本 + 数据 v2 迁移/去抖/回滚 + 插件加载与翻译引擎 + 诊断包脱敏 + 系统提示不算台词） |
 | `build_exe.py --dry-run` | **通过**（前端 4 个顶层文件 + 18 个模块文件、图标、内置规则包、winrt 7 个动态声明；CI 每推一次都跑） |
 | `collect_diagnostics.py` | **通过**（生成 zip：summary.json / settings.json（脱敏）/ logs/*.log） |
 - `analyze.py` 的区域与文字行检测已按环形大厅重排（工具条 / 两侧远封面 / 左邻封面 / 焦点封面 / 右邻封面 / 底部信息带）。

@@ -1,6 +1,15 @@
 """视觉自检：大厅封面 + 背景选择面板缩略图是否真的渲染出来了。"""
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 import ctypes
 import json
 import os

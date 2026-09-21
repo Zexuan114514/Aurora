@@ -152,6 +152,7 @@ class Plugin:
 | 指纹 | `name` + `size` + `crc32` 三者必须同时匹配才启用 |
 | hook 码模式 | `S`=字节串、`Q`=UTF-16、`V`=UTF-8，另有 `A/B/W/H/M` 变体 |
 | `rva` | 相对模块基址（写成 `0x…`），不得写绝对地址，避免换机失效 |
+| `hook_code.offset` | 写 **H-code 原样的偏移**（`-4` ↔ `HQ-4@…`、`-108` ↔ `HS65001#-6C@…`），不是「真实栈偏移」：Textractor 解析负偏移时会再 `-=4`（ITH 兼容），拿 `hookfinder` 的真实偏移建码时要先补 4，两套约定别混用 |
 | `profile` 白名单 | `name_prefix`、`collapse_doubling`、`dedupe_window`、`variant_settle`、`hook_hint` |
 | `evidence` | 内置规则必填（date/game/sample）；用户规则可省略，省略时标记为「未验证」 |
 | 优先级 | 内置规则包 → 用户规则包（同指纹时用户覆盖，并写一条诊断日志） |

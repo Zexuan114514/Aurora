@@ -1,6 +1,6 @@
 {
   "schema": "aurora.tools-manifest/1",
-  "captured_at": "2026-09-20",
+  "captured_at": "2026-09-21",
   "kinds": {
     "offline": "无需网络、无需游戏、无需界面，可在 CI 跑",
     "local-process": "需要在 Windows 上起子进程/窗口句柄，但不需要游戏",
@@ -11,9 +11,10 @@
     "diagnose": "排错工具，只有人工结论"
   },
   "scripts": [
-    { "path": "tools/check_bridge.py", "kind": "offline", "phase": "P0", "expected": "后端缺失：无（前 96 个调用点全部有实现）" },
+    { "path": "tools/_common.py", "kind": "helper", "phase": "P7", "expected": "UTF-8 控制台 + 数据布局解析（各脚本 import）" },
+    { "path": "tools/check_bridge.py", "kind": "offline", "phase": "P0", "expected": "后端缺失：无（前端模块树 + 悬浮窗动作全部有实现）" },
     { "path": "tools/export_engine_rules.py", "kind": "build", "phase": "P6", "expected": "从 domain 常量生成内置规则包与 docs/engines.md 规则表（--write）" },
-    { "path": "tools/check_library.py", "kind": "offline", "phase": "P0", "expected": "现有库文件结构完好（无损坏字段）" },
+    { "path": "tools/check_library.py", "kind": "offline", "phase": "P0", "expected": "现有库结构完好（id/name/exe 齐全、无重复 id）；没有数据目录时跳过并退出 0" },
     { "path": "tools/meta_offline.py", "kind": "offline", "phase": "P1", "expected": "用本地缓存校验元数据解析通过" },
     { "path": "tools/vntext_probe.py", "kind": "local-process", "phase": "P1", "expected": "全部通过（协议 / 清洗规则 / 缓存 / 术语表）" },
     { "path": "tools/download_probe.py", "kind": "local-process", "phase": "P3", "expected": "全部通过（资源站增删 / 沙盒自动解压导入）" },

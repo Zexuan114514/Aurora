@@ -1,6 +1,15 @@
 """用本地缓存验证 build_metadata（不依赖当前网络）。"""
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 import json
 import sys
 from pathlib import Path

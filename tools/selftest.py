@@ -1,6 +1,15 @@
 """离线自检：名称推断 + Steam 检索 + 背景图候选。结果写入 UTF-8 报告。"""
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 import io
 import sys
 import time

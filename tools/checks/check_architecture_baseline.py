@@ -84,13 +84,26 @@ def check() -> Result:
         base_mb = baseline_exe / 1048576
         result.note(f"Aurora.exe {now_mb:.1f} MB（基线 {base_mb:.1f} MB）")
     data = baseline["data"]
-    live_library = ROOT / "data" / "library.json"
+    # 同上：P2 之后在 state/ 下，别让这条计数因为路径没跟上而静默消失
+    live_library = ROOT / "data" / "state" / "library.json"
     if live_library.exists():
         live = json.loads(live_library.read_text(encoding="utf-8"))
+        # v2 把设置拆到了 state/settings.json；老写法读 live["settings"] 会恒为 0
+        live_settings: dict = {}
+        settings_path = ROOT / "data" / "state" / "settings.json"
+        if settings_path.exists():
+            try:
+                live_settings = json.loads(settings_path.read_text(encoding="utf-8"))
+            except Exception:                          # noqa: BLE001 - 计数而已
+                live_settings = {}
+        live_settings = live_settings.get("settings") or live.get("settings") or {}
         result.note(f"实时库 {len(live.get('games') or [])} 游戏 / "
-                    f"{len(live.get('settings') or {})} 设置项"
+                    f"{len(live_settings)} 设置项"
                     f"（基线 {data['games']} 游戏 / {data['settings_keys']} 设置项；"
                     f"用户数据自然增长，不判失败）")
+    elif (ROOT / "data" / "library.json").exists():
+        result.warn("数据目录还是 v1 布局（data/library.json）——启动器下次启动会迁移；"
+                    "实时库计数跳过")
     result.note(f"桥接基线：{baseline['bridge']['public_methods']} 公开方法 / "
                 f"{baseline['bridge']['frontend_call_points']} 前端调用点 / "
                 f"{baseline['bridge']['event_topics']} 事件主题")

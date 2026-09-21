@@ -5,6 +5,15 @@ UTF-8/LF 会让中文被拆成乱码并切断命令行。
 """
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent

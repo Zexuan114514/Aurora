@@ -1,6 +1,15 @@
 """抓取当前正在运行的 Aurora 窗口并检查侧边栏封面是否渲染。"""
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 import ctypes
 import sys
 import time

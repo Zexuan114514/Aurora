@@ -115,6 +115,7 @@ class Plugin:
 | --- | --- |
 | 指纹 | 文件名 + 字节数 + CRC32 三者全等才启用（换版本不会误套地址） |
 | `rva` | 只写模块内 RVA（`0x…`），**不要写绝对地址** |
+| `hook_code.offset` | 写 **H-code 里原样的偏移**（`-4` = 文本里的 `HQ-4@…`），不是「真实栈偏移」。Textractor 解析负偏移时会再 `-=4`（ITH 兼容），所以 `hookfinder` 那边拿到真实偏移 `-0x70` 时要补成 `-6C` 才是同一条码 —— 两套约定别混用 |
 | `profile` 白名单 | `name_prefix` / `collapse_doubling` / `dedupe_window` / `variant_settle` / `hook_hint` |
 | `evidence` | 内置规则必填（date/game/sample）；用户规则可省，省了就标「未验证」 |
 | 校验 | 加载时做 schema 校验；`tools/checks/check_engine_rules.py` 与 CI 用同一套 |

@@ -26,11 +26,15 @@ data/
 # ---------- 调试与测试产物 ----------
 tools/*.png
 tools/*.jpg
+tools/*-report.txt
 tools/*-report.json
 .cache/
 .pytest_cache/
 checks-result.json
 _sandbox/
+
+# ---------- 本地工具（架构技能包等，不进仓库） ----------
+.codex/
 
 # ---------- 编辑器 / 系统 ----------
 .vscode/

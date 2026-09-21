@@ -11,6 +11,15 @@ WillPlus 系列钩子失配（pattern not found），于是只剩按字形抓的
 """
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+import _common  # noqa: E402
+
+_common.setup_console()
+
 import argparse
 import json
 import os
@@ -60,7 +69,7 @@ def resolve() -> tuple[int, str]:
         return int(ARGS.pid), ""
     exe = ARGS.exe
     if not exe:
-        lib = json.loads((ROOT / "data" / "library.json").read_text(encoding="utf-8"))
+        lib = _common.load_library()
         key = (ARGS.game or "").lower()
         for game in lib["games"]:
             if key and key in f"{game.get('name','')} {game.get('exe','')}".lower():

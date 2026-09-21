@@ -96,3 +96,63 @@ CI 全量只有在**真的会红**时才有意义。P7 当场做了两次故意�
 2. **诊断包不含性能采样**：没有 CPU/内存曲线，只有计数与磁盘余量；够排「状态不对」，不够排「卡顿」。真卡顿还是靠 `tools/snap.py` / 任务管理器。
 3. **CI 不跑真机矩阵**：`e2e` / `visual` / `vntext_live` 需要真实游戏与窗口，仍在开发机上人工跑（这是 P0 就定下的边界）。
 4. **README 数字仍是人工同步**：没有「README 与实测数字一致」的守卫。真正的数字源在 `tools/checks/baseline.json` 的 `history` 与各报告 JSON；README 只保证「写的是最近一次实测」。
+
+## 7. 复核补丁（2026-09-21）：P2 之后的探针路径漂移 + 控制台编码
+
+P7 收口当天做了一次「按 README 逐条跑一遍」的复核，结果发现**治理的盲区不在守卫本身，
+而在没人执行的期望**：`tools/checks/tools-manifest.json` 里写着每个脚本「应该通过」，
+但清单检查只校验字段是否填了，**从不真跑**，于是三类问题同时存在。
+
+| # | 现象（实测） | 真因 | 修法 |
+| --- | --- | --- | --- |
+| 1 | `tools/check_library.py` / `vntext_live.py` / `vntext_hookprobe.py` / `vntext_rawdump.py` 开箱即 `FileNotFoundError: data\library.json` | P2 把库搬到 `state/`，四个脚本还在拼 v1 路径 | 统一走 `tools/_common.layout()`（`library_file()` / `settings_file()` / `load_library()`） |
+| 2 | `check_fixture` 的「实时库比夹具多了字段」告警、架构基线的「实时库 N 游戏」计数**静默消失** | 两处都是 `if live.exists():` 且盯着 v1 路径 —— 迁移后条件恒为假 | 改盯 `data/state/library.json`；只有 v1 时明确 warn；都没有（CI）记一行说明 |
+| 3 | `python tools/e2e.py` 裸跑在第 81 步崩：`UnicodeEncodeError: 'gbk' codec can't encode '\u22ef'`，报告停在 80/81（README 写的是 95/95） | 翻译面板状态行里有「⋯ → 转区启动…」，中文控制台 cp936 打不出来；CI 设了 `PYTHONUTF8=1` 所以只有本地中招 | 新增 `tools/_common.setup_console()`（只放宽 `errors`，不把 cp936 强改成 UTF-8 —— 那样中文会全屏乱码），**每个**探针脚本开头调用；守卫强制 |
+| 4 | `tools/check_bridge.py` 恒假红（`exit 1`，报「后端缺失 apply_window_icon, refresh_running」） | 它只正则扫 `gl/web/app.js` + `gl/api.py`，P3/P4 之后两者都是薄壳 | 重写成复用 `tools/checks/common.py` 的解析：前端扫 `gl/web/app/**/*.js` + 悬浮窗 8 个动作，后端扫整个桥接 mixin 树 |
+| 5 | 真机自测里 `モードのオーバーレイをデバイスがサポートしていません。`（D3D 覆盖模式提示）被当台词翻译 | 它有假名、有句号，形态上像台词 | `text_rules.looks_like_system_notice()`：**技术口吻 + 技术主语同时出现**才算噪声（单独「デバイスって何？」不误伤），并加 `tests/test_system_notice.py` |
+| 6 | 每跑一次探针，工作区就有 16 个 `*-report.txt` 变脏 | 报告文件被跟踪，却又每次都重写 | `git rm --cached` + `.gitignore` 加 `tools/*-report.txt`；`.codex/`（本地技能包）一并忽略 |
+
+### 守卫升级：清单从「元数据」变成「守卫」
+
+`tools/checks/check_tools_manifest.py` 现在四件事一起做：
+
+1. 登记完整（每个 `tools/*.py` 都在清单里，kind / phase / expected 合法）；
+2. **控制台守卫**：每个脚本都要接 `tools/_common.setup_console()`；
+3. **路径漂移守卫**：解析 AST，不许再出现 `ROOT / "data" / "library.json"` 这类 v1 路径
+   （只看代码，文档字符串里的说明不算）；
+4. **真跑 `kind=offline` 的三个脚本**（`check_bridge` / `check_library` / `meta_offline`），
+   退出码非 0 即失败。
+
+### 「故意违规会变红」的证据（本轮新增）
+
+加一个临时脚本 `tools/zz_violation_probe.py`（不接 `setup_console`、自己拼 v1 路径、不登记清单）后：
+
+```
+$ python tools\checks\run_all.py          # 日志留档 _sandbox/p7b-violation-tools.log
+[FAIL] 探针脚本清单
+  x 新增脚本没有登记到清单：tools/zz_violation_probe.py
+  x 这些脚本没接 tools/_common.setup_console()（中文控制台会崩）：zz_violation_probe.py
+  x 这些脚本仍写死 v1 数据路径（P2 之后库在 data/state/ 下）：zz_violation_probe.py
+== 合计 10 项检查：通过 9，失败 1 ==        (exit 1)
+```
+
+删掉临时文件后复跑：**10/10 通过**。
+
+### 验收（2026-09-21 复核后实测）
+
+| 项 | 结果 |
+| --- | --- |
+| `run_all.py` | **10/10**（探针清单一项同时给出「真跑 offline 3 个」「控制台守卫 32 个」） |
+| `pytest` | **95 passed**（新增 `tests/test_system_notice.py` 8 条） |
+| `e2e.py`（**不设** `PYTHONUTF8`，中文控制台裸跑） | **95/95（0 skipped）** —— 编码那条修好了，不再需要手动设环境变量 |
+| 真机 `vntext_live.py` | 路径修好后可直接跑：DRACU RIOT 7 句台词全干净 + 7 句译文，引擎 `TVP/KIRIKIRI`，`merged=12`，原始行审计漏掉 0 |
+
+### 遗留观察（本轮如实登记，未改代码）
+
+真机自测里出现过「原始行审计报 `漏掉 N 条`」，但**不是清洗规则丢的**：把那些行逐条过规则，
+`looks_like_noise=False`、`looks_like_dialogue=True`（例如
+`バッカ、お前、自分が学生だなんて語ってどうすんだよ？ 今から“楽園”に行くんだぜ`）。
+丢在更前面的**线程门禁**：测试脚本在游戏刚起来、还没选出领跑线程时就连点 6 次，
+那几句只从非领跑线程经过，按设计被丢掉（同一次运行 `lines=5 merged=2 gated=1`）。
+正常玩法（等画面出来再翻页）不会这样，要复现得「启动瞬间狂点」。
+后续方向：冷启动宽限期 —— 前 N 秒不做线程门禁，先把台词收下来再去重。

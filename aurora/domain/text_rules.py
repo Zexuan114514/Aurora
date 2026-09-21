@@ -18,6 +18,46 @@ NOISE_WORDS = ("无法注入", "Usage:", "Textractor:", "请以管理员", "注�
                "已连接", "successfully attached")
 
 
+#: 系统 / 驱动 / 引擎自己弹的技术提示：有假名、有句号，形态上完全像台词，
+#: 只能靠「技术口吻 + 技术名词」同时出现来判。
+#: 真机样本（DRACU RIOT，2026-09-21 真机自测）：
+#:     「モードのオーバーレイをデバイスがサポートしていません。」
+#: 这句当时被当台词翻了 —— 剧情里不会这么说话，但菜单/驱动提示会。
+SYSTEM_NOTICE_ACTIONS = (
+    "サポートしていません", "サポートされていません", "対応していません",
+    "初期化に失敗", "起動に失敗", "読み込みに失敗", "読み込めません",
+    "インストールされていません", "見つかりません", "見つけられません",
+    "応答がありません", "応答していません", "メモリが不足", "ディスク容量",
+    "管理者権限", "問題が発生", "動作を停止", "予期しないエラー",
+)
+
+#: 上表要配一个「技术主语」才算系统提示（单独出现「デバイス」这类词可能是剧情）
+SYSTEM_NOTICE_SUBJECTS = (
+    "デバイス", "ドライバ", "モード", "グラフィック", "DirectX", "Direct3D",
+    "D3D", "GPU", "オーバーレイ", "解像度", "ディスプレイ", "モニタ",
+    "サウンド", "オーディオ", "ビデオカード", "OS", "Windows",
+    "ファイル", "フォルダ", "モジュール", "DLL", "ランタイム", "ライブラリ",
+    "更新プログラム", "レジストリ", "セーブデータ",
+)
+
+#: 没有技术主语时，出现这些技术标记也算（错误码 / 文件名 / 路径）
+SYSTEM_NOTICE_MARKS = re.compile(
+    r"[A-Za-z_][A-Za-z0-9_]*\.(?:dll|exe|ini|log|dat)\b"
+    r"|\b0x[0-9A-Fa-f]{4,}\b"
+    r"|[A-Za-z]:\\"
+)
+
+
+def looks_like_system_notice(text: str) -> bool:
+    """系统/驱动/安装类提示语，不该送去翻译。"""
+    body = str(text or "")
+    if not any(word in body for word in SYSTEM_NOTICE_ACTIONS):
+        return False
+    if any(word.lower() in body.lower() for word in SYSTEM_NOTICE_SUBJECTS):
+        return True
+    return bool(SYSTEM_NOTICE_MARKS.search(body))
+
+
 
 #: 折叠「连续重复字符」时要放过的字符：这些连写本身有意义（「！！」「……」），
 #: 折掉会改坏原文。注意「「「」这种引号连写一定是写缓冲痕迹，不能放过。
@@ -665,6 +705,8 @@ def looks_like_noise(text: str, max_chars: int = 1200) -> bool:
         return True
     if any(word in body for word in NOISE_WORDS):
         return True
+    if looks_like_system_notice(body):
+        return True        # 驱动/引擎的技术提示（真机：DRACU RIOT 的覆盖模式提示）
     if "__sys_" in body:
         return True        # 引擎内部标记（实测 Siglus：__sys_scdata_init__ / __sys_bk_selline…）
     if re.match(r"^\d{1,3}_", body) and not _SENTENCE_END_RE.search(body):

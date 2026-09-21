@@ -13,21 +13,34 @@ from typing import Iterable
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
-def _force_utf8_console() -> None:
-    """把标准输出切到 UTF-8。
+def _setup_console() -> None:
+    """让检查脚本的 `print` 不会因为编不出的字符整批失败。
 
-    检查脚本的标题与结论是中文；在英文 code page 的机器上（GitHub Actions 的
-    windows-latest 就是），`print` 会抛 UnicodeEncodeError 让检查整批失败。
-    这里主动 reconfigure，跑在 pytest 捕获里时（没有 reconfigure）静默跳过。
+    标题与结论是中文；在英文 code page 的机器上（GitHub Actions 的 windows-latest
+    就是），`print` 会抛 UnicodeEncodeError。做法按控制台分两种（与
+    `tools/_common.setup_console()` 同一套）：
+
+    * 中文控制台（cp936 等）保持原编码、只放宽 `errors` —— 强改 UTF-8 会让中文
+      全屏乱码；
+    * 非 CJK 控制台切 UTF-8 —— CI 日志要能看见中文
+      （`tests/test_ci_environment.py` 锁这条）。
+
+    跑在 pytest 捕获里时（没有 reconfigure）静默跳过。
     """
+    cjk = {"cp936", "gbk", "gb2312", "gb18030", "cp932", "shift-jis", "sjis",
+           "cp949", "euc-kr", "cp950", "big5"}
     for stream in (sys.stdout, sys.stderr):
+        encoding = (getattr(stream, "encoding", "") or "").lower().replace("_", "-")
         try:
-            stream.reconfigure(encoding="utf-8", errors="replace")   # type: ignore[attr-defined]
+            if encoding.startswith("utf") or encoding in cjk:
+                stream.reconfigure(errors="replace")   # type: ignore[attr-defined]
+            else:
+                stream.reconfigure(encoding="utf-8", errors="replace")   # type: ignore[attr-defined]
         except Exception:
             pass
 
 
-_force_utf8_console()
+_setup_console()
 
 
 class Result:

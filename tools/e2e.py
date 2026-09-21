@@ -1,6 +1,15 @@
 """端到端自检：空状态 -> 导入 -> 自动联网搜索 -> 切换背景 -> 启动/结束进程。"""
 from __future__ import annotations
 
+# 统一 UTF-8 控制台（说明见 tools/_common.py）
+import pathlib as _pathlib
+import sys as _sys
+
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+from _common import setup_console  # noqa: E402
+
+setup_console()
+
 import json
 import shutil
 import sys

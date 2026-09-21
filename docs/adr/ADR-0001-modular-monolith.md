@@ -26,7 +26,8 @@ Aurora 是单机桌面启动器，需要长期在用户机上与游戏、Textrac
 
 ## 决定
 
-选择 **1**。`ui → app → domain`，`infra` 实现端口，`platform` 提供 Win32 原语，`bootstrap.py` 是唯一组合根；
+选择 **1**。`ui → app → domain`，`infra` 实现端口，`platform` 提供 Win32 原语，组合根只有一个 ——
+设计稿里叫 `bootstrap.py`，落地时留在 `gl/api.py` 的 `Api()`（P3.5 收口后 `api.py` 只剩 196 行装配/生命周期）；
 不引入 IPC、不引入常驻服务。评估细节见 `01` / `03` / `04`。
 
 ## 后果

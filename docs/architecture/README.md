@@ -105,9 +105,9 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | 术语 | 含义 |
 | --- | --- |
 | 端口 / 适配器 | 端口是 `app/ports.py` 里的 Protocol；适配器是 `infra`/`platform` 里的具体实现 |
-| 组合根 | `aurora/bootstrap.py`，唯一同时接触 app 与 infra 的地方 |
+| 组合根 | `gl/api.py` 的 `Api()`（唯一同时接触 app 与 infra 的地方）：构造 store、适配器、七个用例服务与桥接 mixin，注入 TaskRunner 与 EventBus。设计稿里叫 `bootstrap.py`，落地时留在 `Api.__init__` |
 | 桥接 | pywebview 的 `js_api` 对象（前端 `window.pywebview.api`） |
 | 事件信封 | `{topic, seq, ts, payload}`，后端 → 前端的唯一推送格式 |
-| 规则包 | `data/rules/engines/*.json`，声明式记录引擎指纹、hook 码与清洗档位 |
+| 规则包 | 内置 `aurora/rules/engines/*.json`（由 domain 常量导出）；用户覆盖放 `data/rules/engines/*.json`，同指纹覆盖内置 |
 | 能力探测 | 启动时对 WebView2 / LE / Textractor / 解压器 / OCR / 代理的可用性检查 |
 | 契约漂移 | 桥接方法名、事件主题、数据 schema 与本目录快照不一致 |
