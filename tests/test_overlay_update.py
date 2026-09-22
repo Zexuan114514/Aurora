@@ -11,6 +11,13 @@ from __future__ import annotations
 import threading
 import time
 
+import pytest
+
+# CI 的 pytest 步骤只装 pytest（离线检查刻意保持"纯标准库"），没有 pywebview。
+# 这个用例要构造真 Overlay，所以缺依赖时跳过，别让整批收集失败。
+pytest.importorskip("webview", exc_type=ImportError,
+                    reason="悬浮窗测试需要 pywebview（CI 不装运行期依赖）")
+
 from aurora.ui.overlay import Overlay
 
 
@@ -77,10 +84,13 @@ def test_rapid_updates_are_coalesced() -> None:
 def test_repeated_failures_disable_overlay() -> None:
     window = FakeWindow(fail=True)
     overlay = make_overlay(window)
-    for index in range(6):
-        overlay.update({"lines": {"translation": f"第 {index} 段"}})
-        time.sleep(0.05)
-    assert wait_until(lambda: overlay._disabled, timeout=6.0), "连续失败没有停用悬浮窗"
+    # 真实场景是「译文一条接一条地来」：持续喂更新直到熔断（别只发几次 ——
+    # 更新会被合并成 1~2 次推送，凑不满 3 次失败，那是测试自己的时序问题）
+    deadline = time.time() + 5.0
+    while time.time() < deadline and not overlay._disabled:
+        overlay.update({"lines": {"translation": "持续更新"}})
+        time.sleep(0.15)
+    assert overlay._disabled, "持续失败没有停用悬浮窗"
     assert overlay._window is None and not overlay._visible
     calls_when_disabled = window.calls
     overlay.update({"lines": {"translation": "停用之后"}})
