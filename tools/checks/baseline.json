@@ -63,7 +63,7 @@
     },
     {
       "path": "aurora/app/services/vntext.py",
-      "lines": 303
+      "lines": 319
     },
     {
       "path": "aurora/domain/__init__.py",
@@ -111,7 +111,7 @@
     },
     {
       "path": "aurora/infra/linetrans.py",
-      "lines": 351
+      "lines": 429
     },
     {
       "path": "aurora/infra/netproxy.py",
@@ -147,7 +147,7 @@
     },
     {
       "path": "aurora/infra/vntext.py",
-      "lines": 1434
+      "lines": 1754
     },
     {
       "path": "aurora/infra/rules.py",
@@ -291,7 +291,7 @@
     },
     {
       "path": "aurora/platform/memmatch.py",
-      "lines": 422
+      "lines": 597
     },
     {
       "path": "gl/memmatch.py",
@@ -515,9 +515,24 @@
       "line": 93
     },
     {
+      "name": "aurora-memmatch",
+      "file": "aurora/platform/memmatch.py",
+      "line": 443
+    },
+    {
+      "name": "aurora-memmatch-snap",
+      "file": "aurora/platform/memmatch.py",
+      "line": 595
+    },
+    {
       "name": "aurora-overlay-resize",
       "file": "gl/overlay.py",
       "line": 141
+    },
+    {
+      "name": "aurora-overlay-update",
+      "file": "aurora/ui/overlay.py",
+      "line": 392
     },
     {
       "name": "aurora-refresh-all",
@@ -578,6 +593,11 @@
       "name": "aurora-vntext-ocr",
       "file": "gl/vntext.py",
       "line": 1236
+    },
+    {
+      "name": "aurora-vntext-status",
+      "file": "aurora/infra/vntext.py",
+      "line": 544
     },
     {
       "name": "aurora-webserver",
@@ -1884,6 +1904,21 @@
         {
           "from": "README 的数字与功能停在 P2/P3（run_all 7/7、pytest 26、e2e 90/90）",
           "to": "README.md / 13-roadmap.md / architecture/README.md 全部换成 P7 实测数字与产物"
+        }
+      ]
+    },
+    {
+      "phase": "P8（翻译子系统遗留项）",
+      "date": "2026-09-22",
+      "note": "交接文档「待办」里那两条高优先级落地：① 缺字补全彻底异步化 —— memmatch.complete_async/snap_async 增加 on_done 回调，VnTextEngine 先登记认领（_arm_completion，认领时刻之后发射的缺字版才有资格）、后台扫出结果后按 COMPLETION_CLAIM_TTL=150s 内补发，补发带 revise_of=缺字版的发射序号；LineTranslator 按序号原位替换译文历史（缺字版译文后到就直接丢），旧台词的补发带 silent 只刷面板不顶悬浮窗。② 冷启动宽限期 COLD_START_GRACE=30s：会话刚开始、领跑线程还没选出来时，非领跑线程的**台词**不再被线程门禁丢掉（不像台词的行照旧挡）。新增 3 组回归网（tests/test_memory_completion_reemit.py / test_linetrans_revision.py / test_cold_start_grace.py，共 17 条）；pytest 110 → 127 passed、run_all 10/10、tools/vntext_probe.py 全部通过。基线同时更新：登记 aurora-memmatch / aurora-memmatch-snap / aurora-overlay-update / aurora-vntext-status 四个线程（上一轮修复引入、一直只在告警里），并把 vntext.py / memmatch.py / linetrans.py / services/vntext.py 的行数基线上调到当前值。",
+      "moves": [
+        {
+          "from": "补完版只进缓存，这一句永远停在缺字版（要等同句再出现才补上）",
+          "to": "aurora/platform/memmatch.py on_done 回调 + aurora/infra/vntext.py _resolve_completions 补发（revise_of）+ aurora/infra/linetrans.py 原位替换"
+        },
+        {
+          "from": "冷启动瞬间翻页，非领跑线程的台词被线程门禁丢掉（审计「漏掉 N 条」）",
+          "to": "aurora/infra/vntext.py COLD_START_GRACE=30s 宽限期（只挡不像台词的行）"
         }
       ]
     }

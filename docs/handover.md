@@ -3,7 +3,7 @@
 > 写给下一个接手的人（也可能是几个月后的自己）。**先读这份，再读
 > [`architecture/README.md`](architecture/README.md)（为什么这么设计）与
 > [`../README.md`](../README.md)（有什么功能）。**
-> 最后更新：2026-09-22（游戏内翻译两轮卡死修复之后）
+> 最后更新：2026-09-22（卡死修复之后又落了「补完版补发」与「冷启动宽限期」两条遗留项）
 
 ## 1. 这是什么 / 当前状态
 
@@ -16,7 +16,7 @@ Aurora 是一个 **Windows 单机 galgame 启动器**：管游戏库、抓元数
 | 运行形态 | 源码 `python main.py`；发布 `Aurora.exe`（PyInstaller 单文件，约 24.5 MB） |
 | 开发环境 | Windows + Python 3.13（本机是 Anaconda）；`webview`(pywebview) + `winrt-*` 是仅有的运行时依赖 |
 | 用户数据 | 与本机绑定，**不进仓库**：`data/`（库、设置、素材、缓存、日志） |
-| 测试现状 | `pytest` **110 passed**、`tools/checks/run_all.py` **10/10**、`tools/e2e.py` **95/95** |
+| 测试现状 | `pytest` **127 passed**、`tools/checks/run_all.py` **10/10**、`tools/e2e.py` **95/95** |
 | 真机矩阵 | DRACU RIOT（KiriKiriZ）/ 少女之剑（WillPlus+专用码）/ アマカノ３（Artemis）/ 白色相簿2（Leaf）… 见 [`engines.md`](engines.md) |
 | 远端 | `origin = https://Zexuan114514@github.com/Zexuan114514/Aurora.git`（URL 里带用户名，否则 GCM 会卡住） |
 
@@ -83,7 +83,7 @@ TextractorCLI（用户自装，x86/x64 各一份）
 * 实测有效的码按「文件名 + 字节数 + CRC32」写进规则包（内置 `aurora/rules/engines/*.json`，
   用户覆盖 `data/rules/engines/*.json`），命中即自动带上。
 
-### 4.3 三条必须记住的不变量（都是真机事故换来的）
+### 4.3 必须记住的不变量（都是真机事故换来的）
 
 1. **缺字补全不是万能的，跑错地方会拖死全局**：`MEMORY_COMPLETION_SKIP_ENGINES`
    （TVP/KIRIKIRI、Leaf、BGI、Escu:de、Siglus、CatSystem2/Ares）**不做**补全 ——
@@ -94,6 +94,16 @@ TextractorCLI（用户自装，x86/x64 各一份）
 3. **推送与悬浮窗都不许阻塞**：引擎状态推送去抖 250 ms（`_push_status(force=…)`），
    悬浮窗更新是「只留最新一份 + 后台单线程 + 连续失败 3 次自动停用」。
    回归网：`tests/test_status_debounce.py`、`tests/test_overlay_update.py`。
+4. **补完版不许只进缓存**：`complete_async/snap_async` 超时放行时先在引擎里**登记认领**
+   （`_arm_completion`：只有认领之后发射的缺字版才有资格），后台扫出结果后作为
+   **同一句的新版本**补发（发射带 `revise_of` = 缺字版的发射序号，认领窗口 150 秒）。
+   翻译侧按序号**原位替换**历史（`LineTranslator._finish`），缺字版的译文后到就直接丢；
+   要补发的那句已经是旧台词时带 `silent` —— 只修面板，不把悬浮窗顶回旧句子。
+   回归网：`tests/test_memory_completion_reemit.py`、`tests/test_linetrans_revision.py`。
+5. **冷启动 30 秒不做线程门禁**：游戏刚起来、领跑线程还没选出来时连点翻页，前几句
+   常先从别的线程到，会被门禁当「弱行」整句丢掉（真机自测「审计漏掉 N 条」的真凶）。
+   `COLD_START_GRACE = 30.0` 内只挡**不像台词**的行；去重/并合照常，所以同一句从两条
+   线程来仍只翻一次。回归网：`tests/test_cold_start_grace.py`。
 
 ### 4.4 排错关键字（`data/logs/aurora.log`）
 
@@ -103,7 +113,9 @@ TextractorCLI（用户自装，x86/x64 各一份）
 | 取了什么文本、什么时候发射的 | `vntext in [线程] '原文' -> '清洗后'`、`vntext emit [hook\|ocr] '…'` |
 | 一句为什么被丢 | `vntext gated` / `same text merged`（10 秒窗内）/ `dup merged` / `short fragment merged` / `variant merged` |
 | 缺字补全有没有乱跑 | `memmatch:` / `vntext memory completed:`（**引擎级钩子的游戏这里应该是 0 行**） |
+| 补完版有没有补发回来 | `vntext completion arrived:`（后台扫到结果）→ `vntext revision of #N:`（认领到那条缺字版）→ `vntext revision [#N] ->`（补发出去）；认领不到会看到 `vntext revision dropped (过期)` |
 | 翻译慢在哪一段 | `linetrans done [llm\|free\|cache] '…' (N.Ns)`（N 是排队 + 请求总耗时） |
+| 冷启动有没有被门禁吞句子 | `vntext gate held (cold start)`（30 秒宽限期内放行的非领跑线程台词）/ `linetrans dropped (已被补完版替换)`（缺字版译文来晚了，被补完版顶掉） |
 | 悬浮窗 | `overlay update failed` / `overlay 连续更新失败，已停用悬浮窗` |
 | 一键打包全部状态 | 设置 → 关于 → **导出诊断包**（或 `python tools\collect_diagnostics.py`） |
 
@@ -125,7 +137,7 @@ TextractorCLI（用户自装，x86/x64 各一份）
 | 守卫 | 管什么 |
 | --- | --- |
 | `run_all.py` 10 项 | 契约快照（151 方法 / 14 事件 / 100 前端调用点）、依赖白名单、去敏夹具、探针清单（含**真跑 offline 脚本**与控制台/路径守卫）、架构基线、桥接转发目标、引擎规则包、分层规则、打包清单、启动冒烟 |
-| `pytest` | domain 金样本、数据迁移/去抖/回滚、插件、诊断包、以及本轮新增的四组回归网 |
+| `pytest` | domain 金样本、数据迁移/去抖/回滚、插件、诊断包，以及取词链路的回归网（推送去抖 / 悬浮窗非阻塞 / 缺字补全门禁与补发 / 冷启动宽限期 / 文学重复 / 窗口止损） |
 | `e2e.py` 95 项 | 真窗口：大厅/游戏页/设置/分类/拖拽/缩放/翻译面板/悬浮窗/hook 码存取 |
 | CI（`.github/workflows/offline-checks.yml`） | run_all + `build_exe --dry-run` + pytest + 迁移专项 + 诊断包 |
 
@@ -147,9 +159,8 @@ TextractorCLI（用户自装，x86/x64 各一份）
 
 | 优先级 | 事项 | 备注 |
 | --- | --- | --- |
-| 高 | **缺字补全彻底异步化** | 现在超 2.5 秒就放行缺字版、后台补完只进缓存；理想是补完版作为同一句的新版本补发（`variant merge` 已能并合） |
-| 高 | **冷启动宽限期** | 游戏刚起来、领跑线程还没选出来时连续翻页，前几句会被线程门禁丢掉（perf 文档「遗留观察」） |
-| 中 | RIDDLE JOKER 复测 | 双同名线程交替抢先已修（P3 记录），本轮改动后建议照 `engines.md` 模板再跑一次 20 句 |
+| 高 | **真机复验两条新链路** | ① 少女之剑（WillPlus，必须靠内存补全）：连翻 20 句，日志要能看到 `vntext completion arrived:` → `vntext revision of #N:`，面板里那句从缺字版换成完整句；② 任意游戏：启动瞬间连点 6 次翻页，审计应该「漏掉 0」（日志里是 `vntext gate held (cold start)`）。两条都只有离线回归网，没上过真机 |
+| 中 | RIDDLE JOKER 复测 | 双同名线程交替抢先已修（P3 记录），冷启动宽限期改动后建议照 `engines.md` 模板再跑一次 20 句 |
 | 中 | 书架页 | 分类页已承担整理，跨分类总览还没做 |
 | 中 | 存档管理 | 待做「存档目录快捷方式 + 手动备份/恢复」 |
 | 低 | 手柄 / 多主题 / Magpie / CI 自动发布 | 明确排在后面 |

@@ -376,7 +376,18 @@ def complete(pid: int, fragment: str) -> str:
     return best
 
 
-def complete_async(pid: int, fragment: str, *, wait: float = 2.5) -> str:
+def _notify(callback, fixed: str) -> None:
+    """后台补完版的通知：回调自己出错只记日志，绝不影响扫描结果与缓存。"""
+    if not callback or not fixed:
+        return
+    try:
+        callback(fixed)
+    except Exception as exc:                       # noqa: BLE001
+        config.log(f"memmatch on_done failed: {exc}")
+
+
+def complete_async(pid: int, fragment: str, *, wait: float = 2.5,
+                   on_done=None) -> str:
     """`complete()` 的非阻塞版：最多等 `wait` 秒，超时就先放行、扫描挪到后台。
 
     为什么要这样：全量扫描在真实进程上实测 44~68 秒，而缺字补全跑在**取词热路径**上
@@ -387,6 +398,11 @@ def complete_async(pid: int, fragment: str, *, wait: float = 2.5) -> str:
     * 没命中 → 后台扫描，最多等 `wait` 秒；超时就先让缺字版照常发射，
       扫描继续跑并把结果写进缓存，这句再出现时就能补全（已有的「缺字变体并合」
       会把两份并成一条）。
+
+    2026-09-22 补：超时放行的缺字版不再「只能等下次同句出现」——`on_done(fixed)`
+    会在后台扫出结果时回调，调用方（`vntext.VnTextEngine`）据此把补完版作为
+    **同一句的新版本**补发。回调固定跑在 `wait` 超时判断之前，所以「没超时、
+    直接拿到结果」的那次不会被重复当成迟到的补完版。
     """
     probe = re.sub(r"\s+", "", str(fragment or ""))
     if not pid or len(probe) < 3:
@@ -410,15 +426,19 @@ def complete_async(pid: int, fragment: str, *, wait: float = 2.5) -> str:
                 _RUNNING.discard(key)
             done.set()
             return
+        fixed = ""
         try:
-            box["text"] = complete(pid, fragment)
+            box["text"] = fixed = complete(pid, fragment)
         except Exception as exc:                       # noqa: BLE001
             config.log(f"memmatch async failed: {exc}")
         finally:
             _SCAN_SLOT.release()
             with _LOCK:
                 _RUNNING.discard(key)
-            done.set()
+        # 先回调、后放行等待者：调用方（vntext）据此判断这条补完版是「这次直接
+        # 用到」还是「超时放行后迟到」——它只按发射记录认领，不依赖这里的时序
+        _notify(on_done, fixed)
+        done.set()
 
     threading.Thread(target=job, daemon=True, name="aurora-memmatch").start()
     done.wait(max(0.05, float(wait)))
@@ -526,11 +546,13 @@ def snap(pid: int, text: str, *, min_ratio: float = 0.72, margin: float = 0.08) 
     return best
 
 
-def snap_async(pid: int, text: str, *, wait: float = 2.5) -> str:
+def snap_async(pid: int, text: str, *, wait: float = 2.5, on_done=None) -> str:
     """`snap()` 的限时版：最多等 `wait` 秒，超时就先按 OCR 原文走、扫描挪后台。
 
     与 `complete_async` 同一套思路：OCR 循环每认出一句都要吸附一次，而热区没命中时
     会全量扫进程内存（实测 44~68 秒），同步等会把 OCR 取词整条堵住。
+    `on_done(fixed)` 与 `complete_async` 一致：超时放行后扫出来的吸附结果
+    交给调用方补发。
     """
     probe = re.sub(r"\s+", "", str(text or ""))
     if not pid or len(probe) < 3:
@@ -553,21 +575,22 @@ def snap_async(pid: int, text: str, *, wait: float = 2.5) -> str:
                 _RUNNING.discard(key)
             done.set()
             return
+        fixed = ""
         try:
-            fixed = snap(pid, text)
+            box["text"] = fixed = snap(pid, text)
             if fixed:
                 with _LOCK:
                     _SNAP_DONE[cache_key] = fixed
                     while len(_SNAP_DONE) > _DONE_MAX:
                         _SNAP_DONE.pop(next(iter(_SNAP_DONE)))
-            box["text"] = fixed
         except Exception as exc:                       # noqa: BLE001
             config.log(f"memmatch snap async failed: {exc}")
         finally:
             _SCAN_SLOT.release()
             with _LOCK:
                 _RUNNING.discard(key)
-            done.set()
+        _notify(on_done, fixed)
+        done.set()
 
     threading.Thread(target=job, daemon=True, name="aurora-memmatch-snap").start()
     done.wait(max(0.05, float(wait)))

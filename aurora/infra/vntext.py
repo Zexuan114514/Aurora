@@ -9,6 +9,7 @@ from aurora.app.events import default_bus
 from aurora.infra.tasks import default_runner
 
 import difflib
+import itertools
 import os
 import re
 import shutil
@@ -38,6 +39,11 @@ TEXTRACTOR_URL = "https://github.com/Artikash/Textractor/releases"
 MEMORY_COMPLETION_SKIP_ENGINES = (
     "TVP/KIRIKIRI", "Leaf", "BGI/Ethornell", "Escu:de", "Siglus", "CatSystem2/Ares",
 )
+
+#: 发射序号：**进程级**递增，不随会话清零 —— 翻译侧按这个 id 认领「同一句的补完版」，
+#: 会话重启后从 1 重新数会撞上上一会话留在译文历史里的条目。
+_LINE_SEQ = itertools.count(1)
+
 # --------------------------------------------------------------------------- #
 # 纯规则与引擎规格已搬到 aurora.domain（P1 分层）；这里保留同名转发，
 # 老的调用点（gl/api.py、tools/）不需要改。
@@ -461,6 +467,16 @@ class VnTextEngine:
         self._last_record: dict | None = None
         self._cli_bits = 0
         self._target_bits = 0
+        #: 本会话开始时刻（冷启动宽限期用）。0 = 没走过 start()（自检脚本直接喂行）
+        self._started_at = 0.0
+        #: 最近发射过的行 (id, 文本, 时刻)：后台补完版按它找「补发对象」
+        self._recent_emit: list[tuple[int, str, float]] = []
+        #: 等补发的补完版（后台扫描出结果时入队，见 _resolve_completions）
+        self._pending_fixes: list[dict] = []
+        #: 补完版补发条数（不计入 lines）
+        self._revised = 0
+        #: 冷启动宽限期内放行的「非领跑线程台词」条数（诊断用）
+        self._cold_passes = 0
         #: 用户钩子码（每游戏可填；也可由我们实测过的 WillPlus 记录自动带出）
         self._hook_code = ""
         self._hook_auto = ""
@@ -497,6 +513,8 @@ class VnTextEngine:
                 "merged": self._merged,
                 "gated": self._gated,
                 "completed": self._completed,
+                "revised": self._revised,
+                "cold_passes": self._cold_passes,
                 "engine_name": self._engine,
                 "hook_code": self._hook_code,
                 "hook_auto": self._hook_auto,
@@ -550,6 +568,25 @@ class VnTextEngine:
     #: 「一字不差的重复」抑制窗口（秒）。见 `_promote` 里的说明：白色相簿2 的
     #: 文学重复（同一句剧情里再说一次）不能被吞掉。
     SHORT_DUP_SECONDS = 10.0
+
+    #: 冷启动宽限期（秒）：游戏刚起来、领跑线程还没选出来时连续翻页，前几句常常
+    #: 先从**别的线程**到（那时谁是领跑还不确定），会被线程门禁当「弱行」丢掉
+    #: （真机自测：启动瞬间连点 6 次，原始行审计报「漏掉 N 条」，逐条过规则却是
+    #: 正经台词）。宽限期内只挡「不像台词」的行，不再因为不是领跑线程/没句读而丢。
+    COLD_START_GRACE = 30.0
+
+    #: 「补完版补发」的认领有效期（秒）：后台内存扫描实测 44~68 秒，认领窗口
+    #: 至少要盖住它，否则刚扫完就过期、补发不出去。
+    COMPLETION_CLAIM_TTL = 150.0
+
+    def _in_cold_start(self) -> bool:
+        """会话刚开始、领跑线程还没选出来 → 门禁放宽（见 COLD_START_GRACE）。"""
+        started = float(getattr(self, "_started_at", 0.0) or 0.0)
+        if not started:
+            return False       # 没走过 start()（自检脚本直接喂行）→ 不宽限，行为不变
+        grace = float((self._profile or {}).get("cold_start_grace")
+                      or self.COLD_START_GRACE)
+        return grace > 0 and (time.time() - started) < grace
 
     def hook_sample_for(self, code: str) -> str:
         """取「指定钩子码」那条线程当前的样例文本（找钩子验证专用）。
@@ -708,6 +745,11 @@ class VnTextEngine:
         self._name_pending = None
         self._recent_text.clear()
         self._recent.clear()
+        self._started_at = time.time()
+        self._recent_emit.clear()
+        self._pending_fixes.clear()
+        self._revised = 0
+        self._cold_passes = 0
         default_runner().spawn("vntext.flush", self._flush_loop,
                                thread_name="aurora-vntext-flush")
         self._engine = detect_engine(self._pid)
@@ -1074,6 +1116,11 @@ class VnTextEngine:
                 self._flush_thread(key)
             # 分片缓冲清完后还要给「同一句的其它版本」留一点时间：这一步才真正发射
             self._resolve_staged()
+            # 后台补完版到齐了就作为同一句的新版本补发（见 _resolve_completions）
+            try:
+                self._resolve_completions()
+            except Exception as exc:
+                config.log(f"vntext revision failed: {exc}")
 
     def _flush_thread(self, key: str) -> None:
         with self._lock:
@@ -1250,18 +1297,23 @@ class VnTextEngine:
         """把 GDI 钩子吐的缺字版补成完整台词（见 aurora/platform/memmatch.py）。
 
         用**限时等待**的版本：全量扫描实测 44~68 秒，而这里在取词热路径上（每句都要补），
-        同步等于是「一句要等几十秒」。现在最多等 2.5 秒，超时就先让缺字版发射，
-        扫描在后台继续、结果进缓存 —— 同一句再出现时补全版秒出，交给已有的
-        「缺字变体并合」并成一条。
+        同步等于是「一句要等几十秒」。现在最多等 2.5 秒，超时就先让缺字版发射；
+        扫描在后台继续，**扫出结果时作为同一句的新版本补发**（见 `_resolve_completions`），
+        不再只是「等这句下次出现才用得上」。
         """
+        claim: dict | None = None
         try:
             from aurora.platform import memmatch
 
-            fixed = memmatch.complete_async(self._pid, fragment, wait=2.5)
+            claim = self._arm_completion(fragment)
+            fixed = memmatch.complete_async(self._pid, fragment, wait=2.5,
+                                            on_done=lambda text: self._attach_completion(claim, text))
         except Exception as exc:
             config.log(f"memmatch failed: {exc}")
+            self._drop_claim(claim)
             return ""
         if fixed and fixed != fragment:
+            self._drop_claim(claim)     # 同步就补上了，没有「迟到的补完版」要补发
             self._completed += 1
             config.log(f"vntext memory completed: {fragment[:24]!r} -> {fixed[:40]!r}")
             self._push_status()
@@ -1272,18 +1324,113 @@ class VnTextEngine:
         """把 OCR 文本吸附到游戏内存里的原文（只读扫描，拿不准返回空串）。"""
         if not self._pid:
             return ""
+        claim: dict | None = None
         try:
             from aurora.platform import memmatch
 
-            fixed = memmatch.snap_async(self._pid, text, wait=2.5)
+            claim = self._arm_completion(text)
+            fixed = memmatch.snap_async(self._pid, text, wait=2.5,
+                                        on_done=lambda fixed_text: self._attach_completion(claim, fixed_text))
         except Exception as exc:
             config.log(f"memmatch snap failed: {exc}")
+            self._drop_claim(claim)
             return ""
         if fixed and fixed != text:
+            self._drop_claim(claim)
             self._completed += 1
             self._push_status()
             return fixed
         return ""
+
+    def _arm_completion(self, fragment: str) -> dict | None:
+        """登记「这句正在等补完版」：只有**这一刻之后**发射的缺字版才有资格被认领。
+
+        为什么先登记、后扫描：`memmatch` 的回调固定跑在等待者返回之前，所以拿回调
+        时序判断「有没有超时」不可能赢。改成看**发射记录**：没超时的那次，缺字版
+        压根没发射过，这条登记自然认领不到、过期后被丢掉。
+        """
+        want = _strip_ws(fragment)
+        if not want:
+            return None
+        claim = {"from": want, "to": "", "at": time.time()}
+        with self._lock:
+            if self._stop.is_set() or not self._mode:
+                return None        # 会话已经停了：这一版没处可补
+            self._pending_fixes.append(claim)
+            del self._pending_fixes[:-48]
+        return claim
+
+    def _attach_completion(self, claim: dict | None, fixed: str) -> None:
+        """后台扫出结果：挂到先前那条登记上（跑在 memmatch 的后台线程里）。
+
+        只入队、不发射 —— 发射统一由 `_flush_loop` 串行做（那里也定稿候选行，
+        顺序与计数器都在同一条线程上）。
+        """
+        text = str(fixed or "")
+        if not claim or not text or _strip_ws(text) == str(claim.get("from") or ""):
+            return
+        with self._lock:
+            if not any(row is claim for row in self._pending_fixes):
+                return             # 已经被清掉（会话结束 / 认领过期）
+            claim["to"] = text
+            config.log(f"vntext completion arrived: {str(claim['from'])[:24]!r} -> "
+                       f"{text[:40]!r}")
+
+    def _drop_claim(self, claim: dict | None) -> None:
+        """撤销登记（同步就拿到补完版、或扫描出错）。"""
+        if not claim:
+            return
+        with self._lock:
+            self._pending_fixes = [row for row in self._pending_fixes if row is not claim]
+
+    def _resolve_completions(self) -> None:
+        """后台补完版到齐后，作为「同一句的新版本」补发给翻译面板。
+
+        认领条件：发射时刻**晚于**认领时刻（说明那次确实先放行了缺字版），且发射
+        文本就是这句缺字版（或带【名字】前缀的它）。找不到就再等 —— 缺字版可能还
+        压在分片缓冲里，或压根没被采用（例如和引擎钩子的完整版并合了）；超过
+        `COMPLETION_CLAIM_TTL` 直接放弃。
+        """
+        with self._lock:
+            fixes = list(self._pending_fixes)
+        if not fixes:
+            return
+        now = time.time()
+        keep: list[dict] = []
+        for fix in fixes:
+            if now - float(fix.get("at") or 0) > self.COMPLETION_CLAIM_TTL:
+                config.log(f"vntext revision dropped (过期): {str(fix.get('from'))[:24]!r}")
+                continue
+            fixed_text = str(fix.get("to") or "")
+            if not fixed_text:
+                keep.append(fix)                # 后台还在扫，先留着
+                continue
+            target = self._find_emit_for(str(fix.get("from") or ""),
+                                         after=float(fix.get("at") or 0))
+            if not target:
+                keep.append(fix)
+                continue
+            line_id, text = target
+            config.log(f"vntext revision of #{line_id}: {text[:24]!r} -> "
+                       f"{fixed_text[:40]!r}")
+            self._emit(fixed_text, "hook", dedupe=False, revise_of=line_id)
+        with self._lock:
+            self._pending_fixes = keep
+
+    def _find_emit_for(self, fragment: str, *, after: float) -> tuple[int, str] | None:
+        """最近发射的哪一条是这句缺字版（只看 `after` 之后发射的）。"""
+        want = _strip_ws(fragment)
+        if not want:
+            return None
+        with self._lock:
+            rows = list(self._recent_emit)
+        for line_id, text, at in reversed(rows):
+            if at < after:
+                break              # 再往前都是这句放行之前的发射，不用看
+            body = _strip_ws(text)
+            if body == want or body.endswith(want):
+                return int(line_id), text
+        return None
 
     def _promote(self, cand: dict) -> None:
         """候选行定稿：缺字变体抑制 → 说话人名字合并 → 线程门禁 → 去重 → 发射。
@@ -1389,10 +1536,16 @@ class VnTextEngine:
             or (max(leader_prose, best_prose) >= 3 and not _SENTENCE_END_RE.search(clean))
         if not self._locked and active and key != active and weak \
                 and max(leader_dialogue, best_dialogue) >= 2:
-            self._gated += 1
-            config.log(f"vntext gated: {clean[:40]!r} ({key[:8]})")
-            self._push_status()
-            return
+            if self._in_cold_start() and looks_like_dialogue(clean):
+                # 冷启动宽限期：领跑线程还没选出来，先把台词收下来（去重照常做，
+                # 同一句从两条线程来仍只会翻一次）。只有「不像台词」的行照旧挡。
+                self._cold_passes += 1
+                config.log(f"vntext gate held (cold start): {clean[:40]!r} ({key[:8]})")
+            else:
+                self._gated += 1
+                config.log(f"vntext gated: {clean[:40]!r} ({key[:8]})")
+                self._push_status()
+                return
         window = max(20.0, float((self._profile or {}).get("dedupe_window") or 8.0))
         if len(norm) >= 2:
             now0 = time.time()
@@ -1505,7 +1658,9 @@ class VnTextEngine:
             time.sleep(self._interval)
 
     # ------------------------------------------------------------------ #
-    def _emit(self, text: str, source: str, dedupe: bool = True) -> None:
+    def _emit(self, text: str, source: str, dedupe: bool = True,
+              revise_of: int = 0) -> None:
+        """发射一句台词（`revise_of` = 这句是某条已发射行的补完版，见 `_resolve_completions`）。"""
         # 钩子文本先还原写缓冲痕迹；OCR 文本是识别结果，不折（折了反而会改动原文）
         body = clean_hook_text(text) if source == "hook" \
             else " ".join(collapse_repeats(str(text or "")).split())
@@ -1517,7 +1672,7 @@ class VnTextEngine:
         norm = normalize_for_dedupe(body)
         if dedupe and (body == self._last_line or (norm and norm == self._last_norm)):
             return
-        if source == "ocr" and self._last_line and len(body) >= 8 \
+        if dedupe and source == "ocr" and self._last_line and len(body) >= 8 \
                 and len(self._last_line) >= 8 \
                 and difflib.SequenceMatcher(None, body, self._last_line).ratio() >= 0.92:
             # OCR 每次识别的结果会有轻微抖动（多一个空格、掉一个标点），
@@ -1527,11 +1682,23 @@ class VnTextEngine:
         # 这里只保留「与上一句完全相同」的快速判断。
         self._last_line = body
         self._last_norm = norm
-        self._lines += 1
+        with self._lock:
+            line_id = next(_LINE_SEQ)
+            # 记最近发射过的行：后台补完版按 (id, 文本, 时刻) 找补发对象
+            self._recent_emit.append((line_id, body, time.time()))
+            del self._recent_emit[:-128]
+            if revise_of:
+                self._revised += 1
+            else:
+                self._lines += 1
         # 留一行「发射时刻」：排错时要能量「翻页 → 开始翻译」到底花在哪
         # （原始行到达时间也在日志里，两条一减就是清洗/合并/补全的耗时）
-        config.log(f"vntext emit [{source}] {body[:36]!r}")
-        line = {"text": body, "source": source, "game_id": self._game_id}
+        if revise_of:
+            config.log(f"vntext revision [#{revise_of}] -> {body[:36]!r}")
+        else:
+            config.log(f"vntext emit [{source}] {body[:36]!r}")
+        line = {"text": body, "source": source, "game_id": self._game_id,
+                "id": line_id, "revise_of": int(revise_of or 0)}
         try:
             if self._on_line:
                 self._on_line(line)

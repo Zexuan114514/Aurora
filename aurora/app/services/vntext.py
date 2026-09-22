@@ -250,31 +250,47 @@ class VnTextService:
     def _on_vntext_line(self, payload: dict) -> None:
         text = str(payload.get("text") or "")
         game_id = str(payload.get("game_id") or "")
-        self._translator.submit(text, game_id=game_id, source=str(payload.get("source") or ""))
+        # id/revise_of：这句的发射序号，以及「它是哪条行的补完版」（缺字补全补发，
+        # 见 vntext.VnTextEngine._resolve_completions）—— 译文算出后原位替换那条
+        self._translator.submit(text, game_id=game_id,
+                                source=str(payload.get("source") or ""),
+                                line_id=int(payload.get("id") or 0),
+                                revise_of=int(payload.get("revise_of") or 0))
         default_bus().publish("vntext:line", {"phase": "source", "text": text,
-                                   "source": payload.get("source") or ""})
+                                   "source": payload.get("source") or "",
+                                   "id": payload.get("id") or 0,
+                                   "revise_of": payload.get("revise_of") or 0})
 
     def _on_translate_event(self, kind: str, payload: dict) -> None:
         text = str(payload.get("text") or "")
+        # silent：这句是**旧台词**的补完版，只更新翻译面板的历史，别把悬浮窗
+        # 从当前这句顶回去（缺字补全是后台扫描，出结果时玩家往往已经翻页了）
+        silent = bool(payload.get("silent"))
         if kind == "start":
-            self._overlay.update({"lines": {"source": text, "translation": "",
-                                            "status": "translating"}})
+            if not silent:
+                self._overlay.update({"lines": {"source": text, "translation": "",
+                                                "status": "translating"}})
         elif kind == "delta":
-            self._overlay.update({"lines": {"translation": payload.get("so_far") or "",
-                                            "status": "translating"}})
+            if not silent:
+                self._overlay.update({"lines": {"translation": payload.get("so_far") or "",
+                                                "status": "translating"}})
         elif kind == "done":
-            self._overlay.update({"lines": {"source": text,
-                                            "translation": payload.get("translation") or "",
-                                            "status": "done",
-                                            "provider": payload.get("provider") or ""},
-                                  "notice": ""})
+            if not silent:
+                self._overlay.update({"lines": {"source": text,
+                                                "translation": payload.get("translation") or "",
+                                                "status": "done",
+                                                "provider": payload.get("provider") or ""},
+                                      "notice": ""})
             default_bus().publish("vntext:line", {"phase": "translated", "text": text,
                                        "translation": payload.get("translation") or "",
-                                       "provider": payload.get("provider") or ""})
+                                       "provider": payload.get("provider") or "",
+                                       "id": payload.get("id") or 0,
+                                       "revise_of": payload.get("revise_of") or 0})
         elif kind == "error":
             # 失败时保留上一句译文，只提示一句，避免「真文本一闪而过」
-            self._overlay.update({"status": "error",
-                                  "notice": "这句没翻出来（可能是乱码或网络问题）"})
+            if not silent:
+                self._overlay.update({"status": "error",
+                                      "notice": "这句没翻出来（可能是乱码或网络问题）"})
             default_bus().publish("vntext:line", {"phase": "error", "text": text,
                                        "error": payload.get("error") or ""})
 
