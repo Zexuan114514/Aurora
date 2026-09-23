@@ -761,6 +761,10 @@ body.settings-open #btnSort { display: none; }
   /* 游戏页那几个按钮直接压在立绘上：白面高光之外再垫底色下限 */
   background: linear-gradient(var(--srf080), var(--srf080)), var(--s-floor);
   border-color: var(--stroke-soft);
+  /* P8.12：既然是「玻璃按钮」，模糊也得跟着 —— --blur 只有极光非零，
+     其余三套等于没写。倍率与 .glass-s 一致（小控件不需要满档）。 */
+  backdrop-filter: blur(calc(var(--blur) * 0.6)) saturate(var(--sat));
+  -webkit-backdrop-filter: blur(calc(var(--blur) * 0.6)) saturate(var(--sat));
 }
 .btn.glass-btn:hover { background: var(--fil150); }
 .btn.lg { height: 48px; padding: 0 26px; font-size: 15px; }

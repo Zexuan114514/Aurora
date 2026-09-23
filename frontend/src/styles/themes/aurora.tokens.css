@@ -47,7 +47,11 @@
   --s-panel: #ffffff;
   --s-elevated: #ffffff;
   --ramp-s: 255 255 255;
-  --ramp-s-k: 12;
+  /* P8.12：12 → 1.4。这是「表面高光阶梯」的倍率，`.glass` 的第一层渐变读它；
+     12 的时候 `--srf135` 的 alpha 算出来是 1.62，被钳成 1.0 —— 玻璃面变成一张
+     实心白纸，`backdrop-filter` 挂着也什么都看不见（实测开/关模糊的全图差 0.03）。
+     1.4 与深色态的 1.35 同档：高光归高光，可读性继续由 --s-floor 兜底。 */
+  --ramp-s-k: 1.4;
   --ramp-l: 18 20 28;
   --ramp-l-k: 1.2;
   --ink-strong: #14161d;
@@ -74,6 +78,9 @@
                      0 4px 16px -8px rgb(20 22 29 / 0.16);
   --fx-cover-shadow: 0 16px 36px -20px rgb(20 22 29 / 0.45);
   --option-bg: #ffffff;
-  /* 浅色态的面板底色（深色态那份写在上面，两份都要有，否则会串到浅色） */
-  --s-floor: color-mix(in srgb, #ffffff 88%, transparent);
+  /* 浅色态的面板底色（深色态那份写在上面，两份都要有，否则会串到浅色）。
+     P8.12：88% → 72%。原来那层白几乎不透明，`backdrop-filter` 就算挂着也看不出
+     玻璃 —— 实测「开/关模糊」两张图的全图差只有 0.03（深色 68% 时有 1.2–4.8）。
+     72% 与深色态的 68% 量级相当，壁纸透得出来、文字仍压在近白底上。*/
+  --s-floor: color-mix(in srgb, #ffffff 72%, transparent);
 }

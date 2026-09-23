@@ -7,7 +7,10 @@
   /* P8.8：去饱和别下重（用户：画廊「背景饱和度过低」）—— 展墙感交给 ::before 的冷灰罩 */
   filter: grayscale(0.3) brightness(1.06) contrast(0.96) saturate(1.04);
 }
-[data-style="gallery"] #hall:not(.hall-list)::before {
+/* 整屏冷灰罩：**所有布局**都上（P8.12）—— 列表布局原来把它排除在外，顶部那
+   84px（`.hall-list-body` 的 padding-top，hero 遮罩够不到）就只剩默认遮罩，
+   使用者在真机上看到的正是「顶部没被盖住」。 */
+[data-style="gallery"] #hall::before {
   background:
     linear-gradient(to top,
       rgb(24 26 31 / 0.86) 0%,
@@ -19,7 +22,8 @@
 [data-style="gallery"] #hall.hall-list [data-slot="hero"]::before {
   content: "";
   position: absolute;
-  inset: 0;
+  /* 往上长到窗口顶：hero 自己的盒子从 y=84 开始，顶部那一条原来没人盖 */
+  inset: -84px 0 0 0;
   pointer-events: none;
   background:
     linear-gradient(100deg,
@@ -166,7 +170,7 @@
 [data-style="gallery"][data-theme="light"] .bg-img {
   filter: grayscale(0.26) brightness(1.03) contrast(0.98) saturate(1.03);
 }
-[data-style="gallery"][data-theme="light"] #hall:not(.hall-list)::before {
+[data-style="gallery"][data-theme="light"] #hall::before {
   background:
     linear-gradient(to top,
       rgb(247 246 243 / 0.86) 0%,
