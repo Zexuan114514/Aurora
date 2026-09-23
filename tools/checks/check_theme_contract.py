@@ -4,7 +4,10 @@
 2. 每套主题（aurora / gallery / screening / shelf）都必须在深色块与
    `[data-mode="light"]` 块里补齐全部令牌 —— 少一个就红；
 3. tokens 文件只允许声明自定义属性；
-4. skin 文件 ≤200 行，且每条选择器都要以 `[data-style="…"]` 开头
+4. 每个 skin 文件 ≤200 行，且每条选择器都要以 `[data-style="…"]` 开头。
+   一套主题可以有多张皮肤（P8.16 起：主题签名 `<theme>.skin.css` + 按钮语言
+   `<theme>.buttons.skin.css`），**逐张**受这条约束 —— 别把新 sheet 放在
+   守卫扫不到的名字下。
    （风格可以加结构钩子与自己的覆盖，但不许改布局的通用规则）。
    P8.4 起放宽到 200 行：主题签名不再只是颜色 —— 排印、分隔线、封面呈现、
   背景处理都要能改（见 docs/frontend-ux-feedback.md 第 2 条与 p8 交付记录的 P8.4 小节）。
@@ -301,20 +304,23 @@ def check() -> Result:
                     result.fail(f"{path.name} 里出现了非自定义属性：{name}")
 
     for theme in THEMES:
-        path = STYLES / "themes" / f"{theme}.skin.css"
-        if not path.is_file():
-            result.fail(f"缺少 skin 文件：{path.relative_to(ROOT)}")
+        # 一套主题可以有多张皮肤（主题签名 + 按钮语言…），逐张查行数与作用域
+        paths = sorted((STYLES / "themes").glob(f"{theme}*.skin.css"))
+        if not any(p.name == f"{theme}.skin.css" for p in paths):
+            result.fail(f"缺少主题签名皮肤：themes/{theme}.skin.css")
             continue
-        lines = [row for row in path.read_text(encoding="utf-8").split("\n") if row.strip()]
-        if len(lines) > SKIN_MAX_LINES:
-            result.fail(f"{path.name} 有 {len(lines)} 行，超过 {SKIN_MAX_LINES} 行上限")
-        for selector, _ in _BLOCK.findall(path.read_text(encoding="utf-8")):
-            sel = selector.strip()
-            if sel.startswith("@") or not sel:
-                continue
-            if f'[data-style="{theme}"]' not in sel:
-                result.fail(f"{path.name} 的选择器没以 [data-style=\"{theme}\"] 开头："
-                            + sel.replace("\n", " ")[:60])
+        for path in paths:
+            text = path.read_text(encoding="utf-8")
+            lines = [row for row in text.split("\n") if row.strip()]
+            if len(lines) > SKIN_MAX_LINES:
+                result.fail(f"{path.name} 有 {len(lines)} 行，超过 {SKIN_MAX_LINES} 行上限")
+            for selector, _ in _BLOCK.findall(text):
+                sel = selector.strip()
+                if sel.startswith("@") or not sel:
+                    continue
+                if f'[data-style="{theme}"]' not in sel:
+                    result.fail(f"{path.name} 的选择器没以 [data-style=\"{theme}\"] 开头："
+                                + sel.replace("\n", " ")[:60])
 
     for issue in baseline_issues():
         result.fail(issue)

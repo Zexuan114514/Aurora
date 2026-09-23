@@ -20,6 +20,7 @@
 @import "./themes/shelf.tokens.css";
 @import "./themes/aurora.skin.css";
 @import "./themes/gallery.skin.css";
+@import "./themes/gallery.buttons.skin.css";
 @import "./themes/screening.skin.css";
 @import "./themes/shelf.skin.css";
 @import "./layout.css";

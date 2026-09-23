@@ -20,7 +20,10 @@
               type="button"
               :disabled="!state.focus"
               @click="playGame(state.focus || undefined)"
-            >启动游戏</button>
+            >
+              <svg viewBox="0 0 24 24" class="ic" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" /></svg>
+              <span class="text">启动游戏</span>
+            </button>
           </div>
         </div>
       </div>

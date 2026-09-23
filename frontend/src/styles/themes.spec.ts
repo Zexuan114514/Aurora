@@ -88,15 +88,22 @@ describe("四套主题的令牌契约", () => {
 
   it("skin 文件都很短，且每条选择器都限定在自己的主题下", () => {
     for (const theme of THEMES) {
-      const text = read(join(STYLES, "themes", `${theme}.skin.css`))
-      // P8.4 起放宽到 200 行：主题签名要能覆盖排印 / 分隔 / 封面呈现 / 背景处理。
-      // 口径与 Python 守卫一致：只数**非空行**（注释与空行不算预算）。
-      const budgetLines = text.split("\n").filter((row) => row.trim().length > 0).length
-      expect(budgetLines).toBeLessThanOrEqual(200)
-      for (const row of text.matchAll(/([^{}]+)\{/g)) {
-        const selector = row[1].trim()
-        if (!selector || selector.startsWith("@") || selector.startsWith("/*")) continue
-        expect(selector).toContain(`[data-style="${theme}"]`)
+      // P8.16 起一套主题可以有多张皮肤（主题签名 + 按钮语言…）：逐张按同一口径查。
+      const skins = readdirSync(join(STYLES, "themes"))
+        .filter((name) => name.startsWith(theme) && name.endsWith(".skin.css"))
+        .sort()
+      expect(skins).toContain(`${theme}.skin.css`)
+      for (const skin of skins) {
+        const text = read(join(STYLES, "themes", skin))
+        // P8.4 起放宽到 200 行：主题签名要能覆盖排印 / 分隔 / 封面呈现 / 背景处理。
+        // 口径与 Python 守卫一致：只数**非空行**（注释与空行不算预算）。
+        const budgetLines = text.split("\n").filter((row) => row.trim().length > 0).length
+        expect(budgetLines, `${skin} 的行数`).toBeLessThanOrEqual(200)
+        for (const row of text.matchAll(/([^{}]+)\{/g)) {
+          const selector = row[1].trim()
+          if (!selector || selector.startsWith("@") || selector.startsWith("/*")) continue
+          expect(selector, `${skin} 的选择器`).toContain(`[data-style="${theme}"]`)
+        }
       }
     }
   })

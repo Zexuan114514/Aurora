@@ -1,0 +1,106 @@
+/* 展签式画廊 · 按钮语言（P8.16；模板与出处见 docs/theme-templates/）
+ * ------------------------------------------------------------------
+ * 两份模板都是使用者 2026-09-23 从 Uiverse 找来的 MIT 样式，原样存在
+ * `docs/theme-templates/`（`preview.html` 里能看默认 / 悬停 / 按下三态）：
+ *   * 一般按钮 = `short-lizard-47`（TCdesign-dev / Custyyyy）
+ *     4px 圆角 + 三层投影（两层外投影 + 一条 -3px 内阴影当「键程」），
+ *     悬停上浮 2px、按下沉 2px；
+ *   * 启动按钮 = `proud-goat-69`（elijahgummer / Elijah W Gummer）
+ *     3px 圆角 + 3px 实色底边（按下收掉并整体下沉 3px）+ 大写字距，
+ *     hover 时文字滑出、图标补位。
+ *
+ * 这一版按使用者拍板**保留原貌**：尺寸、圆角、投影与位移都照搬。画廊其余界面
+ * 仍是「1px 直角 + 无投影」，这两个按钮是**有意的例外**。只做两处替换：
+ * 颜色接主题令牌、字体接 `--font`。
+ * 皮肤里可以写死圆角 —— 圆角守卫只管共享层（layout.css / app.css / element.css）。
+ * ------------------------------------------------------------------ */
+
+/* 投影色：浅色态沿用原样式的紫灰；深色态换黑（深底上紫灰会发脏） */
+[data-style="gallery"] {
+  --btn-drop-1: rgb(0 0 0 / 0.34);
+  --btn-drop-2: rgb(0 0 0 / 0.24);
+}
+[data-style="gallery"][data-theme="light"] {
+  --btn-drop-1: rgb(45 35 66 / 0.2);
+  --btn-drop-2: rgb(45 35 66 / 0.15);
+}
+
+/* ---- 一般按钮（启动游戏按钮除外） ---- */
+[data-style="gallery"] .btn:not(.play),
+[data-style="gallery"] .mini-btn {
+  border: 0;
+  border-radius: 4px;                                  /* 原样式的 4px，例外 */
+  background: var(--s-elevated);
+  color: var(--text-1);
+  box-shadow:
+    0 2px 4px var(--btn-drop-1),
+    0 7px 13px -3px var(--btn-drop-2),
+    inset 0 -3px 0 var(--ln140);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+[data-style="gallery"] .btn:not(.play):hover,
+[data-style="gallery"] .mini-btn:hover {
+  box-shadow:
+    0 4px 8px var(--btn-drop-1),
+    0 7px 13px -3px var(--btn-drop-2),
+    inset 0 -3px 0 var(--ln140);
+  transform: translateY(-2px);
+}
+[data-style="gallery"] .btn:not(.play):active,
+[data-style="gallery"] .mini-btn:active {
+  box-shadow: inset 0 3px 7px var(--ln140);
+  transform: translateY(2px);
+}
+[data-style="gallery"] .btn:not(.play):focus-visible,
+[data-style="gallery"] .mini-btn:focus-visible {
+  box-shadow:
+    inset 0 0 0 1.5px var(--ln140),
+    0 2px 4px var(--btn-drop-1),
+    0 7px 13px -3px var(--btn-drop-2),
+    inset 0 -3px 0 var(--ln140);
+}
+
+/* ---- 启动游戏按钮（主页 #btnHallPlay / 游戏页 #btnPlay） ----
+   原样式的青色换成强调色：填充 = --a-main，底边 = 同一色压暗 26%（原样式
+   #15ccbe → #0f988e 就是这个比例）。 */
+[data-style="gallery"] .btn.play {
+  width: 120px;                                        /* 原样式的固定宽度 */
+  height: 40px;
+  border: 1px solid color-mix(in srgb, var(--a-main) 74%, #000);
+  border-radius: 3px;                                  /* 原样式的 3px */
+  background: var(--a-main);
+  color: var(--a-on);
+  font-family: var(--font);                            /* 原样式是 Istok Web */
+  font-size: 14px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.3);
+  box-shadow:
+    inset 0 30px 30px -15px rgb(255 255 255 / 0.1),
+    inset 0 0 0 1px rgb(255 255 255 / 0.3),
+    0 3px 0 color-mix(in srgb, var(--a-main) 74%, #000),
+    0 3px 2px rgb(0 0 0 / 0.2),
+    0 5px 10px rgb(0 0 0 / 0.1),
+    0 10px 20px rgb(0 0 0 / 0.1);
+  transition: 150ms all ease-in-out;
+}
+[data-style="gallery"] .btn.play > svg {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  transition: all 0.5s ease-in-out;
+}
+[data-style="gallery"] .btn.play > span { transition: all 0.5s ease-in-out; }
+/* hover：文字滑出、图标补位（原样式的特征，使用者要求先保留） */
+[data-style="gallery"] .btn.play:hover > span { transform: translateX(80px); }
+[data-style="gallery"] .btn.play:hover > svg { transform: translate(23px); }
+/* 按下：整体沉 3px，底边收掉、改成一圈白描边 */
+[data-style="gallery"] .btn.play:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 16px 2px -15px rgb(0 0 0 / 0),
+    inset 0 0 0 1px rgb(255 255 255 / 0.15),
+    inset 0 1px 20px rgb(0 0 0 / 0.1),
+    0 0 0 color-mix(in srgb, var(--a-main) 74%, #000),
+    0 0 0 2px rgb(255 255 255 / 0.5);
+}
