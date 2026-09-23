@@ -24,11 +24,12 @@
 | P8.5 侧列表修补 | `app.css` 的 P8.5 小节（右栏 264px / 行网格 / hover 反馈）、`HallView.vue` 的 `watch([state.focus, layout])`、`#hall.hall-list .hall-viewport { pointer-events: none }` | ✅ 真鼠标探针（`_sandbox/probe_real_mouse.py`） |
 | P8.6 反馈收尾 | 删 `#addMenu`（导入游戏直接进本地导入）、`#btnGetGames` / `#scopePill` 搬进顶部栏做纯图标、`#toast` 挪到画面下方、`visual.py` 区分度判红、`contrast.py` 遮挡检测 | ✅ 见下面第 2 节 |
 | P8.7 主题语言铺满全界面 | `tokens.css` 的 `--r-xs/xl/pill` + 四套 `*.tokens.css` 的圆角档位、`layout.css` / `app.css` / `element.css` 全面改用令牌、其余页面的 `data-slot` 钩子、四套 `*.skin.css` 的线 / 排印 / 材质 | ✅ 主题矩阵 25/25（偏差 0）、`e2e` 96/96、`contrast` 32/32 |
-| P8.8 主题二轮（模糊归零 / 字号放大 / 画廊饱和度 / 极光毛玻璃 / 参考图两块） | `themes/*.tokens.css`、`themes/*.skin.css`、`layout.css`、`app.css` | ✅ 代码与产物已落地（2026-09-23 晚；**真机矩阵重录 / `contrast` 待跑**，见第 2、5 节） |
+| P8.8 主题二轮（模糊归零 / 字号放大 / 画廊饱和度 / 极光毛玻璃 / 参考图两块） | `themes/*.tokens.css`、`themes/*.skin.css`、`layout.css`、`app.css` | ✅ 已落地 + 真机门已补跑（P8.12：25/25 偏差 0、`contrast` 32/32） |
 | P8.8-b 主题令牌值域守卫 | `tools/checks/check_theme_contract.py` 第 6 节、`themes.spec.ts` | ✅ 故意违规 4 种实测全部变红 |
 | P8.9 删 v1（22 个文件 + ADR-0014 + 扫描面 / 打包清单 / 契约快照 / 基线登记同步） | `gl/web/**`、`main.py`、`tools/build_exe.py`、`tools/checks/*` | ✅ `run_all` 14/14、`pytest` 127 passed |
-| P8.10 主 CTA 四套风格化（反馈第 12 条） | `themes/*.skin.css`、`themes.spec.ts`、`build-info.mjs` | ✅ 代码与产物已落地（2026-09-23 晚；真机矩阵重录待跑） |
-| P8.10-b 收藏架 Atelier 语言 | — | ⏳ 未动（见第 5 节） |
+| P8.10 主 CTA 四套风格化（反馈第 12 条） | `themes/*.skin.css`、`themes.spec.ts`、`build-info.mjs` | ✅ 已落地 + 真机矩阵已重录复跑（见 P8.12） |
+| P8.10-b 收藏架 Atelier 语言 | — | 🟡 小样已出（`docs/theme-demos/atelier/`）；已拍板做第 5 套，排到下一轮（见第 5 节） |
+| P8.15 五套示例页的启动键 | `docs/theme-demos/*/style.css`、`*/index.html`、`preview/` | ✅ 五套各一个启动键（流动光带 / 双框印章 / 琥珀灯珠 / 黄铜书脊 / 正圆印章），headless Chromium 逐张核过静止 + hover；对比图 `preview/buttons-{launch,hover}.jpg` |
 | P8.11 真机门补跑 | `tools/visual.py`、`tools/contrast.py`、`tools/e2e.py` | ✅ **三道全绿**（2026-09-23 深夜：25/25 偏差 0、32/32 tainted 0、96/96） |
 | P8.11-a 画廊「色块不一致」（使用者实机反馈） | `layout.css` 的 `#hall::before` | ✅ 修：整屏遮罩从写死的极光深蓝黑改成 `var(--scrim-rgb)`（见第 5 节末） |
 | P8.11-b 悬浮窗不出现（`e2e` 抓到的 P8.9 回归） | `aurora/ui/overlay.py`、`main.py`、`check_packaging.py` | ✅ 修：入口从已删的 `gl/web/overlay.html` 改到 v2 + 走本地静态服务（ES module 在 `file://` 下被拦） |
@@ -39,6 +40,7 @@
 | P8.14-b 浅色画廊过亮 | `gallery.tokens.css`、`gallery.skin.css` | ✅ 修：局部遮罩 94% 白 → 72%、整屏白罩降到 0.74/0.44/0.20/0.40、`--s-base`/`--s-panel`/`--s-floor` 各降一档；整屏 215.8 → **207.1**（另三套 200.3–204.6）|
 | P8.14-c 删「双击封面启动」 | `HallView.vue`、`ring.ts`、`core/app.ts`、`tools/e2e.py` | ✅ 删：侧栏 `@dblclick` + 环形 `dblclick` + 提示条「双击 启动」；e2e 第 3.6 步改写为「主页启动按钮直接启动」 |
 | P8.14-d 主页启动按钮 | `HallView.vue`、`app.css` | ✅ 加 `#btnHallPlay`（大图 + 侧列表，简介下方，走 `.btn.play`）；e2e 判据通过 |
+| P8.15 右键菜单 + 删悬停切换（反馈第 19-b 条） | `HallView.vue`、`ring.ts`、`store.ts`、`shell.ts`、`app.css`、`tools/e2e.py` | ✅ `#hallMenu`（启动 / 收藏 / 详情 / 移除，四种布局共用，Esc / 空白 / 滚轮 / 切布局都收）；环形与横滑的「悬停即切换」整段下掉；e2e **101/101**（新增 5 条），表面快照 98 → 99 id |
 
 ## 2. 现在验证到哪一步
 
