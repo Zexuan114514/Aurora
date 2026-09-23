@@ -151,6 +151,7 @@ THEME_MATRIX = (
     ("screening", "dark"),
     ("shelf", "dark"),
     ("aurora", "light"),
+    ("atelier", "dark"),
 )
 THEME_SCREENS = ("hall", "game", "categories", "settings", "panel")
 THEME_GRID = (16, 10)
@@ -363,13 +364,17 @@ def theme_capture_sane(path: Path, mode: str) -> bool:
 
     实测过一次：`data-theme` 已经是 light，画面却还是上一套深色 ——
     录基线时这种「换主题没画完」的帧会被当成正常外观录进去，之后就再也修不回来了。
-    深色态的整屏亮度 10–45、浅色态 90–240，用 70 当分界足够稳。
+
+    分界取 **85**：四套老主题的深色态是 9–49，浅色态 190–250，中间留了很宽的空档；
+    而 Atelier（第 5 套）的深色态是「开着台灯的工作台」，实测 **60–74** —— 用原来的
+    70 当分界会把它的 categories（73.7）当成「明暗没画完」反复重拍、最后整张跳过。
+    这条自检要抓的是「卡在上一套深浅里」，85 仍然离浅色态（≥190）很远。
     """
     from PIL import ImageStat
     from PIL.Image import open as open_image
 
     lum = ImageStat.Stat(open_image(path).convert("L")).mean[0]
-    return lum > 70 if mode == "light" else lum < 70
+    return lum > 85 if mode == "light" else lum < 85
 
 
 def theme_wait_ring_settled(window, timeout: float = 4.0) -> bool:

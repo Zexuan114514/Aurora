@@ -1,0 +1,174 @@
+/* Atelier（工作台）· 结构性签名（≤200 行，选择器都以 [data-style="atelier"] 开头）
+ * 设计源：docs/theme-demos/atelier/（浅粉工作台 + 切割垫网格 + 奶油纸片 + 和纸胶带）。
+ * 签名五件事：桌面是切割垫、信息是一张贴着胶带的纸片、封面像摊开的照片、
+ * 分隔用玫红细线/虚线的便签条、主 CTA 是压进纸里的红印章。
+ * 不动几何：封面（.gi）的尺寸与位移由 JS 摆位、ring 判据逐条冻结，这里只加贴纸层。 */
+
+/* 1. 桌面：壁纸提亮去饱和（小样的 filter），再叠一层切割垫网格（细线 20px / 粗线 100px） */
+[data-style="atelier"] .bg-img {
+  filter: saturate(0.5) brightness(1.22) sepia(0.2) hue-rotate(-14deg);
+}
+[data-style="atelier"] #bg-vignette {
+  background:
+    repeating-linear-gradient(0deg, rgb(150 100 120 / 0.075) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(90deg, rgb(150 100 120 / 0.075) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(0deg, rgb(150 100 120 / 0.13) 0 1px, transparent 1px 100px),
+    repeating-linear-gradient(90deg, rgb(150 100 120 / 0.13) 0 1px, transparent 1px 100px);
+}
+[data-style="atelier"][data-theme="dark"] #bg-vignette {
+  background:
+    repeating-linear-gradient(0deg, rgb(255 214 228 / 0.08) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(90deg, rgb(255 214 228 / 0.08) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(0deg, rgb(255 214 228 / 0.14) 0 1px, transparent 1px 100px),
+    repeating-linear-gradient(90deg, rgb(255 214 228 / 0.14) 0 1px, transparent 1px 100px);
+}
+
+/* 2. 大厅：整屏一层浅粉罩，给纸片留出对比 */
+[data-style="atelier"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(243 227 232 / 0.82) 0%,
+      rgb(244 229 234 / 0.5) 32%,
+      rgb(246 233 237 / 0.2) 62%,
+      rgb(244 229 234 / 0.42) 100%);
+}
+[data-style="atelier"][data-theme="dark"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(74 44 58 / 0.8) 0%,
+      rgb(78 47 61 / 0.54) 32%,
+      rgb(84 51 66 / 0.22) 62%,
+      rgb(78 47 61 / 0.46) 100%);
+}
+
+/* 3. 信息纸片：奶油白 + 玫红细边 + 整体歪一点，上沿左右各贴一段和纸胶带（撕口用 clip-path） */
+[data-style="atelier"] #hall.hall-list [data-slot="hero-label"] {
+  position: relative;
+  max-width: 640px;
+  padding: 26px 30px 24px;
+  background: var(--s-panel);
+  border: 1px solid color-mix(in srgb, var(--a-2) 40%, transparent);
+  transform: rotate(-0.35deg);
+}
+[data-style="atelier"] #hall.hall-list [data-slot="hero-label"]::before,
+[data-style="atelier"] #hall.hall-list [data-slot="hero-label"]::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  width: 88px;
+  height: 26px;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 3px, transparent 3px 7px),
+    rgb(228 186 194 / 0.78);
+  clip-path: polygon(0 20%, 7% 0, 93% 5%, 100% 24%, 98% 80%, 92% 100%, 8% 95%, 2% 76%);
+}
+[data-style="atelier"] #hall.hall-list [data-slot="hero-label"]::before {
+  left: 36px; transform: rotate(-4deg);
+}
+[data-style="atelier"] #hall.hall-list [data-slot="hero-label"]::after {
+  right: 36px; transform: rotate(3.2deg);
+}
+
+/* 4. 排印：楷体大标题 + 玫红的「手写贴纸」小标签与短横线 */
+[data-style="atelier"] [data-slot="title"] { font-size: 40px; font-weight: 600; letter-spacing: 0.015em; }
+[data-style="atelier"] [data-slot="meta"] {
+  position: relative;
+  padding-top: 12px;
+  color: var(--a-main);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+[data-style="atelier"] [data-slot="meta"]::before {
+  content: "";
+  position: absolute; left: 0; top: 0;
+  width: 124px; height: 2px;
+  background: var(--a-main);
+}
+[data-style="atelier"] [data-slot="rule"] { width: 0; height: 0; margin: 0; }
+
+/* 5. 封面：照片上沿压一小段胶带；当前那张描玫红细边（几何交给 JS，别动 transform） */
+[data-style="atelier"] .gi [data-slot="cover-art"]::after {
+  content: "";
+  position: absolute;
+  top: -10px; left: 50%;
+  width: 58px; height: 19px;
+  transform: translateX(-50%) rotate(-2.4deg);
+  background: rgb(228 186 194 / 0.78);
+  clip-path: polygon(0 22%, 8% 0, 92% 6%, 100% 26%, 97% 78%, 90% 100%, 9% 94%, 3% 74%);
+}
+[data-style="atelier"] .gi [data-slot="cover-art"] { position: relative; }
+[data-style="atelier"] .gi.focus [data-slot="cover-art"] {
+  outline: 2px solid var(--a-main);
+  outline-offset: -2px;
+}
+[data-style="atelier"] [data-slot="cover"] { border-radius: 2px; }
+
+/* 6. 右栏便签条：虚线分隔 + 选中行左侧一条玫红 */
+[data-style="atelier"] [data-slot="row"] {
+  border-bottom: 1px dashed color-mix(in srgb, var(--a-2) 34%, transparent);
+  border-radius: 0;
+}
+[data-style="atelier"] [data-slot="row"].on {
+  background: color-mix(in srgb, var(--a-2) 16%, transparent);
+  box-shadow: inset 3px 0 0 var(--a-main);
+}
+[data-style="atelier"] [data-slot="row-time"] { font-variant-numeric: tabular-nums; letter-spacing: 0.06em; }
+
+/* 7. 底栏：玫红细线，标题用楷体 */
+[data-style="atelier"] [data-slot="rail"] {
+  margin: 0 30px;
+  padding: 13px 0 18px;
+  min-height: 0;
+  border-top: 1px solid color-mix(in srgb, var(--a-2) 40%, transparent);
+}
+[data-style="atelier"] [data-slot="rail-title"] { font-size: 20px; font-weight: 600; }
+
+/* 8. 按钮：一律扁平纸片（2px 方角 + 玫红细边），主 CTA 是压进纸里的红印章 */
+[data-style="atelier"] .btn,
+[data-style="atelier"] .mini-btn {
+  border: 1px solid color-mix(in srgb, var(--a-2) 40%, transparent);
+  background: color-mix(in srgb, var(--s-panel) 70%, transparent);
+  color: var(--text-1);
+  box-shadow: none;
+}
+[data-style="atelier"] .btn:hover,
+[data-style="atelier"] .mini-btn:hover {
+  background: color-mix(in srgb, var(--a-2) 26%, transparent);
+  border-color: var(--a-main);
+}
+[data-style="atelier"] .btn.play,
+[data-style="atelier"] .btn.primary {
+  border: 0;
+  border-radius: 999px;                 /* 五套里唯一的圆形 CTA */
+  background:
+    repeating-conic-gradient(from 0deg,
+      rgb(255 255 255 / 0.055) 0deg 3deg, transparent 3deg 7deg),
+    radial-gradient(circle at 38% 32%, var(--a-2), var(--a-main) 58%, color-mix(in srgb, var(--a-2) 78%, #000));
+  color: var(--a-on);
+  padding: 0 22px;
+  box-shadow:
+    inset 0 0 0 2px var(--s-panel),
+    inset 0 0 0 3px color-mix(in srgb, var(--a-2) 60%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--a-2) 45%, transparent);
+  transform: rotate(-1.5deg);
+}
+[data-style="atelier"] .btn.play:hover,
+[data-style="atelier"] .btn.primary:hover {
+  transform: rotate(0deg);
+  filter: none;
+  box-shadow:
+    inset 0 0 0 2px var(--s-panel),
+    inset 0 0 0 3px color-mix(in srgb, var(--a-2) 60%, transparent),
+    0 0 0 1px var(--a-main),
+    0 0 0 6px color-mix(in srgb, var(--a-main) 26%, transparent);
+}
+[data-style="atelier"] .btn.play:active,
+[data-style="atelier"] .btn.primary:active { transform: rotate(0deg) scale(0.97); }
+[data-style="atelier"] .btn.play.running {
+  background: none;
+  color: var(--text-1);
+  border: 1px solid color-mix(in srgb, var(--a-2) 40%, transparent);
+  transform: none;
+  box-shadow: none;
+}

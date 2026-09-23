@@ -2,6 +2,6 @@
   "schema": "aurora.frontend-build/1",
   "source": "frontend/",
   "algorithm": "sha256(relpath\\n + lf-normalised body\\n, sorted by relpath)",
-  "hash": "033c70d7b89e78e350855be0904e681bd3152cc296ca2004c29c32439511d1fa",
-  "files": 63
+  "hash": "ebb9a04aa62114264d47e1155337b2404daa1e5030cb8850dd8a13b126588e64",
+  "files": 64
 }

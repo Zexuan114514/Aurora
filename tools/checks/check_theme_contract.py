@@ -34,14 +34,14 @@ from pathlib import Path
 from common import ROOT, Result, main
 
 STYLES = ROOT / "frontend" / "src" / "styles"
-THEMES = ("aurora", "gallery", "screening", "shelf")
+THEMES = ("aurora", "gallery", "screening", "shelf", "atelier")
 TOKENS = STYLES / "tokens.css"
 SKIN_MAX_LINES = 200
 
 #: 主题截图基线（tools/visual.py 生成，见 docs/architecture/p8-frontend-v2.md）
 BASELINE = ROOT / "tools" / "baselines" / "theme-baseline.json"
 BASELINE_MATRIX = (("aurora", "dark"), ("gallery", "dark"), ("screening", "dark"),
-                   ("shelf", "dark"), ("aurora", "light"))
+                   ("shelf", "dark"), ("aurora", "light"), ("atelier", "dark"))
 BASELINE_SCREENS = ("hall", "game", "categories", "settings", "panel")
 
 _CONTRACT = re.compile(r"/\* @contract:start \*/(.*?)/\* @contract:end \*/", re.S)
@@ -65,7 +65,8 @@ _RADIUS_LADDER = ("--r-xs", "--r-sm", "--r-md", "--r-lg", "--r-xl")
 
 #: 模糊口径（P8.8 拍板）：四套里**只有极光玻璃**保留毛玻璃，其余一律 0。
 #: 极光给下限 12px —— 那是这套主题的身份，别又抹成 0（反馈第 11 条）。
-BLUR_BY_THEME = {"aurora": (12, 40), "gallery": (0, 0), "screening": (0, 0), "shelf": (0, 0)}
+BLUR_BY_THEME = {"aurora": (12, 40), "gallery": (0, 0), "screening": (0, 0),
+                 "shelf": (0, 0), "atelier": (0, 0)}
 
 #: 其余区间量：(令牌, 下限, 上限, 说明)
 VALUE_RANGES = (

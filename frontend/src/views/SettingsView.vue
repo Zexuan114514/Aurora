@@ -420,6 +420,7 @@ const THEME_SWATCH: Record<string, string> = {
   gallery: "linear-gradient(135deg, #ffffff, #3f63e8)",
   screening: "linear-gradient(135deg, #e9a13b, #15110c)",
   shelf: "linear-gradient(135deg, #c8a24a, #1b1815)",
+  atelier: "linear-gradient(135deg, #d4738e, #f3e3e8)",
 }
 const PLUGIN_STATES: Record<string, string> = {
   ok: "正常", "manifest-error": "清单错误", incompatible: "版本不兼容",

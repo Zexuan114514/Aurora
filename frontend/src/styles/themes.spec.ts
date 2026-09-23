@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest"
  * 放在这里是为了让 `npm test` 单独跑也能发现「加令牌漏主题」这类问题。
  */
 const STYLES = dirname(fileURLToPath(import.meta.url))
-const THEMES = ["aurora", "gallery", "screening", "shelf"]
+const THEMES = ["aurora", "gallery", "screening", "shelf", "atelier"]
 
 function read(path: string): string {
   return readFileSync(path, "utf8").replace(/\r\n/g, "\n")
@@ -64,6 +64,7 @@ const BLUR_BY_THEME: Record<string, [number, number]> = {
   gallery: [0, 0],
   screening: [0, 0],
   shelf: [0, 0],
+  atelier: [0, 0],
 }
 
 const RADIUS_LADDER = ["--r-xs", "--r-sm", "--r-md", "--r-lg", "--r-xl"]

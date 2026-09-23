@@ -57,7 +57,7 @@ import webview  # noqa: E402
 import main as app_main  # noqa: E402
 from gl.api import Api  # noqa: E402
 
-STYLES = ("aurora", "gallery", "screening", "shelf")
+STYLES = ("aurora", "gallery", "screening", "shelf", "atelier")
 MODES = ("dark", "light")
 BODY_MIN = 4.5          # 正文
 LARGE_MIN = 3.0         # 大字号（标题 / 说明性的小字我们不按大字号算）

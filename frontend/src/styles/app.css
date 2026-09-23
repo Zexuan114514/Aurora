@@ -18,11 +18,12 @@
 @import "./themes/gallery.tokens.css";
 @import "./themes/screening.tokens.css";
 @import "./themes/shelf.tokens.css";
+@import "./themes/atelier.tokens.css";
 @import "./themes/aurora.skin.css";
 @import "./themes/gallery.skin.css";
-@import "./themes/gallery.buttons.skin.css";
 @import "./themes/screening.skin.css";
 @import "./themes/shelf.skin.css";
+@import "./themes/atelier.skin.css";
 @import "./layout.css";
 @import "./element.css";
 

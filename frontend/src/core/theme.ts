@@ -17,6 +17,7 @@ export const THEMES = [
   { id: "gallery", name: "展签式画廊", hint: "界面退成展签，细线、无圆角、无投影" },
   { id: "screening", name: "夜间放映厅", hint: "暖黑底 + 琥珀，主封面像正在放映" },
   { id: "shelf", name: "收藏架", hint: "封面立在架上，黄铜分隔，纸质说明卡" },
+  { id: "atelier", name: "Atelier 工作台", hint: "浅粉桌面 + 切割垫网格，纸片与和纸胶带" },
 ] as const
 
 export const THEME_IDS = THEMES.map((row) => row.id) as string[]

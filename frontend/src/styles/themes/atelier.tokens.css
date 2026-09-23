@@ -1,0 +1,75 @@
+/* 主题 · Atelier（工作台）：浅粉桌面 + 奶油纸片 + 和纸胶带，玫红当强调色。
+   设计源是 docs/theme-demos/atelier/ 的小样（反馈第 4 项 → 第 20 条拍板做成第 5 套）。 */
+:root[data-style="atelier"] {
+  /* 深色态：夜里**开着台灯**的工作台 —— 全场最亮最暖的一套深色
+     （五套深色里只有它不是近黑：藕紫木面 + 玫红的线）。这也是与画廊拉开
+     区分度的主力：画廊是冷灰近黑，两套的整屏亮度差一档。 */
+  --s-base: #3c2c35;
+  --s-panel: #4a3742;
+  --s-elevated: #57414d;
+  --ramp-s: 255 240 245;      /* 带粉的纸白（不是纯白：这套的纸是暖的） */
+  --ramp-s-k: 0.9;
+  --ramp-l: 212 115 142;      /* 玫红当线：分隔与描边 */
+  --ramp-l-k: 0.95;
+  --ink-strong: #f6ecf0;
+  --text-1: #f6ecf0;
+  --text-2: rgb(246 236 240 / 0.76);
+  --text-3: rgb(246 236 240 / 0.56);
+  --scrim-rgb: 87 50 68;      /* 藕紫的罩：夜里那盏台灯的颜色 */
+  --scrim-boost: 1.05;
+  --fx-scrim: 0.4;
+  --veil-ink: #3c2c35;
+  --fx-text-shadow: 0 3px 18px rgb(0 0 0 / 0.6);
+  --a-main: #e08aa4;          /* 玫红：这套唯一的强调色（深色态提亮一档） */
+  --a-2: #b8506c;
+  --a-on: #2a141b;
+  --r-lg: 2px;                /* 纸片与标签一律方角（2px 只是「不是刀切」的那点圆） */
+  --r-md: 2px;
+  --r-sm: 2px;
+  --r-xs: 2px;
+  --r-xl: 2px;
+  --r-pill: 2px;
+  --fx-blur: 0px;             /* 纸与胶带，不做毛玻璃（第 14 条的模糊口径只管极光） */
+  --fx-sat: 110%;
+  --fx-panel-shadow: none;    /* 纸片靠「歪一点 + 胶带」立起来，不靠投影 */
+  --fx-cover-shadow: none;
+  --option-bg: #42313b;
+  /* 排印：楷体 + 衬线（手写贴纸与卡片目录那一档） */
+  --font: "KaiTi", "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+  --s-floor: color-mix(in srgb, #4a3742 88%, transparent);
+}
+
+/* Atelier · 浅色：小样那一面 —— 浅粉桌面 + 奶油纸片。 */
+:root[data-style="atelier"][data-theme="light"] {
+  --s-base: #f3e3e8;          /* 桌面：浅粉 */
+  --s-panel: #fffdfb;         /* 纸片：奶油白 */
+  --s-elevated: #fffdfb;
+  --ramp-s: 255 255 255;
+  --ramp-s-k: 1.15;           /* 纸是实的，但不是灯箱（对照第 14/17 条的教训） */
+  --ramp-l: 59 47 54;         /* 墨 */
+  --ramp-l-k: 1.1;
+  --ink-strong: #3b2f36;
+  --text-1: #3b2f36;
+  --text-2: rgb(59 47 54 / 0.74);
+  --text-3: rgb(59 47 54 / 0.52);
+  --scrim-rgb: 255 246 249;
+  --scrim-boost: 1.3;
+  --fx-scrim: 0.44;
+  --veil-ink: #4a3b43;
+  --fx-text-shadow: 0 2px 14px rgb(255 250 252 / 0.9);
+  --a-main: #b8506c;          /* 印章的朱砂：比桌面的玫红深一档，白字才压得住 */
+  --a-2: #d4738e;
+  --a-on: #fff8fa;
+  --r-lg: 2px;
+  --r-md: 2px;
+  --r-sm: 2px;
+  --r-xs: 2px;
+  --r-xl: 2px;
+  --r-pill: 2px;
+  --fx-blur: 0px;
+  --fx-sat: 115%;
+  --fx-panel-shadow: none;
+  --fx-cover-shadow: none;
+  --option-bg: #fffdfb;
+  --s-floor: color-mix(in srgb, #fffdfb 90%, transparent);
+}
