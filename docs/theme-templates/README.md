@@ -1,8 +1,20 @@
 # 按钮模板（画廊）
 
-使用者 2026-09-23 提供的两份按钮样式，先**存成模板**，供「按钮风格化」那一轮直接用。
-样式来自开源项目、作者声明非商业免费使用 —— **具体出处链接待使用者补**（补上后写进
-本文件与 `docs/theme-demos/assets/CREDITS.md` 的同一套口径里）。
+使用者 2026-09-23 提供的两份按钮样式（来自 Uiverse，均为 **MIT License**）。
+它们已经按本文件下面的四条口径**落进画廊主题**（P8.16），这里保留原样样式作为模板与
+对照 —— 以后改按钮，先看 `frontend/src/styles/themes/gallery.buttons.skin.css`，
+再回来比模板。
+
+## 出处
+
+| 模板 | 出处 | 作者 | 许可 |
+| --- | --- | --- | --- |
+| `gallery-button.vue` | [uiverse.io/TCdesign-dev/short-lizard-47](https://uiverse.io/TCdesign-dev/short-lizard-47) | TCdesign-dev（Custyyyy，2022-01-07） | MIT License |
+| `gallery-play-button.vue` | [uiverse.io/elijahgummer/proud-goat-69](https://uiverse.io/elijahgummer/proud-goat-69) | elijahgummer（Elijah W Gummer） | MIT License |
+
+> Uiverse 页面直接抓取会返回 403，上面两条是用浏览器 UA 取的；两份的许可行都写着
+> `MIT License` + `Copyright - …`。原样样式只在 `docs/` 里存档与对照，应用里用的是
+> 下面「落地口径」改写过的版本（换令牌、换字体）。
 
 | 文件 | 用途 |
 | --- | --- |
@@ -25,7 +37,23 @@
 3. 改完跑 `run_all`（主题契约的圆角/令牌守卫）与 `tools/visual.py`
    **重录主题矩阵**（按钮进了 25 张里的多张），再跑 `e2e`。
 
-## 落地前要拍的四个点
+## 落地口径（使用者 2026-09-23 拍板）
+
+1. **保留按钮原貌** —— 尺寸、圆角（4px / 3px）、三层投影、±2px 位移、按下收边全部照搬；
+   画廊其余界面仍是「1px 直角 + 无投影」，这两个按钮是**有意的例外**（在皮肤文件头写明）。
+2. **颜色跟强调色** —— 启动按钮原来的青 `#15ccbe` / `#0f988e` 换成 `--a-main` 与
+   「同色压暗 26%」（`color-mix(in srgb, var(--a-main) 74%, #000)`，原样式的
+   `#15ccbe → #0f988e` 正是这个比例）；文字 `--a-on`。一般按钮的浅面 / 墨色 / 键程底边
+   换成 `--s-elevated` / `--text-1` / `--ln140`。
+3. **字体跟主题** —— `"Istok Web"` → `var(--font)`（画廊是衬线那一档）。
+4. **尺寸与动效先保留** —— `width: 120px` 与 hover「文字滑出 80px、图标补位」都留着。
+
+代码落在 [`gallery.buttons.skin.css`](../../frontend/src/styles/themes/gallery.buttons.skin.css)：
+这一轮同时把主题契约放宽成「**一套主题可以有多张皮肤**」（守卫与 `themes.spec.ts` 都
+按 `<theme>*.skin.css` 逐张查行数与作用域），按钮语言因此单开一张，别写进主题签名那张
+（它已经 198/200 行）。
+
+## 当时列的四个待拍点（已按上面口径处理）
 
 1. **圆角与投影**：画廊现在是「1px 直角 + 无投影」（`--fx-panel-shadow: none`）。
    模板的 `border-radius: 4px/3px` 与外投影属于**抬升控件**，要么明确作为例外保留，

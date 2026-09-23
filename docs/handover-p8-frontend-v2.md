@@ -41,6 +41,7 @@
 | P8.14-c 删「双击封面启动」 | `HallView.vue`、`ring.ts`、`core/app.ts`、`tools/e2e.py` | ✅ 删：侧栏 `@dblclick` + 环形 `dblclick` + 提示条「双击 启动」；e2e 第 3.6 步改写为「主页启动按钮直接启动」 |
 | P8.14-d 主页启动按钮 | `HallView.vue`、`app.css` | ✅ 加 `#btnHallPlay`（大图 + 侧列表，简介下方，走 `.btn.play`）；e2e 判据通过 |
 | P8.15 右键菜单 + 删悬停切换（反馈第 19-b 条） | `HallView.vue`、`ring.ts`、`store.ts`、`shell.ts`、`app.css`、`tools/e2e.py` | ✅ `#hallMenu`（启动 / 收藏 / 详情 / 移除，四种布局共用，Esc / 空白 / 滚轮 / 切布局都收）；环形与横滑的「悬停即切换」整段下掉；e2e **101/101**（新增 5 条），表面快照 98 → 99 id |
+| P8.16 画廊按钮风格化（反馈第 21 条） | `themes/gallery.buttons.skin.css`（新）、`app.css`、`HallView.vue`、`check_theme_contract.py`、`themes.spec.ts` | ✅ 两份 Uiverse 样式（均 MIT）按「保留原貌 + 跟强调色 + 跟主题字体 + 尺寸动效先保留」落地；契约放宽成「一套主题可多张皮肤」，守卫与 spec 按 `<theme>*.skin.css` 逐张查 |
 
 ## 2. 现在验证到哪一步
 
@@ -143,7 +144,13 @@ cd frontend; npm run build; cd ..
    只要有一处漏网就破功（P8.7 之前正是如此：令牌已经设成 1px，顶部栏还是 22px）。
    要新加组件时：圆角写 `var(--r-xs|sm|md|lg|xl|pill)`，投影写
    `var(--fx-panel-shadow)` / `var(--fx-cover-shadow)`，剩下交给皮肤。
-   新页面要能被主题认出来，就给它挂 `data-slot="…"`（见第 4 节末尾的表）。
+  新页面要能被主题认出来，就给它挂 `data-slot="…"`（见第 4 节末尾的表）。
+   **两个后补的口径**：① 皮肤里可以写死圆角 —— 守卫只管共享层；但「写死的圆角」
+   现在只允许出现在**有意的例外**上，比如画廊那两颗按钮（P8.16，文件头写明理由）。
+   ② 一套主题**可以有多张皮肤**（`<theme>.skin.css` 主题签名 +
+   `<theme>.buttons.skin.css` 按钮语言…），守卫与 `themes.spec.ts` 按
+   `<theme>*.skin.css` **逐张**查 ≤200 行与选择器作用域 —— 新开 sheet 时别用
+   守卫扫不到的名字，否则等于绕过契约。
 3. **`assets/…` 是相对页面的地址**：v2 的页面在 `/v2/` 下，任何新加的图片设置
    都要过 `fixAssetUrl()`（`core/assets.ts`）。常驻背景第一版就栽在这上面（404 → 背景不换）。
 4. **改主题时两个 `set_setting` 别挤在同一个 tick**：`theme_apply()` 里风格与明暗是分两次下发、

@@ -631,7 +631,26 @@ Arcade 的 START 是全屏唯一**可下压 + 呼吸灯**的键，Atelier 的 pl
 反证这次改动没碰既有外观）、`run_all` 14/14、`pytest` 127 passed、`vitest` 38 passed、
 `Aurora.exe` 24.5 MB 已重建。
 
-**留给下一轮**：Atelier 作为第 5 套主题（反馈第 20 条，已拍板做）。
+### P8.16（2026-09-23 深夜）：画廊按钮风格化
+
+使用者从 Uiverse 找来两份按钮样式（**均为 MIT**）并要求换到画廊上，四个拍板：
+保留原貌 / 颜色跟强调色 / 字体跟主题 / 尺寸与动效先保留。
+
+| 按钮 | 模板（出处见 `docs/theme-templates/`） | 落地 |
+| --- | --- | --- |
+| 一般按钮 `.btn:not(.play)` + `.mini-btn` | `short-lizard-47`（TCdesign-dev / Custyyyy） | 4px 圆角 + 三层投影 + 悬停上浮 2px / 按下沉 2px；面 `--s-elevated`、墨 `--text-1`、键程 `--ln140`；投影色浅色态紫灰、深色态黑 |
+| 启动按钮 `.btn.play` | `proud-goat-69`（elijahgummer / Elijah W Gummer） | 120×40、3px 圆角、3px 实色底边（按下收边 + 沉 3px）、大写字距、hover 文字滑出；青换 `--a-main` + 同色压暗 26%，字体 `var(--font)` |
+
+代码：`frontend/src/styles/themes/gallery.buttons.skin.css`（新开一张皮肤）。
+**契约同步放宽**：皮肤从「每套一张」改成「每套可多张」，守卫与 `themes.spec.ts`
+按 `<theme>*.skin.css` 逐张查 ≤200 行与选择器作用域 —— 主题签名那张已经 198/200 行，
+按钮语言必须另开文件，同时又不能躲进守卫扫不到的名字。
+
+门：矩阵重录 **25/25 偏差 0**、`e2e` **101/101**、`contrast` **32/32**、`run_all` 14/14、
+`pytest` 127、`vitest` 38；源文件 62 → 63，`Aurora.exe` 已重建。
+
+**留给下一轮**：Atelier 作为第 5 套主题（反馈第 20 条，已拍板做）；
+其余三套主题的按钮语言（同样可以各开一张 `<theme>.buttons.skin.css`）。
 
 ### 其它还没做的
 
