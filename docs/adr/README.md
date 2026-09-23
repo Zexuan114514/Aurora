@@ -18,6 +18,8 @@
 | [ADR-0010](ADR-0010-structured-logging.md) | 结构化日志与诊断包（脱敏） | 已接受 |
 | [ADR-0011](ADR-0011-credential-storage.md) | 密钥明文存储 + 导出剥离 | 已接受 |
 | [ADR-0012](ADR-0012-packaging-manifest.md) | 打包清单单一来源 | 已接受 |
+| [ADR-0013](ADR-0013-frontend-build-chain-and-themes.md) | 前端构建链（Vue + Element Plus）与四套主题 | 已接受（第 3 条「新旧并行」已被 ADR-0014 取代） |
+| [ADR-0014](ADR-0014-drop-v1-frontend.md) | 删除 v1 前端（无构建 ES 模块） | 已接受 |
 
 相关文档：架构总览 [`../architecture/README.md`](../architecture/README.md)，
 落地路线 [`../architecture/13-roadmap.md`](../architecture/13-roadmap.md)。

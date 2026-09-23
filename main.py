@@ -20,11 +20,32 @@ import webview  # noqa: E402
 
 from aurora.platform import winapi  # noqa: E402
 from aurora.infra import webserver  # noqa: E402
+from aurora.ui import overlay  # noqa: E402
 from gl import config  # noqa: E402
 from gl.api import Api  # noqa: E402
 
 WINDOW_W, WINDOW_H = 1380, 880
 MIN_W, MIN_H = 1040, 660
+
+#: P8.9（ADR-0014）删掉了 v1，只剩 v2 一套前端：入口固定 `/v2/index.html`。
+#: 开发时用 AURORA_DEV_URL 指向 Vite dev server（热更新）。
+
+
+def frontend_entry(server: webserver.AssetServer) -> tuple[str, str]:
+    """返回 (入口 URL, 实际使用的版本)。
+
+    AURORA_DEV_URL 优先（开发时指向 Vite dev server，热更新）；否则走
+    `/v2/index.html`（Vite 产物，随包入库）。产物缺失时记一条明确的日志 ——
+    别静默白屏。
+    """
+    dev = os.environ.get("AURORA_DEV_URL")
+    if dev:
+        return dev, "dev"
+    version = _asset_version()
+    if not (config.WEB_DIR / "v2" / "index.html").is_file():
+        config.log("v2 frontend missing: gl/web/v2/index.html 不存在"
+                   "（先跑 cd frontend && npm run build，再 python tools\\build_exe.py）")
+    return f"{server.url}/v2/index.html?v={version}", "v2"
 
 
 def free_port() -> int:
@@ -272,7 +293,11 @@ def build_window(api: Api, server: webserver.AssetServer | None = None) -> webvi
     """
     if server is None:
         server = webserver.start(config.WEB_DIR, config.ASSET_MOUNTS)
-    entry = f"{server.url}/index.html?v={_asset_version()}"
+    entry, mode = frontend_entry(server)
+    config.log(f"frontend entry ({mode}): {entry}")
+    # 悬浮窗和主窗走同一个服务：v2 产物是 ES module，`file://` 下会被按跨源拦掉
+    # （P8.9 删 v1 时漏改，真机上悬浮窗直接不出现，只有 e2e 抓得到）。
+    overlay.set_entry_url(f"{server.url}/v2/overlay.html?v={_asset_version()}")
     return webview.create_window(
         config.APP_TITLE,
         url=entry,

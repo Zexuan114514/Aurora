@@ -33,9 +33,11 @@ TARGET = ROOT / "Aurora.exe"
 
 #: 真正要打进 exe 的前端文件。用户素材（背景 / 自定义封面 / 图标）P5 起不进 web 目录，
 #: 由 aurora/infra/webserver.py 按 /assets/ 直接服务 data/ 下的原图。
-WEB_FILES = ("index.html", "app.css", "app.js", "overlay.html")
-#: P4 起前端是 ES 模块：app/ 下的 js 树要原样带上（core/ views/ components/ …）
-WEB_MODULE_DIRS = ("app",)
+#: P8.9 删 v1 之后 gl/web 顶层不再有散文件 —— 前端全在 v2/ 下（见 ADR-0014）。
+WEB_FILES = ()
+#: v2/：Vite 产物（index.html + overlay.html + bundle/ 哈希资源 + build-info.json）。
+#: 源码在 frontend/，产物随包入库；打包只搬 gl/web/v2。
+WEB_MODULE_DIRS = ("v2",)
 
 #: 游戏内翻译用的 Windows OCR 是动态导入的，PyInstaller 扫不到，必须显式声明
 WINRT_MODULES = (

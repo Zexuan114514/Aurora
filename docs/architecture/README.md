@@ -54,14 +54,14 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | 事实 | 证据 | 对架构的含义 |
 | --- | --- | --- |
 | `gl/api.py` 2072 行、`class Api` 146 个方法（105 公开 / 41 内部） | 本目录 `contracts/bridge-contract.json` | 桥接层必须与用例层分离 —— **P3 已完成**：拆成 7 个桥接 mixin + 7 个用例服务，`gl/api.py` 191 行；快照 151 个方法（109 公开 / 42 内部） |
-| 前端调用点 96 处、悬浮窗 4 个方法 | `gl/web/app.js`、`gl/web/overlay.html` | 契约可以冻结并快照化 —— **现状 100 处**，由 `tools/checks/check_contract.py` 逐点比对 |
+| 前端调用点 96 处、悬浮窗 4 个方法 | `gl/web/app.js`、`gl/web/overlay.html` | 契约可以冻结并快照化 —— **现状 103 处**（P8.9 删 v1 后改扫 `frontend/src`），由 `tools/checks/check_contract.py` 逐点比对 |
 | `gl/vntext.py` 1944 行混合纯规则 / 引擎表 / 子进程协议 / OCR 循环 | 文件结构 | 纯规则必须下沉到 `domain`，IO 上移到 `infra` |
 | `gl/web/app.js` 3688 行、`app.css` 1954 行、`index.html` 845 行 | 文件行数 | 无构建 ES 模块化是收益最大的单点改动 —— **P4 已完成**：`app.js` 692 行 + 18 个模块（`core/` 10 + `views/` 8），打包清单由 `check_packaging.py` 守 |
 | `data/library.json` 单文件 297KB / 24 游戏 / 60 字段 / 39 项设置 | 实测统计 | 每次改设置全量重写，必须分账 + 去抖 |
 | 10+ 处临时 daemon 线程、构造器回调耦合 | `rg 'Thread('` | 需要显式 TaskRunner + 事件总线 |
 | 事件 14 个主题、靠 `evaluate_js` 拼 JSON 字符串 | `gl/api.py` | 需要事件信封与统一分发 |
 | 用户素材复制进 `gl/web/{userbg,usercovers,usericon}` | `gl/config.py: sync_user_assets` | 资产要单一来源 —— **P5 已消除**：改由 `aurora/infra/webserver.py` 按 `/assets/` 服务 `data/` 下的原图（[ADR-0005](../adr/ADR-0005-assets-single-source.md)） |
-| `tools/build_exe.py` 硬编码 4 个前端文件 | 该脚本 | 打包清单要单一来源 —— **P4.3-x 已守住**：清单仍在脚本顶部一份，`tools/checks/check_packaging.py` 对照 `gl/web` 实际目录，漏登记即失败 |
+| `tools/build_exe.py` 硬编码 4 个前端文件 | 该脚本 | 打包清单要单一来源 —— **P4.3-x 已守住**：清单仍在脚本顶部一份，`tools/checks/check_packaging.py` 对照 `gl/web` 实际目录，漏登记即失败（P8.9 删 v1 后清单只剩 `v2/` 一棵树） |
 | 契约仅靠 `tools/check_bridge.py` 正则比对，无 CI | `tools/` | 契约要机器可读 + CI 守卫 |
 
 ## 产物索引
@@ -86,11 +86,14 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | [`p2-data-v2.md`](p2-data-v2.md) | （P2 交付记录） | 数据分账 / 迁移 / 单写者：布局、迁移规则、验收证据 |
 | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) | （P3.1 交付记录） | 桥接层拆 mixin：边界、契约守卫如何跟上、验收证据 |
 | [`p7-governance.md`](p7-governance.md) | （P7 交付记录） | CI 全量、诊断包、文档同步、故意违规变红的证据 |
+| [`p8-frontend-v2.md`](p8-frontend-v2.md) | （P8 交付记录） | 前端 v2：构建链、四套主题 × 深/浅、Element Plus 按需引入与控件迁移、主题截图基线、可读性修复、下一批迁移清单 |
+| [`../frontend-ux-feedback.md`](../frontend-ux-feedback.md) | （体验反馈 / 待办） | 使用者反馈的两条已修（胶囊排版、深色态对比度）+ 一条待排期（主题区分度），带实测证据与 `tools/contrast.py` |
 | [`contracts/bridge-contract.json`](contracts/bridge-contract.json) | component-boundary-reviewer | 桥接方法签名快照（151 方法 / 109 公开；含前端调用点标记） |
 | [`contracts/events.md`](contracts/events.md) | runtime-view-writer | 事件信封、主题表、兼容规则 |
 | [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md) | service-decomposition-advisor | 插件与引擎规则包契约 |
 | [`contracts/data-schema-v2.md`](contracts/data-schema-v2.md) | integration-boundary-mapper | 数据 v2 schema、迁移与回滚 |
-| [`../adr/`](../adr/README.md) | adr-writer | 12 条架构决策记录 |
+| [`contracts/frontend-surface.json`](contracts/frontend-surface.json) | runtime-view-writer | v2 冻结测试面快照（97 个 DOM id / `__aurora` 四键 / 14 事件主题） |
+| [`../adr/`](../adr/README.md) | adr-writer | 13 条架构决策记录 |
 
 ## 阅读顺序
 

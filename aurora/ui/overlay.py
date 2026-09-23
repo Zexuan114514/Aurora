@@ -41,8 +41,21 @@ user32.PostMessageW.argtypes = [wintypes.HWND, ctypes.c_uint, ctypes.c_size_t,
                                 ctypes.c_ssize_t]
 user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 
-# P3.9-g 修正：搬到 aurora/ui 后不能按 __file__ 推路径，统一走 config.WEB_DIR
-HTML_PATH = config.WEB_DIR / "overlay.html"
+# P3.9-g 修正：搬到 aurora/ui 后不能按 __file__ 推路径，统一走 config.WEB_DIR。
+# P8.9（ADR-0014）删 v1 后入口在 `gl/web/v2/` 下。
+HTML_PATH = config.WEB_DIR / "v2" / "overlay.html"
+
+#: 悬浮窗页面地址。**必须走本地静态服务**：v2 的产物是 ES module
+#: （`<script type="module" src="./bundle/overlay-*.js">`），`file://` 下会被
+#: 浏览器按跨源规则拦掉，页面只会剩一个空壳。由组合根（`main.build_window`）
+#: 在起完服务后注入；没注入时退回文件路径（老行为，仅作降级）。
+_entry_url: str | None = None
+
+
+def set_entry_url(url: str) -> None:
+    """注入悬浮窗页面地址（`{server.url}/v2/overlay.html?v=…`）。"""
+    global _entry_url
+    _entry_url = str(url or "").strip() or None
 
 
 class OverlayBridge:
@@ -116,6 +129,7 @@ class Overlay:
             if not HTML_PATH.is_file():
                 config.log(f"overlay html missing: {HTML_PATH}")
                 return False
+            target = _entry_url or str(HTML_PATH)
             view = self._view()
             screen_w, screen_h = _screen_size()
             # 几何一律用默认值：实测保存/恢复会被 DPI 放大成整屏（3078x1887 落在
@@ -133,7 +147,7 @@ class Overlay:
             view["width"], view["height"] = width, height
             try:
                 self._window = webview.create_window(
-                    "Aurora 翻译", url=str(HTML_PATH),
+                    "Aurora 翻译", url=target,
                     js_api=OverlayBridge(self),
                     width=width, height=height, **place,
                     frameless=True, on_top=True, hidden=False,

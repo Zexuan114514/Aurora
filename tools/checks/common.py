@@ -204,11 +204,33 @@ def imports_of(path: pathlib.Path) -> set[str]:
     return names
 
 
+def frontend_sources(*, overlay: bool | None = None) -> list[pathlib.Path]:
+    """v2 前端源码文件（P8.9 删 v1 之后，调用点只认 `frontend/src`）。
+
+    * `overlay=None` 全给；`False` 只给主窗；`True` 只给悬浮窗。
+    * 悬浮窗是独立窗口、有自己的桥接对象，所以主窗 / 悬浮窗的调用点要分开统计。
+    * 测试文件（`*.spec.ts`）不算调用点。
+    """
+    base = ROOT / "frontend" / "src"
+    if not base.is_dir():
+        return []
+    found: list[pathlib.Path] = []
+    for path in sorted(base.rglob("*")):
+        if not path.is_file() or path.suffix not in {".ts", ".vue"}:
+            continue
+        if path.name.endswith(".spec.ts") or "__pycache__" in path.parts:
+            continue
+        if overlay is not None and ("overlay" in path.relative_to(base).parts) != overlay:
+            continue
+        found.append(path)
+    return found
+
+
 def frontend_calls(*js_paths: pathlib.Path | str) -> set[str]:
     """前端通过 call("name") 调用的桥接方法名。
 
-    P4 起前端是模块树（gl/web/app/**），所以支持传多个文件——桥接调用点可能
-    分散在 core/ 与 views/ 里。
+    支持传多个文件——调用点分散在 core/ 与 views/ 里；v2 用 `frontend_sources()`
+    取文件，再按主窗 / 悬浮窗分开传进来。
     """
     import re
 

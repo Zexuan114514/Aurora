@@ -50,3 +50,28 @@ jobs:
             checks-result.json
             diagnostics-ci.zip
           if-no-files-found: ignore
+
+  # 前端（v2）：类型检查 + 单测。产物本身由主 job 的 check_frontend_build 守（纯 Python），
+  # 这个 job 只负责「源码级」的检查，所以离线 job 不需要装 Node。
+  frontend:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: npm ci
+
+      - name: 类型检查（vue-tsc）
+        working-directory: frontend
+        run: npm run typecheck
+
+      - name: 单元测试（vitest：环几何 / 查询 / 时间 / 主题契约）
+        working-directory: frontend
+        run: npm test

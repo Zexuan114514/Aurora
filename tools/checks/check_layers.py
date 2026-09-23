@@ -4,7 +4,7 @@ from __future__ import annotations
 import ast
 import sys
 
-from common import ROOT, Result, imports_of, main, read_text
+from common import ROOT, Result, frontend_sources, imports_of, main, read_text
 
 DOMAIN_FORBIDDEN_IMPORTS = {
     "ctypes", "webview", "subprocess", "socket", "http", "sqlite3", "threading",
@@ -38,20 +38,24 @@ def check() -> Result:
     else:
         result.note("sys.path 只在 main.py 里改写")
 
-    # 规则 2（今天生效）：前端不得绕过 call() 直接摸 pywebview.api
-    # P4 起前端拆成模块树（app.js + gl/web/app/**），整棵树都不许绕过 call()
-    js_files = [ROOT / "gl/web/app.js"] + sorted((ROOT / "gl/web/app").rglob("*.js"))
+    # 规则 2（今天生效）：主窗前端的桥接调用必须走 call()。
+    # P8.9 删 v1 之后扫描面是 frontend/src；唯一允许直接摸 window.pywebview 的是
+    # core/api.ts —— 它把调用统一包成 call()，也是 check_contract 统计调用点的入口。
+    # 悬浮窗是独立窗口、有自己的桥接对象，走 check_contract 的 overlay 通道，不在这里。
+    BRIDGE_EXIT = "frontend/src/core/api.ts"
     direct: list[str] = []
-    for path in js_files:
-        if not path.is_file() or "__pycache__" in path.parts:
+    for path in frontend_sources(overlay=False):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel == BRIDGE_EXIT:
             continue
-        for line in read_text(path.relative_to(ROOT).as_posix()).splitlines():
-            if "pywebview.api." in line and "const api = ()" not in line:
-                direct.append(f"{path.name}: {line.strip()[:56]}")
+        for line in read_text(rel).splitlines():
+            if "pywebview" in line:
+                direct.append(f"{rel}: {line.strip()[:56]}")
     if direct:
-        result.fail(f"app.js 里存在绕过 call() 的桥接调用：{direct[:3]}")
+        result.fail("主窗里有绕过 call() 直接摸 pywebview 的地方"
+                    f"（唯一出口是 {BRIDGE_EXIT}）：{direct[:3]}")
     else:
-        result.note("app.js 全部桥接调用都走 call() 包装")
+        result.note(f"主窗桥接调用全部走 call() 包装（唯一出口 {BRIDGE_EXIT}）")
 
     # 规则 3-5（P1 起生效）：aurora/ 落地后检查目标分层
     if not (ROOT / "aurora").exists():

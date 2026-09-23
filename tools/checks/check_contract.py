@@ -4,12 +4,11 @@ from __future__ import annotations
 import sys
 
 from common import (ROOT, Result, class_methods, emitted_topics, frontend_calls,
-                    function_signature, load_json, main)
+                    frontend_sources, function_signature, load_json, main)
 
 CONTRACT = "docs/architecture/contracts/bridge-contract.json"
 API = "gl/api.py"
 OVERLAY = "gl/overlay.py"
-APP_JS = "gl/web/app.js"
 
 
 def _overlay_source() -> str:
@@ -68,12 +67,8 @@ def check() -> Result:
         result.note(f"内部方法集合变化（不阻断）：新增 {sorted(internal_live - internal_snap)}，"
                     f"消失 {sorted(internal_snap - internal_live)}")
 
-    # P4 起前端是模块树：app.js + gl/web/app/**（core/ 与 views/ 里的 call() 都要算）
-    frontend_js = [APP_JS] + sorted(
-        path.relative_to(ROOT).as_posix()
-        for path in (ROOT / "gl/web/app").rglob("*.js")
-        if "__pycache__" not in path.parts)
-    calls = frontend_calls(*frontend_js)
+    # P8.9 删 v1 之后：主窗调用点只认 frontend/src（悬浮窗是独立窗口，走自己的通道）
+    calls = frontend_calls(*frontend_sources(overlay=False))
     flagged = {m["name"] for m in channels["main"]["methods"] if m.get("called_by_frontend")}
     if calls != flagged:
         result.fail(f"前端调用点与快照不一致：新增调用 {sorted(calls - flagged)}，"

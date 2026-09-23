@@ -24,7 +24,7 @@ import sys
 from common import ROOT, Result, load_json, main, read_text
 
 MANIFEST = "tools/checks/tools-manifest.json"
-PHASES = {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "—"}
+PHASES = {"P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "—"}
 
 #: 唯一被允许自己拼 v1 路径的文件（它就是路径解析的实现与说明）
 PATH_GUARD_EXEMPT = {"_common.py"}

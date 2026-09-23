@@ -18,12 +18,11 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from common import (ROOT, class_methods, emitted_topics, frontend_calls,  # noqa: E402
-                    function_signature, load_json)
+                    frontend_sources, function_signature, load_json)
 
 CONTRACT = ROOT / "docs" / "architecture" / "contracts" / "bridge-contract.json"
 API = "gl/api.py"
 OVERLAY = "gl/overlay.py"
-APP_JS = "gl/web/app.js"
 
 
 def _overlay_source() -> str:
@@ -51,12 +50,10 @@ def classify(name: str) -> str:
 
 def build() -> dict:
     current = load_json("docs/architecture/contracts/bridge-contract.json")
-    # P4 起前端是模块树：app.js + gl/web/app/**（与 check_contract 的口径一致）
-    frontend_js = [APP_JS] + sorted(
-        path.relative_to(ROOT).as_posix()
-        for path in (ROOT / "gl/web/app").rglob("*.js")
-        if "__pycache__" not in path.parts)
-    calls = frontend_calls(*frontend_js)
+    # P8.9 删 v1 之后：调用点只认 frontend/src（与 check_contract 的口径一致）。
+    # 悬浮窗是独立窗口，单独统计。
+    calls = frontend_calls(*frontend_sources(overlay=False))
+    overlay_calls = frontend_calls(*frontend_sources(overlay=True))
 
     main_methods = []
     live_main = class_methods(API, "Api")
@@ -82,7 +79,7 @@ def build() -> dict:
             "name": name,
             "params": sig["params"],
             "returns": sig["returns"],
-            "called_by_frontend": name in {"ready", "save_bounds", "begin_resize", "action"},
+            "called_by_frontend": name in overlay_calls,
         })
 
     sources = [API, "gl/downloads.py", "gl/overlay.py"]

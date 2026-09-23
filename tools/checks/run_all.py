@@ -27,6 +27,10 @@ CHECKS = (
     "check_layers",
     "check_packaging",
     "check_startup",
+    "check_frontend_build",
+    "check_theme_contract",
+    "check_frontend_surface",
+    "check_settings_keys",
 )
 
 

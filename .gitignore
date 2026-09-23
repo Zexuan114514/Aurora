@@ -36,6 +36,11 @@ _sandbox/
 # ---------- 本地工具（架构技能包等，不进仓库） ----------
 .codex/
 
+# ---------- 前端构建（Node） ----------
+frontend/node_modules/
+# Vite 转译 TS 配置时的临时文件；正常会自删，删不掉时别让它进仓库 / 进指纹
+frontend/vite.config.*.timestamp-*.mjs
+
 # ---------- 编辑器 / 系统 ----------
 .vscode/
 .idea/

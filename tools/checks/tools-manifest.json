@@ -11,6 +11,12 @@
     "diagnose": "排错工具，只有人工结论"
   },
   "scripts": [
+    {
+      "path": "tools/contrast.py",
+      "kind": "live",
+      "phase": "P8",
+      "expected": "4 套风格 × 深/浅 × 2 个页面的对比度全部达标（正文 ≥4.5 / 大字号 ≥3.0）；采样点被别的窗口盖住时记 tainted 并同样退出码 1"
+    },
     { "path": "tools/_common.py", "kind": "helper", "phase": "P7", "expected": "UTF-8 控制台 + 数据布局解析（各脚本 import）" },
     { "path": "tools/check_bridge.py", "kind": "offline", "phase": "P0", "expected": "后端缺失：无（前端模块树 + 悬浮窗动作全部有实现）" },
     { "path": "tools/export_engine_rules.py", "kind": "build", "phase": "P6", "expected": "从 domain 常量生成内置规则包与 docs/engines.md 规则表（--write）" },
@@ -28,8 +34,8 @@
     { "path": "tools/test_sources.py", "kind": "network", "phase": "P1", "expected": "逐源搜索与详情字段完整" },
     { "path": "tools/probe_sources.py", "kind": "network", "phase": "P1", "expected": "资料源可行性调研（人工结论）" },
     { "path": "tools/probe_kungal.py", "kind": "network", "phase": "P1", "expected": "TouchGal / Kungal 接口探测（人工结论）" },
-    { "path": "tools/e2e.py", "kind": "live", "phase": "P4", "expected": "95/95 通过（0 skipped）" },
-    { "path": "tools/visual.py", "kind": "live", "phase": "P4", "expected": "封面 3/3、缩略图 5/6（第 6 张为坏链接占位）、环形层次与缩放复位通过" },
+    { "path": "tools/e2e.py", "kind": "live", "phase": "P4", "expected": "96/96 通过（0 skipped）" },
+    { "path": "tools/visual.py", "kind": "live", "phase": "P4", "expected": "封面 3/3、缩略图 5/6（第 6 张为坏链接占位）、环形层次与缩放复位通过；主题矩阵 25/25 在容差内、区分度 ≥ 20（不达标进 failed）" },
     { "path": "tools/theme_probe.py", "kind": "live", "phase": "P4", "expected": "全部通过（4 预设 × 深/浅/跟随系统）" },
     { "path": "tools/vntext_live.py", "kind": "live", "phase": "P6", "expected": "全部通过（真机 hook 模式与 OCR 模式）" },
     { "path": "tools/snap.py", "kind": "live", "phase": "P4", "expected": "截图 + 量化分析（人工判读）" },
