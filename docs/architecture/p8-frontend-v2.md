@@ -649,8 +649,32 @@ Arcade 的 START 是全屏唯一**可下压 + 呼吸灯**的键，Atelier 的 pl
 门：矩阵重录 **25/25 偏差 0**、`e2e` **101/101**、`contrast` **32/32**、`run_all` 14/14、
 `pytest` 127、`vitest` 38；源文件 62 → 63，`Aurora.exe` 已重建。
 
-**留给下一轮**：Atelier 作为第 5 套主题（反馈第 20 条，已拍板做）；
-其余三套主题的按钮语言（同样可以各开一张 `<theme>.buttons.skin.css`）。
+### P8.17（2026-09-24 凌晨）：Atelier 第五套主题
+
+按反馈第 20 条把 `docs/theme-demos/atelier/` 的小样搬进应用：
+
+| 项 | 内容 |
+| --- | --- |
+| 签名 | **切割垫桌面**（`#bg-vignette` 上画 20px 细线 / 100px 粗线，纯 CSS）、**贴着两段和纸胶带的奶油纸片**（大厅信息列）、**封面像摊开的照片**（上沿一小段胶带 + 当前那张描玫红细边，几何不动）、**玫红虚线便签条**（右栏）、**压进纸里的红印章**（主 CTA，五套里唯一的圆形） |
+| 令牌 | 浅色 `#f3e3e8` 粉桌面 / `#fffdfb` 奶油纸 / 朱砂 `#b8506c`；深色藕紫 `#3c2c35`…（夜里开着台灯） |
+| 深色态为什么偏亮 | 第一版深色按近黑做，结果 **atelier vs gallery 只有 7.7**、整体区分度掉到 **18.0**（低于 ≥20 的判红线）。改成「台灯工作台」后整屏 60–74，区分度 **25.9**（gallery 30.3 / shelf 19.7 / aurora 42.3 / screening 48.7） |
+| 工具口径 | `visual.py` 的 `theme_capture_sane` 原以「深色 <70」判断帧是否切过去；Atelier 深色 categories 73.7 → 被反复重拍并跳过（复跑出现 4 张 36–58 假偏差 + 1 张 unready）。分界放到 **85** 并写明理由 |
+| 注册面 | `core/theme.ts`、`app.css` 的 import、`themes.spec.ts`（含 BLUR_BY_THEME）、主题契约（THEMES / BASELINE_MATRIX / BLUR_BY_THEME）、`visual.py` 矩阵（25 → 30 张）、`contrast.py`（32 → 40 点）、设置页色卡 |
+
+门：矩阵 **30/30 偏差 0**、`contrast` **40/40**（Atelier 最紧的一条是深色游戏页标题 3.71）、
+`e2e` **101/101**、`run_all` 14/14、`pytest` 127、`vitest` 40；源文件 62 → 64，
+`Aurora.exe` 已重建。
+
+### P8.16 撤回（2026-09-24 凌晨）
+
+画廊按钮那版皮肤上线后使用者实机反馈「观感不如改动前」，已整张下线：
+删 `gallery.buttons.skin.css`、`#btnHallPlay` 恢复纯文字、主题基线回滚（复跑 25/25 偏差 0
+证明回到改动前）。**保留**：`docs/theme-templates/` 的两份模板与三态预览、四个落地口径、
+「一套主题可多张皮肤」的契约放宽（守卫与 spec 仍逐张查）。按钮风格化重新记为待办，
+教训写在 `docs/theme-templates/README.md` 最后一节。
+
+**留给下一轮**：按钮风格化（重新试，建议小步）；其余三套主题也可以各开一张
+`<theme>.buttons.skin.css`。
 
 ### 其它还没做的
 

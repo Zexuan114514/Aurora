@@ -41,7 +41,8 @@
 | P8.14-c 删「双击封面启动」 | `HallView.vue`、`ring.ts`、`core/app.ts`、`tools/e2e.py` | ✅ 删：侧栏 `@dblclick` + 环形 `dblclick` + 提示条「双击 启动」；e2e 第 3.6 步改写为「主页启动按钮直接启动」 |
 | P8.14-d 主页启动按钮 | `HallView.vue`、`app.css` | ✅ 加 `#btnHallPlay`（大图 + 侧列表，简介下方，走 `.btn.play`）；e2e 判据通过 |
 | P8.15 右键菜单 + 删悬停切换（反馈第 19-b 条） | `HallView.vue`、`ring.ts`、`store.ts`、`shell.ts`、`app.css`、`tools/e2e.py` | ✅ `#hallMenu`（启动 / 收藏 / 详情 / 移除，四种布局共用，Esc / 空白 / 滚轮 / 切布局都收）；环形与横滑的「悬停即切换」整段下掉；e2e **101/101**（新增 5 条），表面快照 98 → 99 id |
-| P8.16 画廊按钮风格化（反馈第 21 条） | `themes/gallery.buttons.skin.css`（新）、`app.css`、`HallView.vue`、`check_theme_contract.py`、`themes.spec.ts` | ✅ 两份 Uiverse 样式（均 MIT）按「保留原貌 + 跟强调色 + 跟主题字体 + 尺寸动效先保留」落地；契约放宽成「一套主题可多张皮肤」，守卫与 spec 按 `<theme>*.skin.css` 逐张查 |
+| P8.16 画廊按钮风格化（反馈第 21 条） | `themes/gallery.buttons.skin.css`、`app.css`、`HallView.vue` | ⏸ **已撤**（使用者实机「观感不如改动前」）：皮肤文件删除、`#btnHallPlay` 恢复纯文字、基线回滚（复跑 25/25 偏差 0）；模板与四个口径留在 `docs/theme-templates/`，**重新记为待办** |
+| P8.17 Atelier 第五套主题（反馈第 20 条） | `themes/atelier.tokens.css` + `atelier.skin.css`（新）、`core/theme.ts`、`themes.spec.ts`、`check_theme_contract.py`、`visual.py`、`contrast.py`、`SettingsView.vue` | ✅ 签名：切割垫桌面 / 胶带纸片 / 摊开的照片 / 玫红虚线便签 / 圆形红印章 CTA；深色态是「夜里开着台灯的工作台」（整屏 60–74，五套里唯一不是近黑）→ 区分度 **25.9**（目标 ≥20）。矩阵 25 → **30 张**、对比度 32 → **40 点**；顺带把 `theme_capture_sane` 的深浅分界 70 → 85 |
 
 ## 2. 现在验证到哪一步
 
