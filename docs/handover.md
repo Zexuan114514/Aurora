@@ -3,7 +3,12 @@
 > 写给下一个接手的人（也可能是几个月后的自己）。**先读这份，再读
 > [`architecture/README.md`](architecture/README.md)（为什么这么设计）与
 > [`../README.md`](../README.md)（有什么功能）。**
-> 最后更新：2026-09-22（卡死修复之后又落了「补完版补发」与「冷启动宽限期」两条遗留项）
+> 最后更新：2026-09-23 深夜（前端 v2 / 四主题那一轮的真机门补跑完毕，并修掉
+> 画廊列表布局的遮罩与悬浮窗入口两个真机 bug —— 详见
+> [`handover-p8-frontend-v2.md`](handover-p8-frontend-v2.md)）
+>
+> 前端 v2 与主题外观重构（P8.4）另有一份专项交接：
+> [`handover-p8-frontend-v2.md`](handover-p8-frontend-v2.md)。
 
 ## 1. 这是什么 / 当前状态
 
@@ -16,7 +21,7 @@ Aurora 是一个 **Windows 单机 galgame 启动器**：管游戏库、抓元数
 | 运行形态 | 源码 `python main.py`；发布 `Aurora.exe`（PyInstaller 单文件，约 24.5 MB） |
 | 开发环境 | Windows + Python 3.13（本机是 Anaconda）；`webview`(pywebview) + `winrt-*` 是仅有的运行时依赖 |
 | 用户数据 | 与本机绑定，**不进仓库**：`data/`（库、设置、素材、缓存、日志） |
-| 测试现状 | `pytest` **127 passed**、`tools/checks/run_all.py` **10/10**、`tools/e2e.py` **95/95** |
+| 测试现状 | `pytest` 全绿、`tools/checks/run_all.py` **14/14**、`tools/e2e.py` **96/96**、`tools/contrast.py` **32/32**、`tools/visual.py` 主题矩阵 **25/25（偏差 0）** | 
 | 真机矩阵 | DRACU RIOT（KiriKiriZ）/ 少女之剑（WillPlus+专用码）/ アマカノ３（Artemis）/ 白色相簿2（Leaf）… 见 [`engines.md`](engines.md) |
 | 远端 | `origin = https://Zexuan114514@github.com/Zexuan114514/Aurora.git`（URL 里带用户名，否则 GCM 会卡住） |
 
@@ -27,10 +32,11 @@ Aurora 是一个 **Windows 单机 galgame 启动器**：管游戏库、抓元数
 python main.py                      # 或双击「调试启动.bat」（带控制台、会打印日志）
 
 # 自检（按顺序，全绿再动手改）
-python tools\checks\run_all.py      # 10 项离线守卫：契约 / 分层 / 打包 / 启动冒烟…
+python tools\checks\run_all.py      # 14 项离线检查：契约 / 分层 / 引擎规则 / 启动冒烟 / 设置键名等
 python -m pytest                    # 单元 + domain 金样本 + 迁移 + 插件 + 诊断包
-python tools\e2e.py                 # 真窗口端到端 95 项（会自己起应用，跑完自动关）
+python tools\e2e.py                 # 真窗口端到端 96 项（会自己起应用，跑完自动关）
 python tools\visual.py              # 封面/缩略图真的画出来了没有
+python tools\contrast.py            # 真机对比度：4 套风格 × 深/浅 × 2 页（正文 ≥4.5 / 大字号 ≥3.0）
 
 # 打包（打包前必须确认没有 Aurora.exe 在跑，否则 WinError 32）
 python tools\build_exe.py           # 产物：根目录 Aurora.exe
@@ -54,8 +60,8 @@ python tools\build_exe.py           # 产物：根目录 Aurora.exe
 | `aurora/infra/` | IO：store(v2)、资料源、Textractor 子进程、OCR、翻译、下载监听、本地资源服务 |
 | `aurora/platform/` | ctypes 原语：winapi / tray / hotkey / screencap / memmatch / hookfinder / proctree |
 | `aurora/ui/bridge/` | 7 个桥接 mixin（**方法名即契约**，见 `contracts/bridge-contract.json`） |
-| `gl/web/app/**` | 前端 ES 模块树（`core/` 10 个 + `views/` 8 个），无构建链 |
-| `tools/` | 32 个自检/打包脚本（清单：`tools/checks/tools-manifest.json`） |
+| `frontend/src/**` | 前端源码（Vue 3 + TS：`core/` / `views/` / `panels/` / `features/`），构建产物在 `gl/web/v2/`（P8.9 删 v1，见 ADR-0014） |
+| `tools/` | 33 个自检/打包脚本（清单：`tools/checks/tools-manifest.json`） |
 | `data/`（不进库） | `state/`（库/设置/会话）、`covers|backgrounds|icons|vntext|downloads|cache|logs` |
 
 ## 4. 游戏内翻译子系统（最复杂、最常出问题的地方）
@@ -69,7 +75,7 @@ TextractorCLI（用户自装，x86/x64 各一份）
          ├─ 缺字补全 memmatch（只读扫内存，见 4.3）
          └─ OCR 兜底（Windows.Media.Ocr，需要日语组件）
    └─ 台词 → LineTranslator（aurora/infra/linetrans.py）→ 流式 LLM / 免费接口 / 插件
-         └─ 悬浮窗（aurora/ui/overlay.py + gl/web/overlay.html）与翻译面板
+         └─ 悬浮窗（aurora/ui/overlay.py + frontend/src/overlay/）与翻译面板
 ```
 
 ### 4.2 引擎覆盖（现状）
@@ -136,9 +142,9 @@ TextractorCLI（用户自装，x86/x64 各一份）
 
 | 守卫 | 管什么 |
 | --- | --- |
-| `run_all.py` 10 项 | 契约快照（151 方法 / 14 事件 / 100 前端调用点）、依赖白名单、去敏夹具、探针清单（含**真跑 offline 脚本**与控制台/路径守卫）、架构基线、桥接转发目标、引擎规则包、分层规则、打包清单、启动冒烟 |
+| `run_all.py` 14 项 | 契约快照（109 方法 / 14 事件 / 103 前端调用点）、依赖白名单、去敏夹具、探针清单（含**真跑 offline 脚本**与控制台/路径守卫）、架构基线、桥接转发目标、引擎规则包、分层规则、打包清单（含**悬浮窗入口存在**）、前端构建指纹、主题契约（含令牌值域）、设置键名、启动冒烟 |
 | `pytest` | domain 金样本、数据迁移/去抖/回滚、插件、诊断包，以及取词链路的回归网（推送去抖 / 悬浮窗非阻塞 / 缺字补全门禁与补发 / 冷启动宽限期 / 文学重复 / 窗口止损） |
-| `e2e.py` 95 项 | 真窗口：大厅/游戏页/设置/分类/拖拽/缩放/翻译面板/悬浮窗/hook 码存取 |
+| `e2e.py` 96 项 | 真窗口：大厅/游戏页/设置/分类/拖拽/缩放/翻译面板/悬浮窗/hook 码存取 |
 | CI（`.github/workflows/offline-checks.yml`） | run_all + `build_exe --dry-run` + pytest + 迁移专项 + 诊断包 |
 
 改桥接方法名 = 改契约：必须同步 `docs/architecture/contracts/bridge-contract.json`
@@ -164,6 +170,7 @@ TextractorCLI（用户自装，x86/x64 各一份）
 | 中 | 书架页 | 分类页已承担整理，跨分类总览还没做 |
 | 中 | 存档管理 | 待做「存档目录快捷方式 + 手动备份/恢复」 |
 | 低 | 手柄 / 多主题 / Magpie / CI 自动发布 | 明确排在后面 |
+| 中 | [前端体验反馈](frontend-ux-feedback.md)第 4 项：收藏架要不要走 Atelier 语言（新增第 5 套 vs 改造收藏架） | 小样在 `docs/theme-demos/atelier/`，没动应用里的皮肤。真机区分度已能量：`gallery–shelf 16.1`（目标 20）→ 先定方向。同文档第 1、2、3、10–13 条都已修并过了真机门 |
 
 ## 9. 参考的开源项目与许可
 

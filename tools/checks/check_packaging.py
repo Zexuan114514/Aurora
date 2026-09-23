@@ -12,12 +12,27 @@ P4 的交付里有一条「打包清单单一来源」：清单只有 `tools/bui
 from __future__ import annotations
 
 import ast
+import re
 import sys
 
 from common import ROOT, Result, main
 
 BUILD = "tools/build_exe.py"
 WEB = "gl/web"
+OVERLAY = "aurora/ui/overlay.py"
+
+
+def _overlay_entry() -> str:
+    """从 `aurora/ui/overlay.py` 里读出 `HTML_PATH` 的字面量相对路径。
+
+    只做静态读取（不 import 应用代码 —— 离线检查不允许依赖 pywebview）。
+    """
+    match = re.search(r"^HTML_PATH\s*=\s*config\.WEB_DIR\s*/\s*(.+)$",
+                      (ROOT / OVERLAY).read_text(encoding="utf-8"), re.MULTILINE)
+    if not match:
+        return ""
+    parts = re.findall(r'"([^"]+)"', match.group(1))
+    return "/".join(parts)
 
 
 def _tuple_literals(source: str, *names: str) -> dict[str, tuple[str, ...]]:
@@ -90,6 +105,28 @@ def check() -> Result:
     result.note(note)
     if not unlisted_files and not unlisted_dirs:
         result.note("gl/web 顶层无未登记条目：清单与实际目录一致")
+
+    # v2（Vite 产物）的形状断言：入口 + bundle 里至少一个 js / css + 构建指纹
+    v2 = web / "v2"
+    if (v2 / "index.html").is_file():
+        js = list((v2 / "bundle").glob("*.js")) if (v2 / "bundle").is_dir() else []
+        css = list((v2 / "bundle").glob("*.css")) if (v2 / "bundle").is_dir() else []
+        if not js or not css:
+            result.fail("gl/web/v2/bundle 下缺少 js / css 产物（先跑 npm run build）")
+        for name in ("overlay.html", "build-info.json"):
+            if not (v2 / name).is_file():
+                result.fail(f"gl/web/v2/{name} 不存在（先跑 npm run build）")
+        result.note(f"v2 产物：{len(js)} 个 js + {len(css)} 个 css + 构建指纹")
+
+    # 运行时的入口常量必须落在实际产物上：P8.9 删 v1 时 overlay.py 还指着
+    # `gl/web/overlay.html`，离线门全绿、真机上悬浮窗直接不出现（e2e 才抓到）。
+    entry = _overlay_entry()
+    if not entry:
+        result.fail(f"{OVERLAY} 里找不到 HTML_PATH（入口守卫失效，请同步这条检查）")
+    elif not (web / entry).is_file():
+        result.fail(f"悬浮窗入口不存在：{WEB}/{entry}（{OVERLAY} 的 HTML_PATH）")
+    else:
+        result.note(f"悬浮窗入口：{WEB}/{entry}")
     return result
 
 

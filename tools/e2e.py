@@ -6,7 +6,7 @@ import pathlib as _pathlib
 import sys as _sys
 
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
-from _common import setup_console  # noqa: E402
+from _common import guard_webview_start, setup_console  # noqa: E402
 
 setup_console()
 
@@ -294,6 +294,16 @@ def main() -> int:
                 step("背景缩放复位", not (reset.get("transform") or ""), reset)
 
             # 3.5 大厅导航（封面环形队列）
+            # v2 起「大图 + 侧列表」是默认布局：环形那几项判据要先显式切回环形队列。
+            # 这一步只是把被测量的布局说清楚，判据本身一个字没改（v1 前端上同样成立）。
+            window.evaluate_js("""(() => {
+              const sel = document.getElementById('setHallLayout');
+              if (sel && sel.value !== 'ring') {
+                sel.value = 'ring';
+                sel.dispatchEvent(new Event('change'));
+              }
+            })()""")
+            time.sleep(1.4)
             hall = probe(window, """
               const tiles = [...document.querySelectorAll('#hallRow .gi')]
                 .filter((n) => n.style.transform)
@@ -323,6 +333,35 @@ def main() -> int:
             """)
             step("大厅出现封面块", hall.get("tiles") == 2 and hall.get("add"), hall)
             step("大厅「获取游戏」入口可点（没被工具条压住）", bool(hall.get("getHit")), hall.get("getHit"))
+
+            # 3.5b 顶部栏排布（P8.6，使用者 2026-09-23 第 7 条）：
+            # 窗口按钮贴窗口右缘，获取游戏 / 浏览范围两个入口落在顶部栏内且点得到
+            bar = probe(window, """
+              const hit = (id) => {
+                const b = document.getElementById(id);
+                const r = b.getBoundingClientRect();
+                const el = document.elementFromPoint(Math.round(r.left + r.width / 2),
+                                                     Math.round(r.top + r.height / 2));
+                return !!(el && el.closest('#' + id));
+              };
+              const tb = document.getElementById('toolbar').getBoundingClientRect();
+              const close = document.getElementById('btnClose').getBoundingClientRect();
+              const get = document.getElementById('btnGetGames');
+              const pill = document.getElementById('scopePill');
+              const gr = get.getBoundingClientRect(), pr = pill.getBoundingClientRect();
+              const inside = (r) => r.width > 0 && r.left >= tb.left - 1 && r.right <= tb.right + 1;
+              return JSON.stringify({
+                gap: Math.round(innerWidth - close.right),
+                getInside: inside(gr), pillInside: inside(pr),
+                getHit: hit('btnGetGames'), scopeHit: hit('scopePick'),
+                labels: [get.getAttribute('aria-label'),
+                         document.getElementById('scopePick').getAttribute('aria-label')]});
+            """)
+            step("窗口按钮贴右缘 + 两个大厅入口在顶部栏内",
+                 (bar.get("gap") or 99) <= 8 and bar.get("getInside") and bar.get("pillInside")
+                 and bar.get("getHit") and bar.get("scopeHit")
+                 and all(bar.get("labels") or []), bar)
+
             step("焦点封面居中", abs((hall.get("cx") or 0) - (hall.get("vw") or 0) / 2) <= 3,
                  f"cx={hall.get('cx')} vw={hall.get('vw')}")
 
@@ -501,18 +540,31 @@ def main() -> int:
             step("Esc 返回大厅", escaped.get("hall") and escaped.get("view"), escaped)
 
             # 3.7 获取游戏（下载大厅）
-            window.evaluate_js("document.querySelector('#hallRow .gi-add').click()")
-            time.sleep(1.0)
-            add_menu = probe(window, """
-              const m = document.getElementById('addMenu');
-              return JSON.stringify({open: !m.hidden,
-                                     items: [...m.querySelectorAll('button')].map(b => b.textContent.trim())});
+            # P8.6（使用者 2026-09-23 的意见）：末尾方块与侧列表的「导入游戏」不再弹
+            # 二选一菜单，点下去直接进本地导入 —— 也就是调一次 pick_executable。
+            # 真调会弹系统文件框、把整轮 e2e 挂住，所以这里换成桩，只看有没有被调到。
+            stubbed = probe(window, """
+              window.__e2ePick = 0;
+              window.__e2ePickReal = window.pywebview.api.pick_executable;
+              window.pywebview.api.pick_executable = () => {
+                window.__e2ePick += 1;
+                return Promise.resolve({cancelled: true});
+              };
+              document.querySelector('#hallRow .gi-add').click();
+              return JSON.stringify({menuNode: !!document.getElementById('addMenu')});
             """)
-            step("末尾方块弹出二选一菜单",
-                 add_menu.get("open") and len(add_menu.get("items") or []) == 2, add_menu)
+            time.sleep(1.4)
+            picked = probe(window, """
+              window.pywebview.api.pick_executable = window.__e2ePickReal;
+              return JSON.stringify({picks: window.__e2ePick || 0,
+                                     menuNode: !!document.getElementById('addMenu')});
+            """)
+            step("末尾方块直接进本地导入（不再二选一）",
+                 picked.get("picks") == 1 and not picked.get("menuNode")
+                 and not stubbed.get("menuNode"), {"stub": stubbed, "picked": picked})
 
-            window.evaluate_js(
-                "document.querySelector('#addMenu [data-add-act=get]').click()")
+            # 「获取游戏」现在只剩顶部栏那一个入口
+            window.evaluate_js("document.getElementById('btnGetGames').click()")
             time.sleep(2.0)
             get_panel = probe(window, """
               const p = document.getElementById('getPanel');
@@ -1203,14 +1255,23 @@ def main() -> int:
             fallback_launch = api.launch(game_id)
             time.sleep(2.0)
             toast_state = probe(window, """
-              return JSON.stringify({text: document.getElementById('toast').textContent,
-                                     running: !document.getElementById('pillRunning').hidden});
+              const t = document.getElementById('toast');
+              const tr = t.getBoundingClientRect();
+              const tb = document.getElementById('toolbar').getBoundingClientRect();
+              return JSON.stringify({text: t.textContent,
+                                     running: !document.getElementById('pillRunning').hidden,
+                                     y: Math.round(tr.top), vh: innerHeight,
+                                     belowBar: tr.top > tb.bottom + 8});
             """)
             toast_text = toast_state.get("text") or ""
             step("开启转区后照常启动 + 有转区提示",
                  bool(fallback_launch.get("ok")) and api._pm.is_running(game_id)
                  and toast_state.get("running")
-                 and ("Locale Emulator" in toast_text or "转区" in toast_text), toast_state)
+                 and ("Locale Emulator" in toast_text or "转区" in toast_text)
+                 # P8.6：提示条挪到画面下方，不再压顶部状态胶囊与标题区（第 4 条）
+                 and toast_state.get("belowBar")
+                 and (toast_state.get("y") or 0) > (toast_state.get("vh") or 0) / 2,
+                 toast_state)
             api.stop(game_id)
             api.set_game_locale(game_id, False, "")
             api.set_launch_args(game_id, "-n 30 127.0.0.1")
@@ -1442,6 +1503,7 @@ def main() -> int:
                 pass
 
     window.events.loaded += lambda: threading.Thread(target=run, daemon=True).start()
+    guard_webview_start(window, label="e2e", profile=TEST_DATA / "webview")
     webview.start(gui="edgechromium", private_mode=False, http_port=app_main.free_port(),
                   storage_path=str(TEST_DATA / "webview"))
     return 0 if all(r["ok"] or r.get("skipped") for r in results) else 1

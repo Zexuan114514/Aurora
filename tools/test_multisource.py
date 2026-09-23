@@ -9,7 +9,7 @@ import pathlib as _pathlib
 import sys as _sys
 
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
-from _common import setup_console  # noqa: E402
+from _common import guard_webview_start, setup_console  # noqa: E402
 
 setup_console()
 
@@ -159,6 +159,7 @@ def main() -> int:
                 pass
 
     window.events.loaded += lambda: threading.Thread(target=run, daemon=True).start()
+    guard_webview_start(window, label="test_multisource", profile=TEST_DATA / "webview")
     webview.start(gui="edgechromium", private_mode=False, http_port=app_main.free_port(),
                   storage_path=str(TEST_DATA / "webview"))
     return 0 if all(r["ok"] for r in results) else 1
