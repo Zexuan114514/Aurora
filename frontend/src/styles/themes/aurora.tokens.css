@@ -1,0 +1,79 @@
+/* 主题 · 极光玻璃（默认）：扁平半透明面 + 极光青紫，不再做毛玻璃模糊。
+   （2026-09-22 反馈：去掉那层轻模糊；面板靠不透明底色保证可读性。） */
+:root[data-style="aurora"] {
+  /* 深色态：深蓝黑 —— 与 gallery 的冷灰、screening/shelf 的暖棕拉开色温 */
+  --s-base: #04070f;
+  --s-panel: #0c1622;
+  --s-elevated: #121e2c;
+  /* 表面高光偏冷青（其余三套：冷灰 / 琥珀 / 纸白） */
+  --ramp-s: 214 236 255;
+  --ramp-s-k: 1.35;           /* 玻璃高光更亮：极光那一版是「透亮的蓝」 */
+  --ramp-l: 255 255 255;
+  --ramp-l-k: 1;
+  --ink-strong: #ffffff;
+  --text-1: #ffffff;
+  --text-2: rgb(255 255 255 / 0.78);
+  --text-3: rgb(255 255 255 / 0.58);
+  --scrim-rgb: 0 0 0;
+  --scrim-boost: 1;
+  --fx-scrim: 0.42;
+  --veil-ink: #04121a;
+  --fx-text-shadow: 0 3px 20px rgb(0 0 0 / 0.7);
+  --a-main: #4fd6c4;
+  --a-2: #8b7cff;
+  --a-on: #04211f;
+  --r-lg: 22px;
+  --r-md: 16px;
+  --r-sm: 11px;
+  --r-xs: 8px;
+  --r-xl: 26px;
+  --r-pill: 999px;
+  /* P8.8：毛玻璃回到极光玻璃身上 —— 其余三套一律 0（放映厅 / 收藏架本轮归零，
+     画廊本来就是 0）。这一层模糊是这套主题的身份，别再抹掉。 */
+  --fx-blur: 20px;
+  --fx-sat: 190%;
+  /* 两层：远影 + 近影。面板（.glass）与 Element Plus 的弹层都读这一条，
+     改成两层是为了接手原来写在 layout.css 里的那段硬编码阴影（P8.7）。 */
+  --fx-panel-shadow: 0 26px 60px -18px rgb(0 0 0 / 0.72),
+                     0 4px 16px -6px rgb(0 0 0 / 0.45);
+  --fx-cover-shadow: 0 18px 42px -22px rgb(0 0 0 / 0.95);
+  --option-bg: #1c1c22;
+  --s-floor: color-mix(in srgb, #0b1520 68%, transparent);   /* 最薄：壁纸透出来 */
+}
+
+/* 极光玻璃 · 浅色：把壁纸提亮，白面加厚到接近不透明，深色文字才读得出来。 */
+:root[data-style="aurora"][data-theme="light"] {
+  --s-base: #e9e9ee;
+  --s-panel: #ffffff;
+  --s-elevated: #ffffff;
+  --ramp-s: 255 255 255;
+  --ramp-s-k: 12;
+  --ramp-l: 18 20 28;
+  --ramp-l-k: 1.2;
+  --ink-strong: #14161d;
+  --text-1: #14161d;
+  --text-2: rgb(20 22 29 / 0.74);
+  --text-3: rgb(20 22 29 / 0.62);
+  --scrim-rgb: 255 255 255;
+  --scrim-boost: 1.45;
+  --fx-scrim: 0.5;
+  --veil-ink: #2b2e38;
+  --fx-text-shadow: 0 2px 16px rgb(255 255 255 / 0.85);
+  --a-main: #0f9e90;
+  --a-2: #6c5ce0;
+  --a-on: #ffffff;
+  --r-lg: 22px;
+  --r-md: 16px;
+  --r-sm: 11px;
+  --r-xs: 8px;
+  --r-xl: 26px;
+  --r-pill: 999px;
+  --fx-blur: 20px;
+  --fx-sat: 170%;
+  --fx-panel-shadow: 0 26px 60px -26px rgb(20 22 29 / 0.35),
+                     0 4px 16px -8px rgb(20 22 29 / 0.16);
+  --fx-cover-shadow: 0 16px 36px -20px rgb(20 22 29 / 0.45);
+  --option-bg: #ffffff;
+  /* 浅色态的面板底色（深色态那份写在上面，两份都要有，否则会串到浅色） */
+  --s-floor: color-mix(in srgb, #ffffff 88%, transparent);
+}

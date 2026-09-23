@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN" data-demo="screening">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>夜间放映厅 · 示例主页</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--
+  主题签名（screening / 夜间放映厅）· v2 扁平版
+    · 背景：压到只剩轮廓，叠一层暖色罩；右上角可切常驻图
+    · 封面：一张 300×452 的卡片，1px 琥珀细边 —— 去掉了光束与发光
+    · 排印：窄体无衬线 + 大写字距，时间码用等宽；标题 50px
+    · 按钮：主按钮是实心琥珀（50px 高），次按钮描边、悬停才上琥珀
+    · 列表：节目单（时间码 / 片名 / 时长），当前项左边一条 3px 琥珀竖条
+  令牌对应：--s-base #14100b / --amber（应用里的 --a-main）/ --text-* / --hair
+-->
+
+<div class="bg">
+  <img class="follow" src="../assets/hero-screening.jpg" alt="">
+  <img class="pinned" src="../assets/cover-2.jpg" alt="">
+</div>
+<div class="scrim"></div>
+
+<header class="topbar">
+  <div class="brand"><b>Aurora</b><span>游戏启动器</span></div>
+  <label class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" placeholder="搜索游戏库">
+  </label>
+  <nav class="views"><b class="on">主页</b><span>分类</span></nav>
+  <input type="checkbox" id="bgmode" hidden>
+  <label class="bg-pill" for="bgmode">
+    <span class="follow-text">背景 · 跟随当前游戏</span>
+    <span class="pinned-text">背景 · 常驻图</span>
+  </label>
+  <button class="bg-swap" type="button"
+          title="常驻图只支持一张：再选一张会替换掉现在这张">更换常驻图…</button>
+  <div class="winbtns"><i>—</i><i>▢</i><i>✕</i></div>
+</header>
+
+<main class="hall">
+  <section class="hero">
+    <figure class="hero-art"><img src="../assets/cover-1.jpg" alt=""></figure>
+    <div class="meta">
+      <p class="kicker">正在放映 · Studio Hoshi</p>
+      <h1>苍蓝回响</h1>
+      <p class="sub">2024　冒险 / 恋爱　已玩 12.4 小时　最近一次 3 天前</p>
+      <p class="desc">
+        离岛的海风、褪色的夏天，和一个说自己来自大海深处的少女。
+        故事从一场久别重逢开始，也从一句没有说完的再见结束。
+      </p>
+      <div class="actions">
+        <button class="primary">继续游戏</button>
+        <button class="ghost">背景图</button>
+        <button class="ghost">详情</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="programme">
+    <div class="pg-head"><span>今晚的节目单</span><span>6 部</span></div>
+    <ol>
+      <li class="on"><span class="time">20:14</span><b>苍蓝回响</b><small>Studio Hoshi</small><em>12.4h</em></li>
+      <li><span class="time">21:40</span><b>夜行列车的叙事诗</b><small>梦之工业</small><em>26h</em></li>
+      <li><span class="time">23:05</span><b>镜湖</b><small>Northlight</small><em>3.2h</em></li>
+      <li><span class="time">01:20</span><b>红裙的森林</b><small>Tsukikage</small><em>8h</em></li>
+      <li><span class="time">02:55</span><b>落日街</b><small>Amber Works</small><em>1.5h</em></li>
+      <li><span class="time">04:10</span><b>白裙与雾</b><small>Yuki Soft</small><em>44h</em></li>
+    </ol>
+  </aside>
+</main>
+
+<footer class="hintbar">
+  <span>苍蓝回响 · Studio Hoshi · 2024</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+</footer>
+</body>
+</html>

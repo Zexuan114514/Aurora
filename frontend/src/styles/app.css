@@ -1,0 +1,329 @@
+/* Aurora v2 · 样式入口
+ *
+ * 顺序有意义：
+ *   0. element-plus —— 组件库默认值（按需，见 element-plus.css）
+ *   1. tokens        —— 语义令牌 + 默认主题值 + v1 布局层变量的推导
+ *   2. themes/*.tokens —— 四套主题各自覆盖（深 / 浅两态）
+ *   3. themes/*.skin   —— 每套主题的结构性签名（细线 / 光斑 / 架线）
+ *   4. layout.css      —— v1 迁移过来的布局（环形几何、面板、分类、设置…）
+ *   5. element.css     —— Element Plus 变量桥接与组件几何（必须最后，才能盖住组件库默认值）
+ *
+ * Element Plus 的样式在这里引（而不是在各入口）是有原因的：两个入口共用
+ * app.css，Vite 会把它打进同一个 CSS 块并保持块内顺序；如果样式挂在入口上，
+ * 就会落到第二个 CSS 块（在共享块之后加载），组件库默认值反过来盖住我们的桥接。
+ */
+@import "./element-plus.css";
+@import "./tokens.css";
+@import "./themes/aurora.tokens.css";
+@import "./themes/gallery.tokens.css";
+@import "./themes/screening.tokens.css";
+@import "./themes/shelf.tokens.css";
+@import "./themes/aurora.skin.css";
+@import "./themes/gallery.skin.css";
+@import "./themes/screening.skin.css";
+@import "./themes/shelf.skin.css";
+@import "./layout.css";
+@import "./element.css";
+
+/* 旧的四套调色板保留为「强调色覆盖层」：
+   aurora = 跟随主题（不覆盖），其余三套只改强调色，风格仍由 data-style 决定。
+   tools/e2e.py 会点 #setPalettes [data-palette=lime] 并读 --accent，所以这条必须留。 */
+[data-palette="lime"] { --a-main: #26C6A8; --a-2: #6FE0C8; }
+[data-palette="sakura"] { --a-main: #FF5C8A; --a-2: #FF9AB6; }
+[data-palette="amber"] { --a-main: #FF9F0A; --a-2: #FFC46B; }
+
+/* 设置 → 外观：强调色（旧调色板）+ 四套风格卡片 */
+.palette-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.palette-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px 0 9px;
+  border: 1px solid var(--stroke-soft);
+  border-radius: var(--r-pill);
+  background: var(--srf070);
+  color: var(--text-2);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.palette-chip:hover { background: var(--fil130); color: var(--text-1); }
+.palette-chip.on {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  color: var(--text-1);
+}
+.palette-chip i { width: 14px; height: 14px; border-radius: 50%; display: block; }
+.palette-custom {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px dashed var(--stroke-soft);
+  border-radius: var(--r-pill);
+  color: var(--text-3);
+  font-size: 12px;
+}
+.palette-custom.on { border-style: solid; color: var(--text-1); }
+
+.theme-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 8px;
+  max-width: 560px;
+}
+.theme-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke-soft);
+  border-radius: var(--r-md);
+  background: var(--srf060);
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.theme-card:hover { background: var(--fil130); }
+.theme-card.on { border-color: var(--accent); color: var(--text-1); }
+.theme-card i { width: 100%; height: 4px; border-radius: var(--r-pill); display: block; }
+.theme-card b { font-size: 12.5px; font-weight: 600; }
+.theme-card span { font-size: 11px; color: var(--text-3); line-height: 1.5; }
+
+/* 获取游戏：资源站胶囊（点名字打开站点，✕ 删除自定义站点） */
+.site-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 4px 0 2px;
+  border: 1px solid var(--stroke-soft);
+  border-radius: var(--r-pill);
+  background: var(--srf080);
+  font-size: 12px;
+}
+.site-chip .site-open {
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+}
+.site-chip .site-open:hover { background: var(--fil130); }
+.site-chip .site-del {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--srf100);
+  color: var(--text-3);
+  font-size: 11px;
+  cursor: pointer;
+}
+.site-chip .site-del:hover { background: rgba(255, 69, 58, 0.7); color: #fff; }
+.site-chip .site-del svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+/* ------------------------------------------------------------
+   大厅「大图 + 侧列表」布局（v2 默认）
+   环形那套 DOM 与几何完全保留（.hall-viewport / .hall-ring / .gi），
+   这里只加第三个布局的外壳；切到 list 时把环形行藏起来。
+   ------------------------------------------------------------ */
+#hall.hall-list .hall-viewport { perspective: none; }
+#hall.hall-list .hall-ring { display: none; }
+/* 列表布局下环形视口还盖在整个大厅上（DOM 在后、position: absolute），
+   真实鼠标的 hover / click / 拖滑动条全被它吃掉 —— 合成事件（element.click()
+   与 dispatchEvent）绕过了命中测试，所以之前的探针没发现。
+   这里只关掉它的命中，几何照旧（切回 ring / flat 立马可用）。使用者 2026-09-23 实测。 */
+#hall.hall-list .hall-viewport { pointer-events: none; }
+
+.hall-list-body {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 0;
+  padding: 84px 0 0;
+}
+.hall-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 38px;
+  min-width: 0;
+  padding: 0 34px 74px;
+}
+.hall-hero-art {
+  position: relative;
+  flex: none;
+  width: 252px;
+  height: 378px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--srf080);
+  box-shadow: var(--fx-cover-shadow);
+  cursor: pointer;
+}
+.hall-hero-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hall-hero-art b {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 54px;
+  color: var(--text-3);
+}
+.hall-hero-art img { position: relative; z-index: 1; }
+/* P8.8：信息列从「窄标签」改成「书页」——使用者对比 Gal Launcher 后要的是
+   标题 + 信息与左侧封面等分量（见 docs/images/详情页-*.png）。宽度放开到 640，
+   字号整体上调（h1 27→40、meta/desc 12.5→15）。 */
+.hall-label { min-width: 0; max-width: 640px; }
+.hall-label .label-rule {
+  width: 58px;
+  height: 2px;
+  margin-bottom: 14px;
+  background: var(--a-main);
+}
+.hall-label h1 {
+  margin: 0;
+  font-size: 40px;
+  font-weight: 640;
+  line-height: 1.16;
+  letter-spacing: -0.014em;
+  text-shadow: var(--fx-text-shadow);
+}
+.hall-label .hall-label-meta {
+  margin-top: 12px;
+  font-size: 15px;
+  color: var(--text-2);
+  text-shadow: var(--fx-text-shadow);
+}
+.hall-label .hall-label-desc {
+  margin-top: 18px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hall-label .hall-label-desc:empty { display: none; }
+
+.hall-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin: 0 18px 74px 0;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.hall-side-head {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.hall-side-rows { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 10px; }
+.hall-row-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.hall-row-item:hover { background: var(--fil100); }
+.hall-row-item.on { background: var(--a-soft, var(--fil140)); }
+.hall-row-item img {
+  width: 44px;
+  height: 62px;
+  object-fit: cover;
+  border-radius: calc(var(--r-sm) - 2px);
+  display: block;
+  background: var(--srf080);
+}
+.hall-row-item .row-title {
+  font-size: 12.5px;
+  font-weight: 540;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hall-row-item.on .row-title { color: var(--text-1); }
+.hall-row-item .row-meta {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hall-row-item .row-time {
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.hall-row-item.on .row-time { color: var(--a-main); }
+
+@media (max-width: 1080px) {
+  .hall-list-body { grid-template-columns: minmax(0, 1fr) 268px; padding-top: 76px; }
+  .hall-hero { padding: 0 22px 66px; gap: 22px; }
+  .hall-hero-art { width: 196px; height: 294px; }
+  .hall-label h1 { font-size: 30px; }
+  .hall-label .hall-label-desc { -webkit-line-clamp: 3; }
+}
+
+/* 空库 / 拖放 / 帧选择框等零散件（v1 未覆盖的部分） */
+.list-empty { padding: 28px 12px; text-align: center; font-size: 12.5px; color: var(--text-3); }
+
+/* ------------------------------------------------------------
+   P8.5 · 布局修补（使用者 2026-09-23 反馈）
+   ------------------------------------------------------------ */
+/* 4-a/4-b：右栏收窄、让开底部信息带；行里只留名字（不显示厂商），名字与时长互不挤压 */
+#hall.hall-list .hall-list-body { grid-template-columns: minmax(0, 1fr) 264px; }
+.hall-side { margin: 0 16px 112px 0; }
+.hall-side .hall-side-rows { overscroll-behavior: contain; }
+.hall-row-item { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 9px; padding: 7px; }
+.hall-row-item > span { min-width: 0; display: block; }
+.hall-row-item .row-meta { display: none; }         /* 侧栏不显示厂商：空间不够，两行会挤在一起 */
+.hall-row-item .row-title { line-height: 1.4; font-size: 12.5px; }
+.hall-row-item img { width: 40px; height: 56px; }
+/* 悬停/按下要有「按钮」的反馈（使用者的第三条），滚动条常驻槽位免得抖 */
+.hall-row-item:hover {
+  background: var(--fil140);
+  box-shadow: inset 0 0 0 1px var(--stroke-soft);
+}
+.hall-row-item:active { transform: scale(0.985); }
+.hall-side-rows { scrollbar-gutter: stable; }
+
+/* 2：详情页的「…」不再被挤到第二行 */
+.game-actions { display: flex; align-items: center; flex-wrap: nowrap; min-width: 0; gap: 8px; }
+.game-actions > .btn { flex: none; }
+.game-actions .btn { padding: 0 14px; }
+.game-actions .btn.play { padding: 0 20px; }
+
+/* 1：「导入游戏」不再弹二选一菜单（直接进本地导入），「获取游戏 / 浏览范围」
+   两个入口搬进了顶部栏，见 layout.css 的 .scope-pill 与 ToolbarBar.vue。 */

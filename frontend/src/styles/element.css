@@ -1,0 +1,218 @@
+/* Aurora v2 · Element Plus 桥接
+ *
+ * Element Plus 的组件全部读 `--el-*` 变量，所以只要把语义令牌映射过去，
+ * 四套主题 × 深/浅两态就会自动跟着走 —— 不需要为每套主题各写一份组件样式。
+ *
+ * 选择器写成 `:root, :root.dark`：Element Plus 自带的暗色变量挂在 `.dark` 上，
+ * 不带上它会被它盖掉。
+ */
+:root,
+:root.dark {
+  --el-color-primary: var(--a-main);
+  --el-color-primary-light-3: color-mix(in srgb, var(--a-main) 70%, var(--s-base));
+  --el-color-primary-light-5: color-mix(in srgb, var(--a-main) 50%, var(--s-base));
+  --el-color-primary-light-7: color-mix(in srgb, var(--a-main) 30%, var(--s-base));
+  --el-color-primary-light-8: color-mix(in srgb, var(--a-main) 20%, var(--s-base));
+  --el-color-primary-light-9: color-mix(in srgb, var(--a-main) 12%, var(--s-base));
+  --el-color-primary-dark-2: color-mix(in srgb, var(--a-main) 80%, #000);
+
+  --el-bg-color: var(--s-panel);
+  --el-bg-color-page: var(--s-base);
+  --el-bg-color-overlay: var(--s-elevated);
+
+  --el-text-color-primary: var(--text-1);
+  --el-text-color-regular: var(--text-2);
+  --el-text-color-secondary: var(--text-3);
+  --el-text-color-placeholder: var(--text-3);
+  --el-text-color-disabled: var(--text-3);
+
+  --el-border-color: var(--ln180);
+  --el-border-color-light: var(--ln140);
+  --el-border-color-lighter: var(--ln090);
+  --el-border-color-extra-light: var(--ln045);
+  --el-border-color-dark: var(--ln240);
+  --el-border-color-darker: var(--ln300);
+
+  --el-fill-color: var(--srf080);
+  --el-fill-color-light: var(--srf060);
+  --el-fill-color-lighter: var(--srf045);
+  --el-fill-color-extra-light: var(--srf035);
+  --el-fill-color-dark: var(--srf100);
+  --el-fill-color-darker: var(--srf140);
+  --el-fill-color-blank: transparent;
+
+  --el-border-radius-base: var(--r-md);
+  --el-border-radius-small: var(--r-sm);
+  --el-border-radius-round: var(--r-pill);
+  --el-font-family: var(--font);
+  --el-font-size-base: 13px;
+
+  --el-box-shadow: var(--fx-panel-shadow);
+  --el-box-shadow-light: var(--fx-panel-shadow);
+  --el-box-shadow-lighter: var(--fx-panel-shadow);
+  --el-box-shadow-dark: var(--fx-panel-shadow);
+  --el-mask-color: rgb(0 0 0 / 0.42);
+}
+
+/* 组件几何：让 Element Plus 的控件与工具条上的自绘控件看起来是同一套东西。 */
+.el-button {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-weight: 500;
+}
+.el-button.is-round { border-radius: var(--r-pill); }
+.el-button--small { height: 28px; padding: 0 12px; }
+.el-button--large { height: 42px; padding: 0 22px; }
+.el-button--primary { color: var(--a-on); }
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+  background: var(--srf080);
+  box-shadow: 0 0 0 1px var(--stroke-soft) inset;
+  border-radius: var(--r-md);
+}
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--a-main) inset;
+}
+.el-dialog,
+.el-drawer {
+  background: var(--s-panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-lg);
+  box-shadow: var(--fx-panel-shadow);
+  backdrop-filter: blur(var(--fx-blur)) saturate(var(--fx-sat));
+  -webkit-backdrop-filter: blur(var(--fx-blur)) saturate(var(--fx-sat));
+}
+.el-dialog__title,
+.el-drawer__title { font-size: 15px; font-weight: 600; }
+.el-overlay { z-index: 260; }
+.el-popper.is-light,
+.el-popper.is-dark {
+  background: var(--s-elevated);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  box-shadow: var(--fx-panel-shadow);
+}
+.el-popper.is-light .el-popper__arrow::before,
+.el-popper.is-dark .el-popper__arrow::before {
+  background: var(--s-elevated);
+  border-color: var(--stroke);
+}
+.el-dropdown-menu { background: transparent; }
+.el-dropdown-menu__item { border-radius: var(--r-sm); color: var(--text-1); }
+.el-dropdown-menu__item:not(.is-disabled):hover,
+.el-dropdown-menu__item:not(.is-disabled):focus {
+  background: var(--fil130);
+  color: var(--text-1);
+}
+.el-message-box {
+  background: var(--s-panel);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-lg);
+}
+.el-message { background: var(--s-elevated); border-color: var(--stroke); border-radius: var(--r-md); }
+.el-switch { --el-switch-on-color: var(--a-main); --el-switch-off-color: var(--srf200); }
+.el-slider { --el-slider-main-bg-color: var(--a-main); --el-slider-runway-bg-color: var(--srf100); }
+.el-tag {
+  background: var(--srf085);
+  border-color: var(--stroke-soft);
+  color: var(--text-2);
+  border-radius: var(--r-sm);
+}
+.el-tooltip__popper { font-size: 11.5px; }
+.el-scrollbar__thumb { background: var(--srf200); }
+.el-skeleton__item { background: var(--srf080); }
+.el-virtual-scrollbar .el-scrollbar__thumb { background: var(--srf200); }
+
+/* ------------------------------------------------------------
+   设置页：开关（el-switch）与滑杆（el-slider）
+   几何对齐 v1 的自绘控件（layout.css 里的 .switch / input[type=range]），
+   换组件不换手感。
+
+   注意 layout.css 有一条 `.set-row span { width: 34px; text-align: right … }`
+   （给行尾数值用的，v1 迁移过来的），它会波及 el-switch 内部的 core span，
+   所以这里用更高优先级把 switch 自己的尺寸还原回去。
+   ------------------------------------------------------------ */
+.set-row .el-switch,
+.set-actions .el-switch {
+  flex: none;
+  --el-switch-on-color: var(--a-main);
+  --el-switch-off-color: var(--srf160);
+}
+.set-row .el-switch .el-switch__core {
+  width: 40px;
+  height: 20px;
+  border-radius: var(--r-pill);
+  text-align: left;
+  font-size: inherit;
+  color: inherit;
+  font-variant-numeric: normal;
+}
+.set-row .el-switch .el-switch__action {
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.4);
+}
+
+.set-row .el-slider {
+  flex: 1;
+  min-width: 0;
+  --el-slider-height: 4px;
+  --el-slider-border-radius: var(--r-pill);
+  --el-slider-button-size: 16px;
+  --el-slider-button-wrapper-size: 32px;
+  --el-slider-button-wrapper-offset: -14px;
+}
+.set-row .el-slider .el-slider__button {
+  border: none;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+}
+.set-row .el-slider.is-disabled .el-slider__button { border: none; }
+
+/* ------------------------------------------------------------
+   设置页：按钮（el-button）与文本框（el-input）
+
+   这两类控件**视觉**仍然由 layout.css 的 `.btn` / `.glass-btn` / `.mini-btn` 决定
+   （class 原样带过来），Element Plus 提供的是行为层：键盘、焦点、禁用、loading。
+   所以要处理的是组件库多出来的东西：
+     · `.el-button + .el-button` 自带 12px 左边距，和我们的 flex gap 叠加会变宽
+     · `.el-button` 内部把文案包在 span 里，会被 `.set-row span` 那条 34px 宽的规则波及
+     · `el-input` 的 wrapper 要在行里撑满，内部 span 同理
+   ------------------------------------------------------------ */
+.set-row .el-button + .el-button,
+.set-actions .el-button + .el-button { margin-left: 0; }
+.set-row .el-button span,
+.set-actions .el-button span {
+  width: auto;
+  text-align: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+.set-row .el-input,
+.set-actions .el-input {
+  flex: 1;
+  min-width: 0;
+  --el-input-height: 32px;
+}
+.set-row .el-input .el-input__wrapper {
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+}
+.set-row .el-input .el-input__suffix,
+.set-row .el-input .el-input__prefix {
+  width: auto;
+  text-align: left;
+  font-size: inherit;
+  color: inherit;
+}
+.set-row .el-input.is-disabled .el-input__wrapper { box-shadow: 0 0 0 1px var(--stroke-soft) inset; }
+
+/* 玻璃主题下，弹层也保留一层模糊；其它主题 --fx-blur 为 0，等于关掉。 */
+[data-style="gallery"] .el-dialog,
+[data-style="gallery"] .el-drawer { backdrop-filter: none; -webkit-backdrop-filter: none; }

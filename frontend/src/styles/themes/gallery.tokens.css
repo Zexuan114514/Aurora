@@ -1,0 +1,72 @@
+/* 主题 · 展签式画廊：界面退成展签，无玻璃、无圆角、无投影，只有细线。 */
+:root[data-style="gallery"] {
+  /* 深色态：夜间美术馆的冷灰墙 —— 比另外三套中性、且明显更亮一档 */
+  --s-base: #14161a;
+  --s-panel: #262c35;
+  --s-elevated: #2f3640;
+  --ramp-s: 232 236 242;      /* 冷灰白：美术馆的墙 */
+  --ramp-s-k: 0.85;
+  --ramp-l: 255 255 255;
+  --ramp-l-k: 1.15;
+  --ink-strong: #ffffff;
+  --text-1: #ffffff;
+  --text-2: rgb(255 255 255 / 0.8);
+  --text-3: rgb(255 255 255 / 0.6);
+  --scrim-rgb: 10 11 14;
+  --scrim-boost: 1.12;
+  --fx-scrim: 0.5;
+  --veil-ink: #14161a;
+  --fx-text-shadow: 0 2px 14px rgb(0 0 0 / 0.72);
+  --a-main: #3f63e8;
+  --a-2: #c9ced8;
+  --a-on: #ffffff;
+  --r-lg: 1px;
+  --r-md: 1px;
+  --r-sm: 1px;
+  --r-xs: 1px;
+  --r-xl: 1px;
+  --r-pill: 1px;
+  --fx-blur: 0px;
+  --fx-sat: 100%;
+  --fx-panel-shadow: none;
+  --fx-cover-shadow: none;
+  --option-bg: #16181d;
+  --s-floor: color-mix(in srgb, #2e343d 92%, transparent);   /* 最实：夜里的展墙 */
+  /* 排印：衬线（展签上的印刷字）。正文也走衬线 —— 这是这套主题最容易认出的地方。 */
+  --font: "Times New Roman", "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+}
+
+/* 展签式画廊 · 浅色：美术馆白墙，深色说明文字，线仍然是主角。 */
+:root[data-style="gallery"][data-theme="light"] {
+  --s-base: #f1f1ef;
+  --s-panel: #ffffff;
+  --s-elevated: #ffffff;
+  --ramp-s: 255 255 255;
+  --ramp-s-k: 11;
+  --ramp-l: 14 15 18;
+  --ramp-l-k: 1.05;
+  --ink-strong: #0e0f12;
+  --text-1: #0e0f12;
+  --text-2: rgb(14 15 18 / 0.72);
+  --text-3: rgb(14 15 18 / 0.56);
+  --scrim-rgb: 255 255 255;
+  --scrim-boost: 1.4;
+  --fx-scrim: 0.46;
+  --veil-ink: #2a2c31;
+  --fx-text-shadow: 0 2px 14px rgb(255 255 255 / 0.9);
+  --a-main: #2c4bd0;
+  --a-2: #5a6478;
+  --a-on: #ffffff;
+  --r-lg: 1px;
+  --r-md: 1px;
+  --r-sm: 1px;
+  --r-xs: 1px;
+  --r-xl: 1px;
+  --r-pill: 1px;
+  --fx-blur: 0px;
+  --fx-sat: 100%;
+  --fx-panel-shadow: none;
+  --fx-cover-shadow: none;
+  --option-bg: #ffffff;
+  --s-floor: color-mix(in srgb, #ffffff 93%, transparent);
+}

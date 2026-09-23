@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-CN" data-demo="shelf">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>收藏架 · 示例主页</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--
+  主题签名（shelf / 收藏架）· v2 扁平版
+    · 背景：纸 + 木的暖色罩；右上角可切常驻图
+    · 封面：立在一条 1px 黄铜基线上（下面一排平刻度），取消了木横档与落影
+    · 说明：纸面卡片（很淡的纸纹、黄铜细线、衬线标题 42px），折角用纯色三角
+    · 按钮：主按钮是实心黄铜块（50px 高），次按钮描边 / 纯文字
+    · 列表：卡片目录，行间是黄铜虚线，当前项左侧一条 3px 黄铜竖条
+  令牌对应：--paper/--ink*/--brass/--brass-hair（应用里的 --a-main 与 --ln*）
+-->
+
+<div class="bg">
+  <img class="follow" src="../assets/hero-shelf.jpg" alt="">
+  <img class="pinned" src="../assets/cover-5.jpg" alt="">
+</div>
+<div class="paper"></div>
+
+<header class="topbar">
+  <div class="brand"><b>Aurora</b><span>游戏启动器</span></div>
+  <label class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" placeholder="搜索游戏库">
+  </label>
+  <nav class="views"><b class="on">主页</b><span>分类</span></nav>
+  <input type="checkbox" id="bgmode" hidden>
+  <label class="bg-pill" for="bgmode">
+    <span class="follow-text">背景 · 跟随当前游戏</span>
+    <span class="pinned-text">背景 · 常驻图</span>
+  </label>
+  <button class="bg-swap" type="button"
+          title="常驻图只支持一张：再选一张会替换掉现在这张">更换常驻图…</button>
+  <div class="winbtns"><i>—</i><i>▢</i><i>✕</i></div>
+</header>
+
+<main class="hall">
+  <section class="stage">
+    <article class="card">
+      <p class="kicker">藏书 01 · 冒险 / 恋爱</p>
+      <h1>苍蓝回响</h1>
+      <div class="brass"></div>
+      <dl class="facts">
+        <div><dt>作者</dt><dd>Studio Hoshi</dd></div>
+        <div><dt>年份</dt><dd>2024</dd></div>
+        <div><dt>时长</dt><dd>12.4 小时</dd></div>
+        <div><dt>状态</dt><dd>正在读</dd></div>
+      </dl>
+      <p class="desc">
+        离岛的海风、褪色的夏天，和一个说自己来自大海深处的少女。
+        故事从一场久别重逢开始，也从一句没有说完的再见结束。
+      </p>
+      <div class="actions">
+        <button class="primary">继续游戏</button>
+        <button class="ghost">背景图</button>
+        <button class="ghost">详情</button>
+      </div>
+    </article>
+
+    <div class="shelf-stack">
+      <div class="shelf-title"><span>架上的六册</span><span>← → 翻检</span></div>
+      <div class="shelf">
+        <figure class="book on"><img src="../assets/cover-1.jpg" alt=""><figcaption>001</figcaption></figure>
+        <figure class="book"><img src="../assets/cover-2.jpg" alt=""><figcaption>002</figcaption></figure>
+        <figure class="book"><img src="../assets/cover-3.jpg" alt=""><figcaption>003</figcaption></figure>
+        <figure class="book"><img src="../assets/cover-4.jpg" alt=""><figcaption>004</figcaption></figure>
+        <figure class="book"><img src="../assets/cover-5.jpg" alt=""><figcaption>005</figcaption></figure>
+        <figure class="book"><img src="../assets/cover-6.jpg" alt=""><figcaption>006</figcaption></figure>
+        <div class="baseline"></div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="catalog">
+    <div class="cat-head"><span>卡片目录</span><span>6 张</span></div>
+    <ul>
+      <li class="on"><span class="plate">01</span><b>苍蓝回响</b><small>Studio Hoshi · 2024</small><em>12.4h</em></li>
+      <li><span class="plate">02</span><b>夜行列车的叙事诗</b><small>梦之工业 · 2021</small><em>26h</em></li>
+      <li><span class="plate">03</span><b>镜湖</b><small>Northlight · 2023</small><em>3.2h</em></li>
+      <li><span class="plate">04</span><b>红裙的森林</b><small>Tsukikage · 2019</small><em>8h</em></li>
+      <li><span class="plate">05</span><b>落日街</b><small>Amber Works · 2022</small><em>1.5h</em></li>
+      <li><span class="plate">06</span><b>白裙与雾</b><small>Yuki Soft · 2018</small><em>44h</em></li>
+    </ul>
+  </aside>
+</main>
+
+<footer class="hintbar">
+  <span>苍蓝回响 · Studio Hoshi · 2024</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+</footer>
+</body>
+</html>

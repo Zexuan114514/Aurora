@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四套主题 · 示例主页</title>
+<style>
+  :root {
+    --ink: #14161a; --ink-2: rgb(20 22 26 / 0.66); --ink-3: rgb(20 22 26 / 0.42);
+    --line: rgb(20 22 26 / 0.12);
+    --font: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+    --serif: "Songti SC", Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 46px 40px 60px;
+    font-family: var(--font); color: var(--ink); background: #f7f6f3;
+    background-image: linear-gradient(180deg, #fbfaf8, #f2f0ec);
+    min-height: 100vh;
+  }
+  header { max-width: 1180px; margin: 0 auto 34px; }
+  h1 { margin: 0; font-family: var(--serif); font-size: 30px; font-weight: 600; letter-spacing: 0.5px; }
+  header p { margin: 10px 0 0; font-size: 13.5px; line-height: 1.8; color: var(--ink-2); max-width: 74ch; }
+  .grid {
+    max-width: 1180px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(258px, 1fr)); gap: 20px;
+  }
+  a.card {
+    display: block; text-decoration: none; color: inherit;
+    background: #fff; border: 1px solid var(--line); border-radius: 6px;
+    overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
+  }
+  a.card:hover { transform: translateY(-3px); box-shadow: 0 18px 34px -20px rgb(20 22 26 / 0.45); }
+  .art { position: relative; height: 168px; overflow: hidden; background: #eceae5; }
+  .art img { width: 100%; height: 100%; object-fit: cover; }
+  /* Atelier 小样没有自己的氛围图：直接把「粉桌 + 切割垫网格」画出来 */
+  .art.atelier {
+    background:
+      linear-gradient(#f3e3e8, #efdde5),
+      repeating-linear-gradient(0deg, rgb(150 100 120 / 0.09) 0 1px, transparent 1px 18px),
+      repeating-linear-gradient(90deg, rgb(150 100 120 / 0.09) 0 1px, transparent 1px 18px);
+    background-blend-mode: normal;
+  }
+  .art.atelier::after {
+    content: ""; position: absolute; left: 26px; right: 26px; top: 34px; bottom: 30px;
+    background: #fffdfb; border: 1px solid rgb(212 115 142 / 0.4);
+    transform: rotate(-1.6deg);
+  }
+  .art span {
+    position: absolute; right: 10px; top: 10px;
+    padding: 4px 9px; border-radius: 999px;
+    background: rgb(10 12 16 / 0.62); color: #fff;
+    font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase;
+  }
+  .body { padding: 15px 17px 18px; }
+  .body b { display: block; font-size: 16.5px; letter-spacing: 0.3px; }
+  .body em { display: block; margin-top: 3px; font-style: normal; font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink-3); }
+  .body p { margin: 11px 0 0; font-size: 12.5px; line-height: 1.72; color: var(--ink-2); }
+  .swatch { display: flex; gap: 6px; margin-top: 13px; }
+  .swatch i { width: 22px; height: 6px; border-radius: 999px; display: block; }
+  footer { max-width: 1180px; margin: 30px auto 0; font-size: 11.5px; color: var(--ink-3); line-height: 1.9; }
+  footer code { font-size: 11px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>四套主题 · 示例主页</h1>
+  <p>
+    同一个内容（6 款游戏、同一套封面）用四种设计语言各做一遍，用来挑方向、对比「主题该怎么不一样」。
+    每页都是独立的静态 HTML（无构建、无 JS、无外链字体），直接双击打开即可；
+    素材出处见 <code>assets/CREDITS.md</code>。四页与 ADR-0013 的语义令牌一一对应，
+    落地时按 <code>--s-base / --s-panel / --text-* / --a-* / --ln*</code> 往皮肤层搬。
+    <br>
+    最后一张是 <b>Atelier 小样</b>（候选第 5 套，反馈第 4 条）——只用来「看方向」，
+    要不要做成第 5 套、还是拿去改造收藏架，要先有一组真机区分度数据才好定。
+  </p>
+</header>
+
+<div class="grid">
+  <a class="card" href="aurora/index.html">
+    <div class="art"><img src="assets/hero-aurora.jpg" alt=""><span>Aurora</span></div>
+    <div class="body">
+      <b>极光玻璃</b><em>Glass · 默认</em>
+      <p>毛玻璃 + 青紫极光：大圆角、软投影、封面外一圈光晕，靠模糊分层而不是靠线。</p>
+      <div class="swatch"><i style="background:#4fd6c4"></i><i style="background:#8b7cff"></i><i style="background:#10131c"></i></div>
+    </div>
+  </a>
+
+  <a class="card" href="gallery/index.html">
+    <div class="art"><img src="assets/hero-gallery.jpg" alt=""><span>Gallery</span></div>
+    <div class="body">
+      <b>展签式画廊</b><em>Wall label · 直角细线</em>
+      <p>界面退成展签：封面当展品（白卡纸 + 1px 细框），衬线标题压在墙上，目录编号化。</p>
+      <div class="swatch"><i style="background:#f4f4f2"></i><i style="background:#3f63e8"></i><i style="background:#14161a"></i></div>
+    </div>
+  </a>
+
+  <a class="card" href="screening/index.html">
+    <div class="art"><img src="assets/hero-screening.jpg" alt=""><span>Screening</span></div>
+    <div class="body">
+      <b>夜间放映厅</b><em>Warm black · 琥珀</em>
+      <p>暖黑 + 琥珀：当前封面像正在放映的一格（背后光晕、两侧压暗），右侧是节目单。</p>
+      <div class="swatch"><i style="background:#e2a33c"></i><i style="background:#1d1811"></i><i style="background:#f8f0e4"></i></div>
+    </div>
+  </a>
+
+  <a class="card" href="shelf/index.html">
+    <div class="art"><img src="assets/hero-shelf.jpg" alt=""><span>Shelf</span></div>
+    <div class="body">
+      <b>收藏架</b><em>Paper · 木与黄铜</em>
+      <p>封面立在木横档上（接触暗影 + 当前那张往前挪），说明做成纸质卡片，列表是黄铜卡片目录。</p>
+      <div class="swatch"><i style="background:#b08a3e"></i><i style="background:#f6f1e8"></i><i style="background:#7a5636"></i></div>
+    </div>
+  </a>
+
+  <a class="card" href="atelier/index.html">
+    <div class="art atelier"><span>Candidate</span></div>
+    <div class="body">
+      <b>Atelier（小样）</b><em>Candidate · 粉桌 / 纸片 / 胶带</em>
+      <p>浅粉工作台上摊着奶油纸片与和纸胶带：封面像夹在剪贴板上的照片，列表是便签。这是反馈第 4 条的<em>候选方向</em>，还没定做成第 5 套还是拿去改造收藏架。</p>
+      <div class="swatch"><i style="background:#d4738e"></i><i style="background:#f3e3e8"></i><i style="background:#fffdfb"></i></div>
+    </div>
+  </a>
+</div>
+
+<footer>
+  素材：Lorem Picsum（图源 Unsplash，Unsplash License）· 仅作设计示意 · 字号与字体全部走系统字体栈，不联网也能开<br>
+  来源背景：<code>docs/frontend-ux-feedback.md</code> 第 2 条「四套主题区分度不足」；落地建议见 <code>docs/architecture/p8-frontend-v2.md</code> 的 P8.3/P8.4。
+</footer>
+</body>
+</html>

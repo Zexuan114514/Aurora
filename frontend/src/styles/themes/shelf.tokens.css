@@ -1,0 +1,73 @@
+/* 主题 · 收藏架：封面像立在架上的实体盒，说明卡是纸质的，分隔线是黄铜。 */
+:root[data-style="shelf"] {
+  /* 深色态：暖纸/木色（四套里最亮最暖的一档，像台灯下的书架） */
+  --s-base: #2a2117;
+  --s-panel: #3a2f22;
+  --s-elevated: #463a2a;
+  --ramp-s: 255 244 222;      /* 纸白：卡片目录的纸面 */
+  --ramp-s-k: 0.95;
+  --ramp-l: 200 162 74;
+  --ramp-l-k: 0.95;
+  --ink-strong: #ede7dd;
+  --text-1: #ede7dd;
+  --text-2: rgb(219 209 193 / 0.96);
+  --text-3: rgb(176 165 148 / 0.95);
+  --scrim-rgb: 11 10 9;
+  --scrim-boost: 1.25;
+  --fx-scrim: 0.52;
+  --veil-ink: #2a2117;
+  --fx-text-shadow: 0 3px 18px rgb(0 0 0 / 0.78);
+  --a-main: #c8a24a;
+  --a-2: #8c6b3f;
+  --a-on: #1a1509;
+  --r-lg: 4px;
+  --r-md: 4px;
+  --r-sm: 2px;
+  --r-xs: 2px;
+  --r-xl: 5px;
+  --r-pill: 3px;
+  --fx-blur: 0px;          /* P8.8：同上 —— 收藏架的面靠纸纹与黄铜线，不靠模糊 */
+  --fx-sat: 120%;
+  --fx-panel-shadow: 0 24px 52px -26px rgb(0 0 0 / 0.92);
+  --fx-cover-shadow: 0 2px 0 0 rgb(200 162 74 / 0.35), 0 20px 34px -16px rgb(0 0 0 / 0.95);
+  --option-bg: #221e19;
+  /* 排印：楷体 + 衬线（手写卡片与卡片目录，对着 atelier 那套语言） */
+  --font: "KaiTi", "Songti SC", "SimSun", Georgia, "Microsoft YaHei", serif;
+  --s-floor: color-mix(in srgb, #453829 90%, transparent);   /* 暖纸：四套里最亮 */
+}
+
+/* 收藏架 · 浅色：纸质说明卡的那一面，米白底 + 深墨字。 */
+:root[data-style="shelf"][data-theme="light"] {
+  /* P8.8：atelier 那一面的底色 —— 桌面从米黄偏一点藕粉，纸面保持奶油 */
+  --s-base: #f0e7e2;
+  --s-panel: #fdf8f4;
+  --s-elevated: #fdf8f4;
+  --ramp-s: 255 255 255;
+  --ramp-s-k: 10;
+  --ramp-l: 61 50 33;
+  --ramp-l-k: 1.1;
+  --ink-strong: #1b1712;
+  --text-1: #1b1712;
+  --text-2: rgb(27 23 18 / 0.74);
+  --text-3: rgb(27 23 18 / 0.56);
+  --scrim-rgb: 255 252 245;
+  --scrim-boost: 1.35;
+  --fx-scrim: 0.46;
+  --veil-ink: #3a3226;
+  --fx-text-shadow: 0 2px 16px rgb(251 247 240 / 0.9);
+  --a-main: #9a7a2e;
+  --a-2: #a8857f;
+  --a-on: #fbf7f0;
+  --r-lg: 4px;
+  --r-md: 4px;
+  --r-sm: 2px;
+  --r-xs: 2px;
+  --r-xl: 5px;
+  --r-pill: 3px;
+  --fx-blur: 0px;
+  --fx-sat: 115%;
+  --fx-panel-shadow: 0 22px 46px -26px rgb(61 50 33 / 0.35);
+  --fx-cover-shadow: 0 2px 0 0 rgb(122 97 38 / 0.35), 0 16px 32px -20px rgb(61 50 33 / 0.5);
+  --option-bg: #fbf7f0;
+  --s-floor: color-mix(in srgb, #fdf6e7 90%, transparent);
+}

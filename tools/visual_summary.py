@@ -17,6 +17,13 @@ d = json.loads((Path(__file__).resolve().parent / "visual-report.json").read_tex
 covers = json.loads(d.get("cover_dom") or "[]")
 thumbs = json.loads(d.get("thumb_src") or "[]")
 
+
+def shot_lum(themes: dict, style: str, mode: str, screen: str):
+    """某张主题截图的整体亮度（没截到就给个占位，别让汇总脚本崩）。"""
+    row = (themes.get("shots") or {}).get(f"{style}-{mode}-{screen}") or {}
+    return row.get("lum", "—")
+
+
 print(f"封面 {len(covers)} 个，全部加载成功: {all(c['natural'] > 0 for c in covers)}")
 for c in covers[:3]:
     print(f"   natural={c['natural']:>5} broken={c['broken']}  ...{c['src'][-34:]}")
@@ -58,5 +65,49 @@ if icon:
     print(f"   已写入库     {icon['stored']}")
     print(f"   大厅封面渲染 natural={dom.get('natural')}px  src=...{str(dom.get('src'))[-34:]}")
     print(f"   清除后       {icon['after_clear']!r}")
+
+themes = d.get("themes")
+if themes:
+    cols, rows = themes["grid"]
+    print("\n主题矩阵（深色 4 套 + 浅色默认主题 × 5 界面）:")
+    print(f"   指纹 {cols}×{rows} 网格平均色，容差 ±{themes['tolerance']}；"
+          f"截图 {len(themes['shots'])} 张 → {themes['shots_dir']}")
+    print(f"   基线 {themes['baseline']}"
+          + ("（本次重录）" if themes.get("baseline_written") else ""))
+    if themes.get("missing"):
+        print(f"   基线缺 {len(themes['missing'])} 张，已按本次结果补齐："
+              + ", ".join(themes["missing"][:6]))
+    rows_diff = themes.get("diff") or []
+    spread = themes.get("spread") or {}
+    if spread.get("mean") is not None:
+        # P8.6 起这条会判红（低于目标进 visual.py 的 failed）：汇总里也标出来
+        ok = spread.get("ok")
+        if ok is None:
+            ok = spread["mean"] >= spread.get("target", 20)
+        flag = "达标" if ok else "✗ **不达标**（已进 failed）"
+        print(f"   区分度（深色四套两两平均色差）{spread['mean']} / 目标 ≥ {spread['target']}"
+              f"，{flag}；参照：深/浅两态 {spread.get('light_dark_ref')}")
+        for row in spread.get("pairs") or []:
+            print(f"      {row['pair']:<24} 平均 {row['mean']:>5}  最大 {row['max']}")
+    if themes.get("unapplied"):
+        print(f"   ✗ 有 {len(themes['unapplied'])} 套主题没切过去，本次已跳过："
+              + ", ".join(themes["unapplied"]))
+    if themes.get("unready"):
+        print(f"   ✗ 有 {len(themes['unready'])} 张页面没切到位，本次已跳过："
+              + ", ".join(themes["unready"][:8]))
+    if rows_diff:
+        worst = max(rows_diff, key=lambda row: row["max_delta"])
+        print(f"   比对 {len(rows_diff)} 张："
+              + ("全部在容差内" if not themes["failed"] else f"超限 {len(themes['failed'])} 张")
+              + f"（最大偏差 {worst['max_delta']} @ {worst['key']}）")
+        for row in rows_diff:
+            if not row["ok"]:
+                print(f"   ✗ {row['key']} 网格{row['cell']} 偏差 {row['max_delta']}")
+        for style, mode in themes["matrix"]:
+            line = " ".join(f"{screen}={shot_lum(themes, style, mode, screen)}"
+                            for screen in themes["screens"])
+            print(f"   {style}-{mode:<5} 亮度 {line}")
+    elif not themes.get("updated"):
+        print("   还没有基线，本次结果已写入基线文件")
 
 print("\nerrors:", d.get("errors"))

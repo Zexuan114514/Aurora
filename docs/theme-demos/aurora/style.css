@@ -1,0 +1,168 @@
+/* 极光玻璃 v2 —— 扁平取向（对照 Gal Launcher 的 editorial/aurora 与使用者反馈）：
+   · 按钮：纯色块或描边，没有渐变、没有投影、没有内高光；主按钮更大更实
+   · 面板：一层半透明底色 + 1px 细边；v3 起**不再做毛玻璃模糊**（去掉了那层轻模糊）
+   · 关键卡片放大：封面 300×452，标题 46px（参考图的展示字级区间）
+   · 背景：默认跟随当前游戏；右上角可切成常驻图，常驻图可以换（只支持一张）
+   · 颜色罩子：本主题压在背景上的是一层青紫混合暗罩（--scrim 由主题决定）
+  令牌对应应用：--s-base / --panel / --srf / --text-1..3 / --a-main / --a-2 / --r-md
+*/
+:root {
+  --s-base: #07090f;
+  --panel: rgb(255 255 255 / 0.08);
+  --panel-solid: #10131c;
+  --hair: rgb(255 255 255 / 0.16);
+  --hair-strong: rgb(255 255 255 / 0.3);
+  --text-1: #ffffff;
+  --text-2: rgb(255 255 255 / 0.76);
+  --text-3: rgb(255 255 255 / 0.52);
+  --a-main: #4fd6c4;
+  --a-2: #8b7cff;
+  --on-accent: #06231f;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --font: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; min-height: 100vh; overflow: hidden;
+  font-family: var(--font); color: var(--text-1); background: var(--s-base);
+  display: flex; flex-direction: column;
+}
+
+/* ---------- 背景：跟随游戏 / 常驻图，两层同一套罩子 ---------- */
+.bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+.bg img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; transform: scale(1.04);
+}
+.bg .pinned { opacity: 0; transition: opacity 0.25s; }
+body:has(#bgmode:checked) .bg .pinned { opacity: 1; }
+body:has(#bgmode:checked) .bg .follow { opacity: 0; }
+.bg::after {                       /* 极光色罩 */
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(70% 50% at 16% 6%, rgb(79 214 196 / 0.26), transparent 62%),
+    radial-gradient(60% 55% at 84% 20%, rgb(139 124 255 / 0.28), transparent 64%);
+}
+.scrim {                            /* 暗罩：跟着主题走 */
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    linear-gradient(to top, rgb(4 6 12 / 0.86) 0%, rgb(4 6 12 / 0.46) 46%, rgb(4 6 12 / 0.24) 100%),
+    radial-gradient(120% 90% at 50% 45%, transparent 46%, rgb(3 4 8 / 0.5) 100%);
+}
+
+/* ---------- 顶栏：一条细线，不加底 ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--hair);
+}
+.brand { display: flex; align-items: baseline; gap: 8px; }
+.brand b { font-size: 19px; letter-spacing: 0.2px; }
+.brand span { font-size: 11.5px; color: var(--text-3); }
+.search {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  height: 36px; padding: 0 14px;
+  border: 1px solid var(--hair); border-radius: var(--r-sm);
+  background: rgb(255 255 255 / 0.06);
+}
+.search svg { width: 15px; height: 15px; fill: none; stroke: var(--text-3); stroke-width: 1.7; }
+.search input { flex: 1; border: 0; outline: 0; background: none; color: var(--text-1); font: inherit; font-size: 13px; }
+.search input::placeholder { color: var(--text-3); }
+.views { display: flex; gap: 4px; font-size: 13px; }
+.views b, .views span {
+  padding: 7px 14px; border-radius: 999px; font-weight: 520; color: var(--text-2);
+}
+.views b.on { background: var(--a-main); color: var(--on-accent); font-weight: 600; }
+.bg-pill {
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  height: 32px; padding: 0 13px; border-radius: 999px;
+  border: 1px solid var(--hair); color: var(--text-2); font-size: 12px;
+}
+.bg-pill:hover { border-color: var(--hair-strong); color: var(--text-1); }
+.bg-pill .pinned-text { display: none; }
+body:has(#bgmode:checked) .bg-pill .follow-text { display: none; }
+body:has(#bgmode:checked) .bg-pill .pinned-text { display: inline; }
+/* 常驻图只支持一张：切到常驻图时才露出「换一张」的入口（纯 CSS，演示这一行为） */
+.bg-swap {
+  display: none; align-items: center; height: 32px; padding: 0 13px;
+  border: 1px dashed var(--hair); border-radius: 999px;
+  background: none; color: var(--text-3); font: inherit; font-size: 11.5px; cursor: pointer;
+}
+.bg-swap:hover { border-style: solid; color: var(--text-1); }
+body:has(#bgmode:checked) .bg-swap { display: inline-flex; }
+.winbtns { display: flex; gap: 14px; color: var(--text-3); font-size: 12px; }
+
+/* ---------- 主区：大卡片 + 列表 ---------- */
+.hall { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: 16px; padding: 16px 18px 0; }
+
+.hero {
+  display: grid; grid-template-columns: 300px minmax(0, 1fr);
+  align-items: center; gap: 34px;
+  padding: 26px 30px;
+  border: 1px solid var(--hair); border-radius: var(--r-lg);
+  background: var(--panel);
+  min-width: 0;
+}
+.hero-art { margin: 0; flex: none; }
+.hero-art img {
+  display: block; width: 300px; height: 452px; object-fit: cover;
+  border-radius: var(--r-md);
+  border: 1px solid var(--hair);
+}
+.meta { min-width: 0; max-width: 560px; }
+.kicker { margin: 0 0 12px; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--a-main); }
+h1 { margin: 0; font-size: 46px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.12; }
+.sub { margin: 12px 0 0; font-size: 13px; color: var(--text-2); }
+.desc { margin: 16px 0 0; font-size: 13.5px; line-height: 1.78; color: var(--text-2); }
+.state { margin: 14px 0 0; font-size: 12px; color: var(--a-main); display: flex; align-items: center; gap: 7px; }
+.state i { width: 6px; height: 6px; border-radius: 50%; background: var(--a-main); }
+
+.actions { margin-top: 26px; display: flex; align-items: center; gap: 10px; }
+button {
+  font: inherit; font-size: 13px; font-weight: 550; cursor: pointer;
+  height: 38px; padding: 0 18px; border-radius: var(--r-sm);
+  border: 1px solid var(--hair); background: none; color: var(--text-1);
+  transition: background 0.16s, border-color 0.16s;
+}
+button:hover { background: rgb(255 255 255 / 0.1); border-color: var(--hair-strong); }
+button.primary {
+  height: 50px; padding: 0 30px; font-size: 15.5px; font-weight: 620;
+  background: var(--a-main); border-color: transparent; color: var(--on-accent);
+}
+button.primary:hover { background: color-mix(in srgb, var(--a-main) 86%, #000); }
+button.ghost { border-color: transparent; color: var(--text-2); }
+button.ghost:hover { color: var(--text-1); background: rgb(255 255 255 / 0.08); }
+
+/* ---------- 列表：细线分隔，不做卡片 ---------- */
+.library { display: flex; flex-direction: column; min-height: 0; }
+.lib-head {
+  display: flex; justify-content: space-between; padding: 3px 12px 10px;
+  font-size: 11.5px; letter-spacing: 0.08em; color: var(--text-3);
+}
+.library ul { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.row {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center; gap: 13px;
+  padding: 11px 12px; cursor: pointer;
+  border-bottom: 1px solid var(--hair);
+  transition: background 0.16s;
+}
+.row:hover { background: rgb(255 255 255 / 0.06); }
+.row.on { background: rgb(79 214 196 / 0.12); border-left: 3px solid var(--a-main); padding-left: 9px; }
+.row img { width: 44px; height: 64px; object-fit: cover; border-radius: 6px; display: block; }
+.row b { display: block; font-size: 12.5px; font-weight: 560; }
+.row small { display: block; margin-top: 3px; font-size: 11px; color: var(--text-3); }
+.row em { font-style: normal; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.row.on em { color: var(--a-main); }
+
+/* ---------- 底条 ---------- */
+.hintbar {
+  flex: none; display: flex; justify-content: space-between; align-items: center;
+  margin: 16px 18px 14px; padding: 10px 2px 0;
+  border-top: 1px solid var(--hair);
+  font-size: 11.5px; color: var(--text-3);
+}

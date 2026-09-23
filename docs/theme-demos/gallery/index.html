@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN" data-demo="gallery">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>展签式画廊 · 示例主页</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--
+  主题签名（gallery / 展签式画廊）· v2 扁平版
+    · 背景：去饱和提亮成「展墙」；右上角可切常驻图
+    · 版面：封面当展品（白卡纸 + 墨色细框），说明像展签压在墙上
+    · 排印：Fraunces 那类衬线做展示标题（这里用系统衬线栈，54px）；
+      标签一律大写 + 宽字距；展签下的第一条横线用墨色，不灰
+    · 按钮：直角、无阴影；主按钮是实心墨块，次按钮只有下划线
+    · 列表：编号目录 + 细线，没有卡片、没有圆角
+  令牌对应：--paper/--ink*/--rule/--hair/--accent（对应应用里的 ln140 与 text-*）
+-->
+
+<div class="bg">
+  <img class="follow" src="../assets/hero-gallery.jpg" alt="">
+  <img class="pinned" src="../assets/cover-4.jpg" alt="">
+</div>
+<div class="wash"></div>
+
+<header class="topbar">
+  <div class="brand"><b>Aurora</b><span>游戏启动器</span></div>
+  <label class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" placeholder="搜索游戏库">
+  </label>
+  <nav class="views"><b class="on">主页</b><span>分类</span></nav>
+  <input type="checkbox" id="bgmode" hidden>
+  <label class="bg-pill" for="bgmode">
+    <span class="follow-text">背景 · 跟随当前游戏</span>
+    <span class="pinned-text">背景 · 常驻图</span>
+  </label>
+  <button class="bg-swap" type="button"
+          title="常驻图只支持一张：再选一张会替换掉现在这张">更换常驻图…</button>
+  <div class="winbtns"><i>—</i><i>▢</i><i>✕</i></div>
+</header>
+
+<main class="hall">
+  <section class="hero">
+    <figure class="hero-art"><img src="../assets/cover-1.jpg" alt=""></figure>
+    <div class="meta">
+      <p class="kicker">展品 01 · 冒险 / 恋爱 · Studio Hoshi</p>
+      <h1>苍蓝回响</h1>
+      <p class="sub">2024　已玩 12.4 小时　最近一次 3 天前　VNDB 7.8</p>
+      <p class="desc">
+        离岛的海风、褪色的夏天，和一个说自己来自大海深处的少女。
+        故事从一场久别重逢开始，也从一句没有说完的再见结束。
+      </p>
+      <div class="actions">
+        <button class="primary">继续游戏</button>
+        <button class="ghost">背景图</button>
+        <button class="ghost">详情</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="catalogue">
+    <div class="cat-head"><span>目录 / Catalogue</span><span>6 件</span></div>
+    <ol>
+      <li class="on"><span class="no">001</span><img src="../assets/cover-1.jpg" alt="">
+        <b>苍蓝回响</b><small>Studio Hoshi · 2024</small><em>12.4h</em></li>
+      <li><span class="no">002</span><img src="../assets/cover-2.jpg" alt="">
+        <b>夜行列车的叙事诗</b><small>梦之工业 · 2021</small><em>26h</em></li>
+      <li><span class="no">003</span><img src="../assets/cover-3.jpg" alt="">
+        <b>镜湖</b><small>Northlight · 2023</small><em>3.2h</em></li>
+      <li><span class="no">004</span><img src="../assets/cover-4.jpg" alt="">
+        <b>红裙的森林</b><small>Tsukikage · 2019</small><em>8h</em></li>
+      <li><span class="no">005</span><img src="../assets/cover-5.jpg" alt="">
+        <b>落日街</b><small>Amber Works · 2022</small><em>1.5h</em></li>
+      <li><span class="no">006</span><img src="../assets/cover-6.jpg" alt="">
+        <b>白裙与雾</b><small>Yuki Soft · 2018</small><em>44h</em></li>
+    </ol>
+  </aside>
+</main>
+
+<footer class="hintbar">
+  <span>苍蓝回响 · Studio Hoshi · 2024</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+</footer>
+</body>
+</html>

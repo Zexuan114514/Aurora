@@ -1,0 +1,193 @@
+/* Atelier（工作台）· 候选第 5 套主题的小样 —— 反馈第 4 条
+   语言三件事：浅粉工作台 + 奶油纸片 + 和纸胶带。
+   刻意保持扁平：纸片靠「歪一点 + 胶带」立起来，不靠投影；
+   主按钮是玫红实色块，没有渐变与内高光（与 v2/v3 的扁平取向一致）。 */
+:root {
+  --desk: #f3e3e8;
+  --card: #fffdfb;
+  --ink: #3b2f36;
+  --ink-2: rgb(59 47 54 / 0.72);
+  --ink-3: rgb(59 47 54 / 0.46);
+  --rose: #d4738e;
+  --rose-soft: rgb(212 115 142 / 0.28);
+  --rose-hair: rgb(212 115 142 / 0.40);
+  --on-rose: #fff8fa;
+  --tape: rgb(226 190 196 / 0.58);
+  --serif: "KaiTi", "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+  --sans: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; min-height: 100vh; overflow: hidden;
+  font-family: var(--sans); color: var(--ink); background: var(--desk);
+  display: flex; flex-direction: column;
+}
+
+/* ---------- 工作台：浅粉桌面 + 极淡的切割垫网格（纯 CSS，不用位图） ---------- */
+.bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+.bg img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  filter: saturate(0.5) brightness(1.24) sepia(0.2) hue-rotate(-14deg);
+  transition: opacity 0.25s;
+}
+.bg .pinned { opacity: 0; }
+body:has(#bgmode:checked) .bg .pinned { opacity: 1; }
+body:has(#bgmode:checked) .bg .follow { opacity: 0; }
+.desk {
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    linear-gradient(rgb(243 227 232 / 0.9), rgb(240 222 229 / 0.88)),
+    repeating-linear-gradient(0deg, rgb(150 100 120 / 0.055) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(90deg, rgb(150 100 120 / 0.055) 0 1px, transparent 1px 26px);
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar {
+  display: flex; align-items: center; gap: 18px;
+  padding: 15px 28px; border-bottom: 1px solid var(--rose-hair);
+}
+.brand { display: flex; align-items: baseline; gap: 9px; }
+.brand b { font-family: var(--serif); font-size: 21px; letter-spacing: 0.6px; }
+.brand span { font-size: 11px; letter-spacing: 0.14em; color: var(--ink-3); }
+.search {
+  flex: 1; display: flex; align-items: center; gap: 9px; height: 32px; padding: 0 12px;
+  border: 1px solid var(--rose-hair); border-radius: 2px; background: rgb(255 255 255 / 0.66);
+}
+.search svg { width: 14px; height: 14px; fill: none; stroke: var(--ink-3); stroke-width: 1.6; }
+.search input { flex: 1; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); }
+.search input::placeholder { color: var(--ink-3); }
+.views { display: flex; gap: 20px; font-size: 13px; }
+.views b, .views span { font-weight: 500; color: var(--ink-2); }
+.views b.on { color: var(--ink); border-bottom: 2px solid var(--rose); padding-bottom: 3px; }
+.bg-pill {
+  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; cursor: pointer;
+  border: 1px solid var(--rose-hair); border-radius: 2px; color: var(--ink-2); font-size: 12px;
+}
+.bg-pill:hover { background: var(--rose); border-color: var(--rose); color: var(--on-rose); }
+.bg-pill .pinned-text { display: none; }
+body:has(#bgmode:checked) .bg-pill .follow-text { display: none; }
+body:has(#bgmode:checked) .bg-pill .pinned-text { display: inline; }
+.bg-swap {
+  display: none; align-items: center; height: 30px; padding: 0 12px;
+  border: 1px dashed var(--rose-hair); border-radius: 2px; background: none;
+  color: var(--ink-3); font-size: 11.5px; cursor: pointer;
+}
+.bg-swap:hover { border-color: var(--rose); color: var(--rose); }
+body:has(#bgmode:checked) .bg-swap { display: inline-flex; }
+.winbtns { display: flex; gap: 16px; color: var(--ink-3); font-size: 12px; }
+
+/* ---------- 主区：说明纸片 + 剪贴板 ---------- */
+.hall { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 348px; }
+.stage { display: flex; flex-direction: column; padding: 28px 34px 20px; min-width: 0; }
+
+/* 纸片：奶油白 + 玫红细边，靠两段胶带「贴」在桌面上（不做投影） */
+.sheet {
+  position: relative; max-width: 664px; padding: 30px 32px 28px;
+  background: var(--card);
+  border: 1px solid var(--rose-hair);
+  transform: rotate(-0.35deg);
+}
+.tape {
+  position: absolute; top: -11px; width: 76px; height: 22px;
+  background:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 3px, transparent 3px 7px),
+    var(--tape);
+  /* 撕口：左右两端做成不规则锯齿，别是刀切的一条 */
+  clip-path: polygon(0 20%, 7% 0, 93% 5%, 100% 24%, 98% 80%, 92% 100%, 8% 95%, 2% 76%);
+}
+.tape-l { left: 36px; transform: rotate(-4deg); }
+.tape-r { right: 36px; transform: rotate(3.2deg); }
+
+.kicker { margin: 0 0 10px; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--rose); }
+h1 { margin: 0; font-family: var(--serif); font-size: 43px; font-weight: 600; letter-spacing: 0.015em; }
+.rose { height: 2px; margin: 16px 0; background: var(--rose); max-width: 124px; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 16px; }
+.facts div { border-left: 1px solid var(--rose-hair); padding-left: 11px; }
+.facts dt { font-size: 10.5px; letter-spacing: 0.12em; color: var(--ink-3); }
+.facts dd { margin: 5px 0 0; font-size: 13px; }
+.desc { margin: 0; font-size: 13.5px; line-height: 1.85; color: var(--ink-2); max-width: 52ch; }
+.actions { margin-top: 26px; display: flex; align-items: center; gap: 10px; }
+
+/* 按钮：一律扁平 —— 主按钮玫红实色块，次按钮是描边纸片 */
+button {
+  font: inherit; font-size: 13px; cursor: pointer;
+  height: 38px; padding: 0 18px; border-radius: 2px;
+  border: 1px solid var(--rose-hair); background: rgb(255 255 255 / 0.5); color: var(--ink);
+  transition: background 0.16s, border-color 0.16s, color 0.16s;
+}
+button:hover { background: var(--rose-soft); border-color: var(--rose); }
+button.primary {
+  height: 50px; padding: 0 30px; font-size: 15.5px; font-weight: 620;
+  background: var(--rose); border-color: transparent; color: var(--on-rose);
+}
+button.primary:hover { background: #c1647f; }
+button.ghost { border-color: transparent; background: none; color: var(--ink-2); }
+button.ghost:hover { color: var(--ink); background: var(--rose-soft); }
+
+/* ---------- 剪贴板：照片四角贴胶带，轻微错落 ---------- */
+.board-stack { margin-top: auto; min-width: 0; }
+.board-title {
+  display: flex; justify-content: space-between; margin-bottom: 18px;
+  font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
+}
+.board { position: relative; display: flex; align-items: flex-start; gap: 22px; padding: 12px 8px 6px; }
+.scrap {
+  position: relative; margin: 0; cursor: pointer; padding: 7px 7px 19px;
+  background: var(--card); border: 1px solid var(--rose-hair);
+}
+.scrap img { display: block; width: 106px; height: 158px; object-fit: cover; filter: saturate(0.94); }
+.scrap figcaption {
+  position: absolute; left: 0; right: 0; bottom: 3px; text-align: center;
+  font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3);
+}
+.scrap::before {                    /* 每张上面压一小段胶带 */
+  content: ""; position: absolute; top: -9px; left: 50%; width: 52px; height: 17px;
+  transform: translateX(-50%) rotate(-2.4deg);
+  background: var(--tape);
+  clip-path: polygon(0 22%, 8% 0, 92% 6%, 100% 26%, 97% 78%, 90% 100%, 9% 94%, 3% 74%);
+}
+.scrap:nth-child(odd) { transform: rotate(-1.3deg); }
+.scrap:nth-child(even) { transform: rotate(1.1deg); }
+.scrap.on { transform: rotate(0deg); }
+.scrap.on img { outline: 2px solid var(--rose); outline-offset: -2px; }
+.scrap.on figcaption { color: var(--rose); }
+
+/* ---------- 便签目录 ---------- */
+.notes {
+  border-left: 1px solid var(--rose-hair);
+  display: flex; flex-direction: column; min-height: 0;
+}
+.note-head {
+  display: flex; justify-content: space-between; padding: 20px 24px 12px;
+  border-bottom: 2px solid var(--rose);
+  font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3);
+}
+.notes ul { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.notes li {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto; align-items: center; column-gap: 12px;
+  padding: 13px 24px; border-bottom: 1px dashed var(--rose-hair); cursor: pointer;
+}
+.notes li:hover { background: var(--rose-soft); }
+.notes li.on { border-left: 3px solid var(--rose); padding-left: 21px; }
+.pin {
+  grid-area: 1 / 1 / 3 / 2; display: grid; place-items: center;
+  width: 30px; height: 30px; border: 1px solid var(--rose-hair); border-radius: 50%;
+  font-size: 11px; color: var(--rose); font-variant-numeric: tabular-nums;
+  transform: rotate(-3deg);
+}
+.notes b { grid-area: 1 / 2 / 2 / 3; font-family: var(--serif); font-size: 15.5px; font-weight: 600; }
+.notes small { grid-area: 2 / 2 / 3 / 3; font-size: 11px; color: var(--ink-3); }
+.notes em {
+  grid-area: 1 / 3 / 3 / 4; font-style: normal; font-size: 11px;
+  color: var(--rose); font-variant-numeric: tabular-nums; text-align: right;
+}
+
+/* ---------- 底条 ---------- */
+.hintbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 28px; border-top: 1px solid var(--rose-hair);
+  font-size: 11.5px; color: var(--ink-3);
+}

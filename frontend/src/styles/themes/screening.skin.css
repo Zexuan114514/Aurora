@@ -1,0 +1,198 @@
+/* 夜间放映厅 · 结构性签名（≤200 行，选择器都以 [data-style="screening"] 开头）
+ *
+ * P8.4 签名：壁纸压成暖黑轮廓、琥珀光锥、窄体标题、标题与元数据之间一条琥珀细线、
+ * 焦点封面像「正在放映」（外发光）、底栏与时间码用琥珀、按钮一律实色（无渐变）。
+ */
+[data-style="screening"] .bg-img {
+  filter: sepia(0.32) brightness(0.66) saturate(1.18) hue-rotate(-10deg);
+}
+[data-style="screening"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(8 5 2 / 0.94) 0%,
+      rgb(12 8 4 / 0.74) 32%,
+      rgb(18 12 6 / 0.36) 60%,
+      rgb(10 6 3 / 0.62) 100%);
+}
+/* 放映机光锥：中间一团很淡的琥珀 */
+[data-style="screening"] #hall::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: 62%;
+  height: 78%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(233 161 59 / 0.28), transparent 78%);
+}
+
+/* 排印：窄体无衬线标题；元数据是琥珀色时间码那一档 */
+[data-style="screening"] [data-slot="title"] {
+  font-family: "Bahnschrift SemiCondensed", "Arial Narrow", "Segoe UI", sans-serif;
+  font-size: 44px;
+  font-weight: 620;
+  letter-spacing: 0.006em;
+}
+[data-style="screening"] [data-slot="meta"] {
+  position: relative;
+  padding-top: 9px;
+  color: var(--a-main);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+[data-style="screening"] [data-slot="meta"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 1px;
+  background: rgb(233 161 59 / 0.45);
+}
+[data-style="screening"] [data-slot="desc"] { color: var(--text-2); }
+
+/* 封面：1px 琥珀边；焦点那张像正在放映（外发光） */
+[data-style="screening"] [data-slot="cover"] {
+  border-radius: 2px;
+  box-shadow: 0 18px 40px -24px rgb(0 0 0 / 0.98);
+}
+[data-style="screening"] .gi.focus [data-slot="cover"] {
+  box-shadow: 0 0 0 1px rgb(233 161 59 / 0.62),
+              0 30px 60px -26px rgb(0 0 0 / 0.98),
+              0 0 90px -20px rgb(233 161 59 / 0.45);
+}
+[data-style="screening"] [data-slot="cover-frame"] {
+  opacity: 1;
+  box-shadow: inset 0 2px 0 0 rgb(233 161 59 / 0.75);
+}
+
+/* 底栏：琥珀细线贯穿，提示与时间码都用琥珀 */
+[data-style="screening"] [data-slot="rail"] {
+  margin: 0 30px;
+  padding: 13px 0 20px;
+  min-height: 0;
+  border-top: 1px solid rgb(233 161 59 / 0.36);
+}
+[data-style="screening"] [data-slot="rail-title"] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+[data-style="screening"] [data-slot="rail-hint"],
+[data-style="screening"] [data-slot="row-time"] {
+  color: var(--a-main);
+  font-variant-numeric: tabular-nums;
+}
+[data-style="screening"] [data-slot="row"] {
+  border-bottom: 1px dashed rgb(233 161 59 / 0.16);
+}
+[data-style="screening"] [data-slot="row"].on {
+  box-shadow: inset 3px 0 0 var(--a-main);
+}
+
+/* 控件：一律实色 / 描边，没有渐变与投影 */
+[data-style="screening"] .btn.play,
+[data-style="screening"] .btn.primary {
+  background: rgb(233 161 59); border-color: transparent; color: var(--a-on);
+  font-variant-numeric: tabular-nums; letter-spacing: 0.08em;   /* P8.10 时间码那一档 */
+}
+[data-style="screening"] .btn.play:active,
+[data-style="screening"] .btn.primary:active {
+  background: rgb(214 143 43); box-shadow: 0 0 26px -6px rgb(233 161 59 / 0.6);
+}
+[data-style="screening"] .btn.play.running {
+  background: rgb(255 255 255 / 0.08);
+  border-color: rgb(233 161 59 / 0.42);
+  color: var(--text-1);
+}
+[data-style="screening"] .chip.accent,
+[data-style="screening"] .pill.live {
+  color: var(--a-main);
+  background: rgb(233 161 59 / 0.12);
+  border-color: rgb(233 161 59 / 0.34);
+}
+[data-style="screening"] .pill.live i {
+  background: var(--a-main);
+  box-shadow: 0 0 10px var(--a-main);
+}
+
+/* ------------------------------------------------------------
+   P8.7：放映厅的方言语义铺到主页之外 —— 暖黑面 + 琥珀细线 + 时间码。
+   圆角由令牌统一收成 2px 一档（--r-xs…--r-xl），这里管线与排印。
+   ------------------------------------------------------------ */
+[data-style="screening"] .glass::before { display: none; }      /* 去掉玻璃棱边光 */
+
+[data-style="screening"] [data-slot="page-title"],
+[data-style="screening"] [data-slot="section-title"],
+[data-style="screening"] [data-slot="sheet-head"] h3,
+[data-style="screening"] [data-slot="modal-title"] {
+  font-family: "Bahnschrift SemiCondensed", "Arial Narrow", "Segoe UI", sans-serif;
+  font-weight: 620;
+  letter-spacing: 0.02em;
+}
+
+/* 每条标题下面压一根琥珀细线：节目单的分栏感 */
+[data-style="screening"] [data-slot="section-title"] {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgb(233 161 59 / 0.34);
+}
+[data-style="screening"] [data-slot="sheet-head"] {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgb(233 161 59 / 0.26);
+}
+
+/* 选中行：琥珀色左标；数字与次要信息走琥珀时间码那一档 */
+[data-style="screening"] [data-slot="nav-row"].on {
+  background: rgb(233 161 59 / 0.14);
+  box-shadow: inset 3px 0 0 var(--a-main);
+}
+[data-style="screening"] [data-slot="tile-meta"],
+[data-style="screening"] [data-slot="section-sub"],
+[data-style="screening"] [data-slot="nav-label"] {
+  color: var(--a-main);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+[data-style="screening"] [data-slot="thumb"] {
+  border: 1px solid rgb(233 161 59 / 0.28);
+}
+
+/* 大图 + 侧列表：右栏做成一张「节目单」——左边一条刻度尺，每行的时长是时间码。
+   （参考图里放映厅那张节目单，落在 hall-side 上。） */
+[data-style="screening"] #hall.hall-list [data-slot="card"] { position: relative; }
+[data-style="screening"] #hall.hall-list [data-slot="card"]::before {
+  content: "";
+  position: absolute;
+  left: 13px; top: 36px; bottom: 12px;
+  width: 1px;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg,
+      rgb(233 161 59 / 0.45) 0 1px, transparent 1px 12px),
+    rgb(233 161 59 / 0.22);
+}
+[data-style="screening"] #hall.hall-list .hall-side-rows { padding-left: 28px; }
+[data-style="screening"] #hall.hall-list [data-slot="row-time"] {
+  min-width: 56px;
+  text-align: right;
+  letter-spacing: 0.06em;
+}
+
+/* 浅色态：白天场 —— 暖白 + 琥珀线，图片仍然是「只剩轮廓」 */
+[data-style="screening"][data-theme="light"] .bg-img {
+  filter: sepia(0.26) brightness(1.06) saturate(1.05);
+}
+[data-style="screening"][data-theme="light"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(250 242 231 / 0.9) 0%,
+      rgb(249 240 228 / 0.58) 32%,
+      rgb(247 238 226 / 0.24) 60%,
+      rgb(249 241 230 / 0.5) 100%);
+}
+[data-style="screening"][data-theme="light"] #hall::after {
+  background: radial-gradient(closest-side, rgb(226 163 60 / 0.16), transparent 78%);
+}
+[data-style="screening"][data-theme="light"] [data-slot="cover"] {
+  box-shadow: 0 16px 34px -24px rgb(32 24 12 / 0.55);
+}

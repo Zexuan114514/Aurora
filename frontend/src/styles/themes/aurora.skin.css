@@ -1,0 +1,121 @@
+/* 极光玻璃 · 结构性签名（≤200 行，选择器都以 [data-style="aurora"] 开头）
+ *
+ * P8.4：毛玻璃整层去掉（--fx-blur: 0），改成「扁平面 + 极光洗色」；
+ * 签名四件事：壁纸提饱和、青紫双光斑、无衬线大标题、薄玻璃底栏。
+ */
+[data-style="aurora"] .bg-img { filter: saturate(1.14) contrast(1.02); }
+
+[data-style="aurora"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(3 7 18 / 0.9) 0%,
+      rgb(5 12 28 / 0.6) 30%,
+      rgb(8 16 36 / 0.22) 58%,
+      rgb(5 12 30 / 0.5) 100%);
+}
+[data-style="aurora"] #hall::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(72% 46% at 50% 58%,
+      rgb(79 214 196 / 0.12) 0%, rgb(139 124 255 / 0.08) 42%, transparent 72%),
+    radial-gradient(38% 28% at 84% 16%, rgb(139 124 255 / 0.12), transparent 72%);
+  mix-blend-mode: screen;
+}
+
+/* 排印：无衬线大标题；标签用极光青 */
+[data-style="aurora"] [data-slot="title"] {
+  font-size: 42px;
+  font-weight: 660;
+  letter-spacing: -0.012em;
+}
+[data-style="aurora"] [data-slot="meta"] {
+  color: var(--a-main);
+  letter-spacing: 0.03em;
+}
+
+/* 封面：14px 圆角 + 1px 细边 + 柔影；焦点那本一圈极光 */
+[data-style="aurora"] [data-slot="cover"] {
+  border-radius: 14px;
+  box-shadow: var(--fx-cover-shadow);
+}
+[data-style="aurora"] .gi.focus [data-slot="cover"] {
+  box-shadow: var(--fx-cover-shadow),
+              0 0 0 1.5px var(--a-main),
+              0 0 40px -10px var(--a-2);
+}
+[data-style="aurora"] [data-slot="cover-frame"] {
+  opacity: 1;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
+}
+
+/* 底栏：一层薄玻璃 + 发丝线（模糊已去，用底色保证可读） */
+[data-style="aurora"] [data-slot="rail"] {
+  margin: 0 26px 16px;
+  padding: 13px 20px 15px;
+  min-height: 0;
+  border: 1px solid var(--ln090);
+  border-radius: var(--r-lg);
+  background: linear-gradient(var(--s-floor), var(--s-floor));
+}
+[data-style="aurora"] [data-slot="rail-title"] { font-size: 21px; }
+[data-style="aurora"] [data-slot="rail-hint"] { color: var(--text-3); }
+
+/* 唯一保留渐变的一套：P8.10 把主 CTA 的高光与投影收敛下来（别糊成一片奶白） */
+[data-style="aurora"] .btn.play,
+[data-style="aurora"] .btn.primary {
+  background: linear-gradient(180deg, var(--a-main),
+              color-mix(in srgb, var(--a-2) 55%, var(--a-main)));
+  border-color: transparent;
+  color: var(--a-on);
+  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--a-main) 65%, transparent);
+}
+
+/* ------------------------------------------------------------
+   P8.7：极光玻璃的圆角与发光也铺到主页之外 —— 面板保持玻璃质感，
+   标题下一条极光渐变细标，选中行是一圈极光描边。
+   ------------------------------------------------------------ */
+[data-style="aurora"] [data-slot="page-title"],
+[data-style="aurora"] [data-slot="section-title"],
+[data-style="aurora"] [data-slot="sheet-head"] h3 {
+  letter-spacing: -0.008em;
+}
+[data-style="aurora"] [data-slot="section-title"] {
+  position: relative;
+  padding-bottom: 10px;
+}
+[data-style="aurora"] [data-slot="section-title"]::after {
+  content: "";
+  position: absolute; left: 0; bottom: 0;
+  width: 34px; height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--a-main), var(--a-2));
+}
+[data-style="aurora"] [data-slot="nav-row"].on {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a-main) 45%, transparent);
+}
+[data-style="aurora"] [data-slot="tile-meta"],
+[data-style="aurora"] [data-slot="section-sub"] {
+  color: var(--a-main);
+}
+
+/* 浅色态：洗色换成白墙上的极光，文字用深墨 */
+[data-style="aurora"][data-theme="light"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(255 255 255 / 0.86) 0%,
+      rgb(244 246 250 / 0.56) 30%,
+      rgb(240 244 250 / 0.22) 58%,
+      rgb(246 248 252 / 0.42) 100%);
+}
+[data-style="aurora"][data-theme="light"] #hall::after {
+  background:
+    radial-gradient(72% 46% at 50% 58%,
+      rgb(15 158 144 / 0.10) 0%, rgb(108 92 224 / 0.08) 42%, transparent 72%);
+  mix-blend-mode: multiply;
+}
+[data-style="aurora"][data-theme="light"] [data-slot="cover-frame"] {
+  box-shadow: inset 0 0 0 1px rgb(20 22 29 / 0.12);
+}

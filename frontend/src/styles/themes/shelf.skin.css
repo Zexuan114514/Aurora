@@ -1,0 +1,193 @@
+/* 收藏架 · 结构性签名（≤200 行，选择器都以 [data-style="shelf"] 开头）
+ *
+ * P8.4 签名（对着示例页的 atelier 语言改）：壁纸走暖纸色、纸纹是极平的重复细线、
+ * 衬线标题像卡片目录、封面立在一条黄铜基线上、底栏带一排平刻度、按钮实色黄铜。
+ */
+[data-style="shelf"] .bg-img {
+  filter: sepia(0.42) brightness(1.14) contrast(0.94) saturate(0.96);
+}
+[data-style="shelf"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(70 56 38 / 0.78) 0%,
+      rgb(84 68 48 / 0.56) 34%,
+      rgb(94 76 54 / 0.34) 62%,
+      rgb(78 62 44 / 0.6) 100%);
+}
+/* 纸纹：3px 一组的极平细线，几乎看不见，但让面读起来像纸 */
+[data-style="shelf"] #hall::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg,
+    rgb(255 246 228 / 0.035) 0 1px, transparent 1px 3px);
+}
+
+/* 排印：衬线标题（卡片目录），元数据是暖灰 */
+[data-style="shelf"] [data-slot="title"] {
+  font-family: "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+  font-size: 42px;
+  font-weight: 520;
+  letter-spacing: 0.012em;
+}
+[data-style="shelf"] [data-slot="meta"] {
+  color: rgb(230 214 186 / 0.92);
+  letter-spacing: 0.02em;
+}
+[data-style="shelf"] [data-slot="desc"] { line-height: 1.9; }
+
+/* 封面：立在架上 —— 底边压一条黄铜线，焦点那张被「抬起来」一点 */
+[data-style="shelf"] [data-slot="cover"] {
+  border-radius: 3px;
+  box-shadow: 0 18px 34px -20px rgb(0 0 0 / 0.95),
+              inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+[data-style="shelf"] .gi.focus [data-slot="cover"] {
+  transform: translateY(-4px);
+  box-shadow: 0 2px 0 0 rgb(200 162 74 / 0.62),
+              0 26px 42px -18px rgb(0 0 0 / 0.98);
+}
+[data-style="shelf"] [data-slot="cover-frame"] {
+  opacity: 1;
+  box-shadow: inset 0 -3px 0 0 var(--a-main);
+}
+
+/* 底栏：黄铜基线 + 一排平刻度（示例页里书架那条） */
+[data-style="shelf"] [data-slot="rail"] {
+  margin: 0 26px 14px;
+  padding: 13px 0 20px;
+  min-height: 0;
+  border-top: 1px solid rgb(200 162 74 / 0.34);
+  background-image: repeating-linear-gradient(90deg,
+    rgb(200 162 74 / 0.34) 0 1px, transparent 1px 18px);
+  background-repeat: no-repeat;
+  background-size: 100% 5px;
+  background-position: 0 100%;
+}
+[data-style="shelf"] [data-slot="rail-title"] {
+  font-size: 21px;
+  letter-spacing: 0.012em;
+}
+[data-style="shelf"] [data-slot="row-time"] { color: var(--a-main); }
+[data-style="shelf"] [data-slot="card"] { border-color: rgb(200 162 74 / 0.26); }
+[data-style="shelf"] [data-slot="row"] {
+  border-bottom: 1px dashed rgb(200 162 74 / 0.16);
+}
+[data-style="shelf"] [data-slot="row"].on { box-shadow: inset 3px 0 0 var(--a-main); }
+
+/* 控件：黄铜实色，无渐变；P8.10 的压印感靠内阴影（像盖在纸上的火漆） */
+[data-style="shelf"] .btn.play,
+[data-style="shelf"] .btn.primary {
+  background: rgb(200 162 74);
+  border-color: transparent;
+  color: #241f18;
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.26),
+              inset 0 -2px 5px rgb(90 66 20 / 0.45);
+}
+[data-style="shelf"] .btn.play:active,
+[data-style="shelf"] .btn.primary:active {
+  box-shadow: inset 0 3px 7px rgb(90 66 20 / 0.55);
+}
+[data-style="shelf"] .btn.play.running {
+  background: transparent; border-color: rgb(200 162 74 / 0.42); box-shadow: none;
+  color: var(--text-1);
+}
+[data-style="shelf"] .chip,
+[data-style="shelf"] .pill,
+[data-style="shelf"] .sheet.glass,
+[data-style="shelf"] .menu.glass { border-radius: 2px; }
+[data-style="shelf"] .cat-item.on,
+[data-style="shelf"] .set-tab.on { box-shadow: inset 3px 0 0 var(--a-main); }
+
+/* ------------------------------------------------------------
+   P8.7：收藏架的纸与黄铜铺到主页之外 —— 纸质面板（一层极平纸纹）、
+   黄铜基线、卡片目录式的标题。圆角由令牌统一收成 2–5px 那一档。
+   ------------------------------------------------------------ */
+[data-style="shelf"] .glass::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg,
+    rgb(255 246 228 / 0.03) 0 1px, transparent 1px 3px);
+}
+
+[data-style="shelf"] [data-slot="page-title"],
+[data-style="shelf"] [data-slot="section-title"],
+[data-style="shelf"] [data-slot="sheet-head"] h3,
+[data-style="shelf"] [data-slot="modal-title"] {
+  font-family: "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+}
+
+/* 黄铜基线：标题下一条、面板头一条、缩略图底边一条（封面「立在架上」） */
+[data-style="shelf"] [data-slot="section-title"] {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgb(200 162 74 / 0.32);
+}
+[data-style="shelf"] [data-slot="sheet-head"] {
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgb(200 162 74 / 0.26);
+}
+[data-style="shelf"] [data-slot="thumb"] {
+  box-shadow: inset 0 -3px 0 0 rgb(200 162 74 / 0.45);
+}
+[data-style="shelf"] [data-slot="nav-row"].on {
+  background: rgb(200 162 74 / 0.14);
+}
+[data-style="shelf"] [data-slot="tile-meta"],
+[data-style="shelf"] [data-slot="nav-label"] {
+  color: rgb(200 162 74 / 0.9);
+  letter-spacing: 0.06em;
+}
+
+/* ------------------------------------------------------------
+   P8.8：atelier 语言 —— 纸片 + 胶带 + 一点藕粉（对着 reference/gal-2-pale-pink）。
+   只加在「纸片」类的东西上（书架格、缩略图、面板），不动几何与环形队列。
+   ------------------------------------------------------------ */
+[data-style="shelf"] [data-slot="cover-art"],
+[data-style="shelf"] [data-slot="thumb"] {
+  position: relative;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgb(200 162 74 / 0.28),
+              inset 0 -3px 0 0 rgb(200 162 74 / 0.42);
+}
+/* 胶带：一条半透明的藕粉纸条压在纸片上沿（只在浅色态露出来） */
+[data-style="shelf"][data-theme="light"] [data-slot="cover-art"]::after,
+[data-style="shelf"][data-theme="light"] [data-slot="thumb"]::after {
+  content: "";
+  position: absolute;
+  top: -6px; left: 50%;
+  width: 46px; height: 14px;
+  transform: translateX(-50%) rotate(-1.6deg);
+  background: rgb(216 176 176 / 0.55);
+  border-left: 1px solid rgb(255 255 255 / 0.32);
+  border-right: 1px solid rgb(255 255 255 / 0.32);
+  pointer-events: none;
+}
+
+/* 浅色态：真正的米色纸面 */
+[data-style="shelf"][data-theme="light"] .bg-img {
+  filter: sepia(0.3) brightness(1.04) contrast(0.97);
+}
+[data-style="shelf"][data-theme="light"] #hall::before {
+  background:
+    linear-gradient(to top,
+      rgb(247 241 232 / 0.9) 0%,
+      rgb(246 240 231 / 0.6) 34%,
+      rgb(245 239 230 / 0.28) 62%,
+      rgb(246 240 231 / 0.52) 100%);
+}
+[data-style="shelf"][data-theme="light"] #hall::after {
+  background: repeating-linear-gradient(0deg,
+    rgb(120 96 60 / 0.03) 0 1px, transparent 1px 3px);
+}
+[data-style="shelf"][data-theme="light"] [data-slot="cover"] {
+  box-shadow: 0 16px 30px -22px rgb(60 44 24 / 0.5),
+              inset 0 1px 0 rgb(255 255 255 / 0.6);
+}
+[data-style="shelf"][data-theme="light"] [data-slot="meta"] {
+  color: rgb(74 58 40 / 0.86);
+}

@@ -1,0 +1,18 @@
+/* Aurora v2 · Element Plus 组件样式（按需）
+ *
+ * 全量版 `element-plus/dist/index.css` 是 430 KB —— 我们真正用到的组件只有
+ * 提示 / 开关 / 滑块三种，其余全是白带的。这里逐组件引 theme-chalk：
+ *   base.css     变量 + 过渡 + .el-icon（所有组件的地基，必须留）
+ *   el-popper.css 提示层（el-tooltip.css 本身是空壳，样式都在 popper 里）
+ *
+ * 加组件 = 这里加一行，`src/core/element.ts` 里注册同名组件。
+ * 外观仍然由 `./element.css` 的 `--el-*` 桥接控制，四套主题自动跟随。
+ *
+ * 本文件只在 `app.css` 顶部引一次（原因见 app.css 的注释）。
+ */
+@import "element-plus/theme-chalk/base.css";
+@import "element-plus/theme-chalk/el-popper.css";
+@import "element-plus/theme-chalk/el-switch.css";
+@import "element-plus/theme-chalk/el-slider.css";
+@import "element-plus/theme-chalk/el-button.css";
+@import "element-plus/theme-chalk/el-input.css";

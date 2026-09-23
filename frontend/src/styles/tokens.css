@@ -1,0 +1,136 @@
+/* Aurora v2 · 语义令牌
+ *
+ * 这一层是「四套风格 × 深/浅两态」的唯一真相来源：
+ *   - 下面 @contract 标记的 :root 是**默认主题（极光玻璃 / 深色）**，同时是
+ *     主题契约的清单（tools/checks/check_theme_contract.py 按它校验每套主题）。
+ *   - themes/*.tokens.css 只做一件事：为 [data-theme][data-mode] 重新给这些变量赋值。
+ *   - 本文件的后半段把语义令牌**推导**成 v1 布局层用惯的那套变量名
+ *     （--srf085 / --ln140 / --fil130 …）。布局只有一套，风格全在值上。
+ *
+ * 改这里的令牌清单 = 改主题契约：每套主题都必须补齐新令牌，否则守卫会红。
+ */
+
+/* @contract:start */
+:root {
+  /* 底色与表面 */
+  --s-base: #05070d;
+  --s-panel: #10131c;
+  --s-elevated: #161a25;
+  --ramp-s: 255 255 255;       /* 半透明表面的基色（表面阶梯由它推导） */
+  --ramp-s-k: 1;               /* 表面阶梯倍率：浅色态把白面加厚到接近不透明 */
+  --ramp-l: 255 255 255;       /* 描边 / 悬停 / 分隔的基色 */
+  --ramp-l-k: 1;
+
+  /* 文字 */
+  --ink-strong: #ffffff;
+  --text-1: #ffffff;
+  --text-2: rgb(255 255 255 / 0.72);
+  --text-3: rgb(255 255 255 / 0.46);
+
+  /* 壁纸处理 */
+  --scrim-rgb: 0 0 0;
+  --scrim-boost: 1;
+  --fx-scrim: 0.42;
+  --veil-ink: #05070d;
+  --fx-text-shadow: 0 3px 20px rgb(0 0 0 / 0.7);
+
+  /* 强调色（只用于状态与焦点，不做装饰） */
+  --a-main: #4fd6c4;
+  --a-2: #8b7cff;
+  --a-on: #04211f;
+
+  /* 几何：整套界面的「圆角语言」都在这一组上 —— 主题换风格时改这六个值，
+     顶部栏、面板、菜单、按钮、胶囊会一起跟着变（见 P8.7） */
+  --r-lg: 22px;                /* 大面板：顶部栏 / 侧栏 / 设置页两栏 / 分类两栏 */
+  --r-md: 16px;                /* 中面板：输入框 / 按钮 / 菜单 / 封面块 */
+  --r-sm: 11px;                /* 小控件：图标按钮 / 窗口按钮 / 列表行 */
+  --r-xs: 8px;                 /* 迷你件：迷你按钮 / 行内小按钮 / 行内代码 */
+  --r-xl: 26px;                /* 大浮层：侧栏 sheet / 弹窗 / 信息卡 */
+  --r-pill: 999px;             /* 胶囊：chip / pill / 作用域胶囊 / 提示条 */
+
+  /* 效果 */
+  --fx-blur: 0px;              /* 默认 = 极光玻璃：不做毛玻璃模糊（见 aurora.tokens.css） */
+  --fx-sat: 190%;
+  --fx-panel-shadow: 0 22px 50px -20px rgb(0 0 0 / 0.75);
+  --fx-cover-shadow: 0 18px 42px -22px rgb(0 0 0 / 0.95);
+  --option-bg: #1c1c22;
+}
+/* @contract:end */
+
+/* ------------------------------------------------------------
+   语义令牌 → v1 布局层的变量名（布局不动，值全从上面来）
+   ------------------------------------------------------------ */
+:root {
+  --app-bg: var(--s-base);
+
+  /* 内容面板的「底色下限」：只有白面高光时，深色态的界面 ≈ 壁纸本身，
+     遇到亮壁纸就是「亮底白字」（见 docs/frontend-ux-feedback.md 第 3 条）。
+     挂在 --s-panel 上：深色态是各主题自己的暗面板色，浅色态是白 —— 两态都成立。 */
+  --s-floor: color-mix(in srgb, var(--s-panel) 68%, transparent);
+  --text: var(--text-1);
+  --ink-strong: var(--text-1);
+  --accent: var(--a-main);
+  --accent-2: var(--a-2);
+  --blur: var(--fx-blur);
+  --sat: var(--fx-sat);
+  --scrim: var(--fx-scrim);
+  --text-shadow: var(--fx-text-shadow);
+
+  --stroke: var(--ln140);
+  --stroke-soft: var(--ln080);
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --font: "Segoe UI Variable Display", "Segoe UI", -apple-system, BlinkMacSystemFont,
+          "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
+          system-ui, sans-serif;
+
+  /* 表面阶梯 */
+  --srf035: rgb(var(--ramp-s) / calc(0.035 * var(--ramp-s-k)));
+  --srf040: rgb(var(--ramp-s) / calc(0.040 * var(--ramp-s-k)));
+  --srf045: rgb(var(--ramp-s) / calc(0.045 * var(--ramp-s-k)));
+  --srf050: rgb(var(--ramp-s) / calc(0.050 * var(--ramp-s-k)));
+  --srf055: rgb(var(--ramp-s) / calc(0.055 * var(--ramp-s-k)));
+  --srf060: rgb(var(--ramp-s) / calc(0.060 * var(--ramp-s-k)));
+  --srf070: rgb(var(--ramp-s) / calc(0.070 * var(--ramp-s-k)));
+  --srf075: rgb(var(--ramp-s) / calc(0.075 * var(--ramp-s-k)));
+  --srf080: rgb(var(--ramp-s) / calc(0.080 * var(--ramp-s-k)));
+  --srf085: rgb(var(--ramp-s) / calc(0.085 * var(--ramp-s-k)));
+  --srf090: rgb(var(--ramp-s) / calc(0.090 * var(--ramp-s-k)));
+  --srf100: rgb(var(--ramp-s) / calc(0.100 * var(--ramp-s-k)));
+  --srf120: rgb(var(--ramp-s) / calc(0.120 * var(--ramp-s-k)));
+  --srf135: rgb(var(--ramp-s) / calc(0.135 * var(--ramp-s-k)));
+  --srf140: rgb(var(--ramp-s) / calc(0.140 * var(--ramp-s-k)));
+  --srf160: rgb(var(--ramp-s) / calc(0.160 * var(--ramp-s-k)));
+  --srf200: rgb(var(--ramp-s) / calc(0.200 * var(--ramp-s-k)));
+  --srf220: rgb(var(--ramp-s) / calc(0.220 * var(--ramp-s-k)));
+  --srf400: rgb(var(--ramp-l) / calc(0.400 * var(--ramp-l-k)));
+  --srf420: rgb(var(--ramp-l) / calc(0.420 * var(--ramp-l-k)));
+  --srf660: rgb(var(--ramp-l) / calc(0.660 * var(--ramp-l-k)));
+
+  /* 描边阶梯 */
+  --ln045: rgb(var(--ramp-l) / calc(0.045 * var(--ramp-l-k)));
+  --ln080: rgb(var(--ramp-l) / calc(0.080 * var(--ramp-l-k)));
+  --ln090: rgb(var(--ramp-l) / calc(0.090 * var(--ramp-l-k)));
+  --ln140: rgb(var(--ramp-l) / calc(0.140 * var(--ramp-l-k)));
+  --ln160: rgb(var(--ramp-l) / calc(0.160 * var(--ramp-l-k)));
+  --ln180: rgb(var(--ramp-l) / calc(0.180 * var(--ramp-l-k)));
+  --ln200: rgb(var(--ramp-l) / calc(0.200 * var(--ramp-l-k)));
+  --ln220: rgb(var(--ramp-l) / calc(0.220 * var(--ramp-l-k)));
+  --ln240: rgb(var(--ramp-l) / calc(0.240 * var(--ramp-l-k)));
+  --ln300: rgb(var(--ramp-l) / calc(0.300 * var(--ramp-l-k)));
+  --ln400: rgb(var(--ramp-l) / calc(0.400 * var(--ramp-l-k)));
+  --ln450: rgb(var(--ramp-l) / calc(0.450 * var(--ramp-l-k)));
+  --ln600: rgb(var(--ramp-l) / calc(0.600 * var(--ramp-l-k)));
+
+  /* 交互填充阶梯 */
+  --fil100: rgb(var(--ramp-l) / calc(0.100 * var(--ramp-l-k)));
+  --fil110: rgb(var(--ramp-l) / calc(0.110 * var(--ramp-l-k)));
+  --fil130: rgb(var(--ramp-l) / calc(0.130 * var(--ramp-l-k)));
+  --fil140: rgb(var(--ramp-l) / calc(0.140 * var(--ramp-l-k)));
+  --fil150: rgb(var(--ramp-l) / calc(0.150 * var(--ramp-l-k)));
+  --fil160: rgb(var(--ramp-l) / calc(0.160 * var(--ramp-l-k)));
+  --fil180: rgb(var(--ramp-l) / calc(0.180 * var(--ramp-l-k)));
+  --fil260: rgb(var(--ramp-l) / calc(0.260 * var(--ramp-l-k)));
+  --fil300: rgb(var(--ramp-l) / calc(0.300 * var(--ramp-l-k)));
+}

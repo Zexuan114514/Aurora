@@ -1,0 +1,73 @@
+/* 主题 · 夜间放映厅：暖黑 + 琥珀，主封面像正在放映的那一张。 */
+:root[data-style="screening"] {
+  /* 深色态：放映厅的暖黑（比 shelf 更暗更暖，图片压到只剩轮廓） */
+  --s-base: #0c0805;
+  --s-panel: #1c1209;
+  --s-elevated: #26190d;
+  --ramp-s: 255 226 190;      /* 琥珀白：放映机灯打到纸上的颜色 */
+  --ramp-s-k: 0.95;
+  --ramp-l: 233 161 59;
+  --ramp-l-k: 1.05;
+  --ink-strong: #f8f0e4;
+  --text-1: #f8f0e4;
+  --text-2: rgb(226 214 196 / 0.96);
+  --text-3: rgb(178 163 142 / 0.95);
+  --scrim-rgb: 12 9 6;
+  --scrim-boost: 1.18;
+  --fx-scrim: 0.48;
+  --veil-ink: #0a0604;
+  --fx-text-shadow: 0 3px 18px rgb(0 0 0 / 0.8);
+  --a-main: #e9a13b;
+  --a-2: #d08a4a;
+  --a-on: #1a1409;
+  --r-lg: 4px;
+  --r-md: 3px;
+  --r-sm: 3px;
+  --r-xs: 2px;
+  --r-xl: 5px;
+  --r-pill: 2px;
+  --fx-blur: 0px;          /* P8.8：四套里只留极光玻璃模糊（用户 2026-09-23 定的口径） */
+  --fx-sat: 140%;
+  --fx-panel-shadow: 0 26px 60px -30px rgb(0 0 0 / 0.95);
+  --fx-cover-shadow: 0 0 0 1px rgb(233 161 59 / 0.35), 0 26px 50px -22px rgb(0 0 0 / 0.95);
+  --option-bg: #241d14;
+  /* 排印：窄体无衬线（节目单/时间码） */
+  --font: "Bahnschrift SemiCondensed", "Arial Narrow", "Microsoft YaHei UI",
+          "Microsoft YaHei", sans-serif;
+  --s-floor: color-mix(in srgb, #150d06 94%, transparent);   /* 暖黑：把画面压到只剩轮廓 */
+}
+
+/* 夜间放映厅 · 浅色：白天放映，暖纸底 + 深褐文字。 */
+:root[data-style="screening"][data-theme="light"] {
+  --s-base: #f6efe4;
+  --s-panel: #fffaf1;
+  --s-elevated: #fffaf1;
+  --ramp-s: 255 255 255;
+  --ramp-s-k: 11;
+  --ramp-l: 79 56 24;
+  --ramp-l-k: 1.15;
+  --ink-strong: #201a12;
+  --text-1: #201a12;
+  --text-2: rgb(32 26 18 / 0.74);
+  --text-3: rgb(32 26 18 / 0.56);
+  --scrim-rgb: 255 246 232;
+  --scrim-boost: 1.4;
+  --fx-scrim: 0.44;
+  --veil-ink: #3b2f1d;
+  --fx-text-shadow: 0 2px 16px rgb(255 250 241 / 0.9);
+  --a-main: #b4761f;
+  --a-2: #8a5b1c;
+  --a-on: #fffaf1;
+  --r-lg: 4px;
+  --r-md: 3px;
+  --r-sm: 3px;
+  --r-xs: 2px;
+  --r-xl: 5px;
+  --r-pill: 2px;
+  --fx-blur: 0px;
+  --fx-sat: 130%;
+  --fx-panel-shadow: 0 22px 48px -26px rgb(79 56 24 / 0.35);
+  --fx-cover-shadow: 0 18px 40px -22px rgb(79 56 24 / 0.45);
+  --option-bg: #fffaf1;
+  --s-floor: color-mix(in srgb, #fdf6ea 90%, transparent);
+}

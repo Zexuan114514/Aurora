@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN" data-demo="atelier">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier 小样 · 示例主页</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!--
+  Atelier（工作台）· 候选第 5 套主题的小样（反馈第 4 条）
+    · 桌面：浅粉工作台 + 极淡的切割垫网格（纯 CSS，不用位图）
+    · 纸片：奶油白卡纸，微微歪一点；四角贴一段和纸胶带（纯 CSS，clip-path 做撕口）
+    · 排印：楷体 + 衬线，标签像手写贴纸；分隔用玫红细线，不用黄铜
+    · 按钮：主按钮是玫红实色块（扁平，无渐变无投影），次按钮是描边纸片
+    · 封面：像夹在剪贴板上的照片，四角胶带、轻微错落
+  这一版只用来「看方向」——要不要做成第 5 套、还是拿去改造收藏架，
+  要先有一组真机区分度数据才好定（见 docs/frontend-ux-feedback.md 第 4 项）。
+-->
+
+<div class="bg">
+  <img class="follow" src="../assets/hero-shelf.jpg" alt="">
+  <img class="pinned" src="../assets/cover-6.jpg" alt="">
+</div>
+<div class="desk"></div>
+
+<header class="topbar">
+  <div class="brand"><b>Aurora</b><span>工作台</span></div>
+  <label class="search">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input type="search" placeholder="搜索游戏库">
+  </label>
+  <nav class="views"><b class="on">主页</b><span>分类</span></nav>
+  <input type="checkbox" id="bgmode" hidden>
+  <label class="bg-pill" for="bgmode">
+    <span class="follow-text">背景 · 跟随当前游戏</span>
+    <span class="pinned-text">背景 · 常驻图</span>
+  </label>
+  <button class="bg-swap" type="button"
+          title="常驻图只支持一张：再选一张会替换掉现在这张">更换常驻图…</button>
+  <div class="winbtns"><i>—</i><i>▢</i><i>✕</i></div>
+</header>
+
+<main class="hall">
+  <section class="stage">
+    <article class="sheet">
+      <span class="tape tape-l"></span>
+      <span class="tape tape-r"></span>
+      <p class="kicker">剪贴 #01 · 冒险 / 恋爱</p>
+      <h1>苍蓝回响</h1>
+      <div class="rose"></div>
+      <dl class="facts">
+        <div><dt>作者</dt><dd>Studio Hoshi</dd></div>
+        <div><dt>年份</dt><dd>2024</dd></div>
+        <div><dt>时长</dt><dd>12.4 小时</dd></div>
+        <div><dt>状态</dt><dd>正在读</dd></div>
+      </dl>
+      <p class="desc">
+        离岛的海风、褪色的夏天，和一个说自己来自大海深处的少女。
+        故事从一场久别重逢开始，也从一句没有说完的再见结束。
+      </p>
+      <div class="actions">
+        <button class="primary">继续游戏</button>
+        <button class="ghost">背景图</button>
+        <button class="ghost">详情</button>
+      </div>
+    </article>
+
+    <div class="board-stack">
+      <div class="board-title"><span>板上的六张</span><span>← → 翻检</span></div>
+      <div class="board">
+        <figure class="scrap on"><img src="../assets/cover-1.jpg" alt=""><figcaption>001</figcaption></figure>
+        <figure class="scrap"><img src="../assets/cover-2.jpg" alt=""><figcaption>002</figcaption></figure>
+        <figure class="scrap"><img src="../assets/cover-3.jpg" alt=""><figcaption>003</figcaption></figure>
+        <figure class="scrap"><img src="../assets/cover-4.jpg" alt=""><figcaption>004</figcaption></figure>
+        <figure class="scrap"><img src="../assets/cover-5.jpg" alt=""><figcaption>005</figcaption></figure>
+        <figure class="scrap"><img src="../assets/cover-6.jpg" alt=""><figcaption>006</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <aside class="notes">
+    <div class="note-head"><span>便签目录</span><span>6 张</span></div>
+    <ul>
+      <li class="on"><span class="pin">01</span><b>苍蓝回响</b><small>Studio Hoshi · 2024</small><em>12.4h</em></li>
+      <li><span class="pin">02</span><b>夜行列车的叙事诗</b><small>梦之工业 · 2021</small><em>26h</em></li>
+      <li><span class="pin">03</span><b>镜湖</b><small>Northlight · 2023</small><em>3.2h</em></li>
+      <li><span class="pin">04</span><b>红裙的森林</b><small>Tsukikage · 2019</small><em>8h</em></li>
+      <li><span class="pin">05</span><b>落日街</b><small>Amber Works · 2022</small><em>1.5h</em></li>
+      <li><span class="pin">06</span><b>白裙与雾</b><small>Yuki Soft · 2018</small><em>44h</em></li>
+    </ul>
+  </aside>
+</main>
+
+<footer class="hintbar">
+  <span>苍蓝回响 · Studio Hoshi · 2024</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+</footer>
+</body>
+</html>

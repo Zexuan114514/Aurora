@@ -1,0 +1,201 @@
+/* 展签式画廊 · 结构性签名（≤200 行，选择器都以 [data-style="gallery"] 开头）
+ *
+ * P8.4 签名：壁纸去饱和当「展墙」、衬线大字标题、元数据上方一条墨色短线、
+ * 封面是裱起来的方角印刷品、底栏一条墨线、列表行更矮。
+ */
+[data-style="gallery"] .bg-img {
+  /* P8.8：去饱和别下重（用户：画廊「背景饱和度过低」）—— 展墙感交给 ::before 的冷灰罩 */
+  filter: grayscale(0.3) brightness(1.06) contrast(0.96) saturate(1.04);
+}
+[data-style="gallery"] #hall:not(.hall-list)::before {
+  background:
+    linear-gradient(to top,
+      rgb(24 26 31 / 0.86) 0%,
+      rgb(30 32 38 / 0.62) 34%,
+      rgb(36 38 45 / 0.40) 62%,
+      rgb(28 30 36 / 0.66) 100%);
+}
+/* 大图 + 侧列表：标题直接压在画面上（没有卡底）——只给信息列后面铺局部遮罩 */
+[data-style="gallery"] #hall.hall-list [data-slot="hero"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(100deg,
+      rgb(22 24 29 / 0.92) 0%,
+      rgb(24 26 31 / 0.74) 34%,
+      rgb(26 28 34 / 0.38) 58%,
+      rgb(26 28 34 / 0) 78%),
+    linear-gradient(to top, rgb(22 24 29 / 0.72) 0%, rgb(22 24 29 / 0) 42%);
+}
+/* 文字与封面要压在遮罩之上 */
+[data-style="gallery"] #hall.hall-list [data-slot="hero-label"] { position: relative; z-index: 2; }
+[data-style="gallery"] #hall.hall-list [data-slot="cover"] { z-index: 2; }
+
+/* 排印：衬线展示标题（展签上的印刷字）+ 大写宽字距的元数据 */
+[data-style="gallery"] [data-slot="title"] {
+  font-family: "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+  font-size: 46px;
+  font-weight: 500;
+  line-height: 1.16;
+  letter-spacing: 0.004em;
+}
+[data-style="gallery"] [data-slot="meta"] {
+  position: relative;
+  padding-top: 10px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+[data-style="gallery"] [data-slot="meta"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 1px;
+  background: currentColor;
+}
+[data-style="gallery"] [data-slot="desc"] { font-size: 15px; line-height: 1.9; }
+
+/* 封面：方角 + 1px 外框（像裱起来的印刷品），没有投影 */
+[data-style="gallery"] [data-slot="cover"] {
+  border-radius: 1px;
+  box-shadow: none;
+  outline: 1px solid rgb(255 255 255 / 0.2);
+  outline-offset: -1px;
+}
+[data-style="gallery"] .gi.focus [data-slot="cover"] {
+  outline-color: rgb(255 255 255 / 0.78);
+  box-shadow: none;
+}
+[data-style="gallery"] [data-slot="cover-frame"] {
+  opacity: 1;
+  box-shadow: inset 0 -2px 0 0 currentColor;
+}
+[data-style="gallery"] .gi.focus [data-slot="cover-frame"] {
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+/* 底栏：一条墨线，两侧留白；时间用等宽数字 */
+[data-style="gallery"] [data-slot="rail"] {
+  margin: 0 34px;
+  padding: 13px 0 20px;
+  min-height: 0;
+  border-top: 1px solid rgb(255 255 255 / 0.18);
+}
+[data-style="gallery"] [data-slot="rail-title"] {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+[data-style="gallery"] [data-slot="rail-sub"],
+[data-style="gallery"] [data-slot="row-time"] {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* 列表行更矮、更规整 */
+[data-style="gallery"] [data-slot="row"] { padding: 5px 8px; gap: 10px; }
+
+[data-style="gallery"] .chip,
+[data-style="gallery"] .pill,
+[data-style="gallery"] #btnGetGames,
+[data-style="gallery"] #scopePill { border-radius: 1px; }
+
+/* ------------------------------------------------------------
+   P8.7：把「展签」铺到主页之外（书架 / 设置 / 详情 / 面板 / 顶部栏）
+   整个界面只有线：玻璃棱边、投影、渐变高光全部去掉，改由 1px 细线分层。
+   圆角由令牌统一收成 1px（--r-xs…--r-xl），这里只管线与排印。
+   ------------------------------------------------------------ */
+[data-style="gallery"] .glass::before { display: none; }        /* 去掉玻璃棱边光 */
+[data-style="gallery"] .glass,
+[data-style="gallery"] .menu,
+[data-style="gallery"] .modal-card { background-image: none; box-shadow: none; }
+
+/* 排印：面板标题、页标题都用衬线；标签走大写 + 宽字距（展签上的印刷字） */
+[data-style="gallery"] [data-slot="page-title"],
+[data-style="gallery"] [data-slot="section-title"],
+[data-style="gallery"] [data-slot="sheet-head"] h3,
+[data-style="gallery"] [data-slot="modal-title"] {
+  font-family: "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+[data-style="gallery"] [data-slot="section-title"] {
+  position: relative;
+  padding-bottom: 9px;
+}
+[data-style="gallery"] [data-slot="section-title"]::after {
+  content: "";
+  position: absolute; left: 0; bottom: 0;
+  width: 46px; height: 1px;
+  background: currentColor; opacity: 0.55;
+}
+[data-style="gallery"] [data-slot="tile-meta"],
+[data-style="gallery"] [data-slot="section-sub"],
+[data-style="gallery"] [data-slot="nav-label"] {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+/* 线：标题与内容之间、选中行、缩略图与输入框，一律 1px */
+[data-style="gallery"] [data-slot="sheet-head"] {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--stroke);
+}
+[data-style="gallery"] [data-slot="nav-row"].on {
+  background: none;
+  color: var(--ink-strong);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--ink-strong);
+}
+[data-style="gallery"] [data-slot="thumb"],
+[data-style="gallery"] [data-slot="theme-card"] {
+  box-shadow: inset 0 0 0 1px var(--stroke);
+}
+[data-style="gallery"] [data-slot="cover-art"] {
+  outline: 1px solid var(--stroke);
+  outline-offset: -1px;
+  box-shadow: none;
+}
+
+/* 浅色态：白墙 + 墨线（线是主角） */
+[data-style="gallery"][data-theme="light"] .bg-img {
+  filter: grayscale(0.26) brightness(1.03) contrast(0.98) saturate(1.03);
+}
+[data-style="gallery"][data-theme="light"] #hall:not(.hall-list)::before {
+  background:
+    linear-gradient(to top,
+      rgb(247 246 243 / 0.86) 0%,
+      rgb(246 245 242 / 0.54) 34%,
+      rgb(244 243 240 / 0.26) 62%,
+      rgb(246 245 242 / 0.5) 100%);
+}
+[data-style="gallery"][data-theme="light"] #hall.hall-list [data-slot="hero"]::before {
+  background:
+    linear-gradient(100deg,
+      rgb(250 250 249 / 0.94) 0%,
+      rgb(249 249 248 / 0.78) 34%,
+      rgb(248 248 247 / 0.42) 58%,
+      rgb(248 248 247 / 0) 78%),
+    linear-gradient(to top, rgb(250 250 249 / 0.7) 0%, rgb(250 250 249 / 0) 42%);
+}
+[data-style="gallery"][data-theme="light"] [data-slot="cover"] { outline-color: rgb(14 15 18 / 0.24); }
+[data-style="gallery"][data-theme="light"] .gi.focus [data-slot="cover"] { outline-color: rgb(14 15 18 / 0.82); }
+[data-style="gallery"][data-theme="light"] [data-slot="rail"] { border-top-color: rgb(14 15 18 / 0.26); }
+
+/* P8.10 主 CTA：展签上的印章 —— 实色 + 直角 + 一道内框，没有渐变与内高光 */
+[data-style="gallery"] .btn.play,
+[data-style="gallery"] .btn.primary {
+  background: var(--a-main);
+  border-color: var(--a-main);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.34);
+  color: var(--a-on);
+}
+[data-style="gallery"] .btn.play.running {
+  background: transparent; border-color: var(--stroke); box-shadow: none;
+  color: var(--text-1);
+}
