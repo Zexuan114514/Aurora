@@ -3,9 +3,10 @@
 > 写给下一个接手的人。总览看 [`handover.md`](handover.md)，
 > 交付细节看 [`architecture/p8-frontend-v2.md`](architecture/p8-frontend-v2.md)，
 > 体验反馈与验收口径看 [`frontend-ux-feedback.md`](frontend-ux-feedback.md)。
-> 最后更新：2026-09-23 深夜（**P8.11：真机门全部补跑通过 + 修掉两个真机才暴露的 bug**）。
-> 三道真机门现在都是绿的：主题矩阵重录 **25/25（偏差 0）**、`contrast` **32/32**、
-> `e2e` **96/96** —— 见第 2 节；两个 bug 与三个工具的坑见第 1、4 节。
+> 最后更新：2026-09-23 夜（**P8.11 真机门全部补跑通过** + **P8.13 修掉使用者实机反馈的
+> 两条观感问题**：极光浅色没有毛玻璃、画廊顶部没有遮罩）。
+> 三道真机门都是绿的：主题矩阵重录 **25/25（偏差 0）**、`contrast` **32/32**、
+> `e2e` **96/96** —— 见第 2 节；P8.11/P8.13 的 bug 与坑见第 1、4、5 节。
 
 ## 1. 这一轮做完了什么
 
@@ -32,6 +33,8 @@
 | P8.11-a 画廊「色块不一致」（使用者实机反馈） | `layout.css` 的 `#hall::before` | ✅ 修：整屏遮罩从写死的极光深蓝黑改成 `var(--scrim-rgb)`（见第 5 节末） |
 | P8.11-b 悬浮窗不出现（`e2e` 抓到的 P8.9 回归） | `aurora/ui/overlay.py`、`main.py`、`check_packaging.py` | ✅ 修：入口从已删的 `gl/web/overlay.html` 改到 v2 + 走本地静态服务（ES module 在 `file://` 下被拦） |
 | P8.11-c 真机工具静默卡死 | `tools/_common.py::guard_webview_start`、`park_cursor` | ✅ 修：`loaded` 超时快失败（退出码 3）；截图前把鼠标挪出窗口 |
+| P8.13-a 极光浅色没有毛玻璃（使用者实机反馈） | `aurora.tokens.css`（`--ramp-s-k` / `--s-floor`）、`aurora.skin.css`、`layout.css` | ✅ 修：浅色白色高光被 `--ramp-s-k: 12` 乘成 **alpha 1.0 的实心白**，玻璃被盖死；底栏与 `.btn.glass-btn` 也没有模糊 |
+| P8.13-b 画廊顶部没被遮罩覆盖（使用者实机反馈） | `gallery.skin.css` | ✅ 修：整屏冷灰罩改到 `#hall`（所有布局），列表布局的局部遮罩从 y=84 往上长到窗口顶 |
 
 ## 2. 现在验证到哪一步
 
@@ -39,7 +42,7 @@
 
 | 门 | 结果 |
 | --- | --- |
-| `tools/visual.py`（主题矩阵） | ✅ **25/25，逐张最大偏差 0**；基线 17:52 重录（P8.8/P8.10 之后的样式）；区分度 **20.2**（目标 ≥ 20） |
+| `tools/visual.py`（主题矩阵） | ✅ **25/25，逐张最大偏差 0**；基线 19:2× 重录（P8.13 改完玻璃与遮罩之后）；区分度 **20.2**（目标 ≥ 20） |
 | `tools/contrast.py` | ✅ **32/32 达标、tainted 0**（最低 6.66 对门槛 4.5）；极光恢复 20px 毛玻璃后复验通过 |
 | `tools/e2e.py` | ✅ **96/96 passed, 0 skipped**（修掉悬浮窗入口之后） |
 | `tools/checks/run_all.py` | ✅ **14/14**（新增「悬浮窗入口必须存在」一条断言） |
