@@ -35,6 +35,10 @@
 | P8.11-c 真机工具静默卡死 | `tools/_common.py::guard_webview_start`、`park_cursor` | ✅ 修：`loaded` 超时快失败（退出码 3）；截图前把鼠标挪出窗口 |
 | P8.13-a 极光浅色没有毛玻璃（使用者实机反馈） | `aurora.tokens.css`（`--ramp-s-k` / `--s-floor`）、`aurora.skin.css`、`layout.css` | ✅ 修：浅色白色高光被 `--ramp-s-k: 12` 乘成 **alpha 1.0 的实心白**，玻璃被盖死；底栏与 `.btn.glass-btn` 也没有模糊 |
 | P8.13-b 画廊顶部没被遮罩覆盖（使用者实机反馈） | `gallery.skin.css` | ✅ 修：整屏冷灰罩改到 `#hall`（所有布局），列表布局的局部遮罩从 y=84 往上长到窗口顶 |
+| P8.14-a 侧栏长名字压时长 | `app.css` 的 `.hall-row-item .row-title` | ✅ 修：`.row-title` 是行内 `<span>`，`overflow/text-overflow` 对它无效 → 改块级两行换行（`-webkit-line-clamp: 2` + `overflow-wrap: anywhere`）|
+| P8.14-b 浅色画廊过亮 | `gallery.tokens.css`、`gallery.skin.css` | ✅ 修：局部遮罩 94% 白 → 72%、整屏白罩降到 0.74/0.44/0.20/0.40、`--s-base`/`--s-panel`/`--s-floor` 各降一档；整屏 215.8 → **207.1**（另三套 200.3–204.6）|
+| P8.14-c 删「双击封面启动」 | `HallView.vue`、`ring.ts`、`core/app.ts`、`tools/e2e.py` | ✅ 删：侧栏 `@dblclick` + 环形 `dblclick` + 提示条「双击 启动」；e2e 第 3.6 步改写为「主页启动按钮直接启动」 |
+| P8.14-d 主页启动按钮 | `HallView.vue`、`app.css` | ✅ 加 `#btnHallPlay`（大图 + 侧列表，简介下方，走 `.btn.play`）；e2e 判据通过 |
 
 ## 2. 现在验证到哪一步
 
