@@ -197,12 +197,6 @@ export function createRing(hooks: RingHooks, addKey: string) {
       if (tile.dataset.add) { hooks.onAdd(); return }
       hooks.onEnter(tile.dataset.id)
     })
-    row.addEventListener("dblclick", (event) => {
-      const tile = (event.target as HTMLElement).closest(".gi") as HTMLElement | null
-      if (!tile || tile.dataset.add || moved) return
-      hooks.onPlay(tile.dataset.id)
-    })
-
     const swipeStart = (event: MouseEvent) => {
       if (event.button !== 0) return
       moved = false

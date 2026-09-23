@@ -173,19 +173,22 @@
 [data-style="gallery"][data-theme="light"] #hall::before {
   background:
     linear-gradient(to top,
-      rgb(247 246 243 / 0.86) 0%,
-      rgb(246 245 242 / 0.54) 34%,
-      rgb(244 243 240 / 0.26) 62%,
-      rgb(246 245 242 / 0.5) 100%);
+      rgb(247 246 243 / 0.74) 0%,
+      rgb(246 245 242 / 0.44) 34%,
+      rgb(244 243 240 / 0.20) 62%,
+      rgb(246 245 242 / 0.40) 100%);
 }
 [data-style="gallery"][data-theme="light"] #hall.hall-list [data-slot="hero"]::before {
+  /* 17：浅色态原来是一张 94% 的白纸压在整片 hero 上，加上整屏白罩就是白上加白
+     —— 实测整屏比另三套浅色亮 12、hero 区亮 14（目标：压到 ±5）。文字底衬还在，
+     只是不再当灯箱。 */
   background:
     linear-gradient(100deg,
-      rgb(250 250 249 / 0.94) 0%,
-      rgb(249 249 248 / 0.78) 34%,
-      rgb(248 248 247 / 0.42) 58%,
-      rgb(248 248 247 / 0) 78%),
-    linear-gradient(to top, rgb(250 250 249 / 0.7) 0%, rgb(250 250 249 / 0) 42%);
+      rgb(250 250 249 / 0.72) 0%,
+      rgb(249 249 248 / 0.52) 32%,
+      rgb(248 248 247 / 0.24) 54%,
+      rgb(248 248 247 / 0) 74%),
+    linear-gradient(to top, rgb(250 250 249 / 0.48) 0%, rgb(250 250 249 / 0) 40%);
 }
 [data-style="gallery"][data-theme="light"] [data-slot="cover"] { outline-color: rgb(14 15 18 / 0.24); }
 [data-style="gallery"][data-theme="light"] .gi.focus [data-slot="cover"] { outline-color: rgb(14 15 18 / 0.82); }

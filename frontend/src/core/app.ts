@@ -50,7 +50,9 @@ export function enterGame(id?: string): void {
   openGame()
 }
 
-/** 大厅「直接开玩」：双击封面、或在游戏页按回车。 */
+/** 「直接开玩」：大厅的启动按钮（#btnHallPlay）、或在游戏页按回车。
+ *  2026-09-23 反馈第 18 条删掉了原来的「双击封面启动」—— 提示条写着、
+ *  实际只有侧栏双击生效，反直觉。 */
 export function playGame(id?: string): void {
   if (id) {
     setFocus(id)

@@ -220,6 +220,10 @@
   overflow: hidden;
 }
 .hall-label .hall-label-desc:empty { display: none; }
+/* 19-a：简介下方的「启动游戏」。只在「大图 + 侧列表」出现，四套主题的主 CTA
+   语言（.btn.play）自动生效 —— 位置贴着信息列，不跟底栏抢。 */
+.hall-label-actions { margin-top: 18px; display: flex; align-items: center; gap: 10px; }
+.hall-label-actions .btn.play { height: 40px; padding: 0 26px; font-size: 14px; }
 
 .hall-side {
   display: flex;
@@ -309,7 +313,19 @@
 .hall-row-item { grid-template-columns: 40px minmax(0, 1fr) auto; gap: 9px; padding: 7px; }
 .hall-row-item > span { min-width: 0; display: block; }
 .hall-row-item .row-meta { display: none; }         /* 侧栏不显示厂商：空间不够，两行会挤在一起 */
-.hall-row-item .row-title { line-height: 1.4; font-size: 12.5px; }
+/* 16：名字过长时**换行**（两行封顶），别压到右边的时长上。
+   原来这里只有 overflow/ellipsis，可 .row-title 是行内 <span> —— 那两条属性
+   对行内盒无效，名字既不截断也不换行，整串直接溢出中间列。 */
+.hall-row-item .row-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;          /* 覆盖基础规则里的 nowrap */
+  overflow-wrap: anywhere;      /* 长西文（DRACU-RIOT! 这类）也要能断 */
+  line-height: 1.45;
+  font-size: 12.5px;
+}
+.hall-row-item .row-time { white-space: nowrap; }
 .hall-row-item img { width: 40px; height: 56px; }
 /* 悬停/按下要有「按钮」的反馈（使用者的第三条），滚动条常驻槽位免得抖 */
 .hall-row-item:hover {

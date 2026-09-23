@@ -12,6 +12,16 @@
           <h1 data-slot="title">{{ heroName }}</h1>
           <div class="hall-label-meta" data-slot="meta">{{ heroMeta }}</div>
           <p class="hall-label-desc" data-slot="desc">{{ heroDesc }}</p>
+          <!-- 19-a：主页直接启动（原先靠双击封面 —— 反馈第 18 条把那条删了） -->
+          <div class="hall-label-actions" data-slot="hero-actions">
+            <button
+              id="btnHallPlay"
+              class="btn play"
+              type="button"
+              :disabled="!state.focus"
+              @click="playGame(state.focus || undefined)"
+            >启动游戏</button>
+          </div>
         </div>
       </div>
       <aside class="hall-side glass" data-slot="card">
@@ -26,7 +36,6 @@
             type="button"
             :data-id="game.id"
             @click="setFocus(game.id)"
-            @dblclick="playGame(game.id)"
           >
             <img :src="game.custom_cover || game.cover || game.header_image || ''" alt="" loading="lazy">
             <span>
@@ -103,7 +112,7 @@
       </div>
       <div class="hall-hint" data-slot="rail-hint">
         <span id="hallCount">{{ countText }}</span>
-        <span><b>← →</b> 切换 &nbsp; <b>Enter</b> 进入 &nbsp; <b>双击</b> 启动 &nbsp; <b>Ctrl+F</b> 搜索</span>
+        <span><b>← →</b> 切换 &nbsp; <b>Enter</b> 进入 &nbsp; <b>Ctrl+F</b> 搜索</span>
       </div>
     </div>
   </section>

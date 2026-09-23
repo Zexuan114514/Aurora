@@ -38,9 +38,12 @@
 
 /* 展签式画廊 · 浅色：美术馆白墙，深色说明文字，线仍然是主角。 */
 :root[data-style="gallery"][data-theme="light"] {
-  --s-base: #f1f1ef;
-  --s-panel: #ffffff;
-  --s-elevated: #ffffff;
+  /* 17：浅色态整体压暗一档、去一点纯白 —— 原来 `#f1f1ef` + 纯白面板 +
+     `--s-floor` 93% 白，跟整屏白罩叠起来整屏 215.8（另三套 200.7–204.9）。
+     现在是「美术馆的白墙」，不是灯箱。 */
+  --s-base: #ebeae5;
+  --s-panel: #fdfcfa;
+  --s-elevated: #fdfcfa;
   --ramp-s: 255 255 255;
   --ramp-s-k: 11;
   --ramp-l: 14 15 18;
@@ -49,7 +52,7 @@
   --text-1: #0e0f12;
   --text-2: rgb(14 15 18 / 0.72);
   --text-3: rgb(14 15 18 / 0.56);
-  --scrim-rgb: 255 255 255;
+  --scrim-rgb: 250 249 246;
   --scrim-boost: 1.4;
   --fx-scrim: 0.46;
   --veil-ink: #2a2c31;
@@ -68,5 +71,5 @@
   --fx-panel-shadow: none;
   --fx-cover-shadow: none;
   --option-bg: #ffffff;
-  --s-floor: color-mix(in srgb, #ffffff 93%, transparent);
+  --s-floor: color-mix(in srgb, #fdfcfa 86%, transparent);
 }

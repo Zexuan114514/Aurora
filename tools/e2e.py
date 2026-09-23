@@ -1277,19 +1277,36 @@ def main() -> int:
             api.set_launch_args(game_id, "-n 30 127.0.0.1")
             time.sleep(1.5)
 
-            # 3.6 双击封面直接启动（用 ping 冒充常驻进程）
+            # 3.6 主页直接启动（用 ping 冒充常驻进程）。
+            # 2026-09-23 反馈第 18 条把「双击封面启动」删了（只有侧栏双击生效、
+            # 提示条却写着它，反直觉），换成大图 + 侧列表布局里的 #btnHallPlay。
+            window.evaluate_js("""(() => {
+              const sel = document.getElementById('setHallLayout');
+              if (sel && sel.value !== 'list') {
+                sel.value = 'list';
+                sel.dispatchEvent(new Event('change'));
+              }
+            })()""")
+            time.sleep(1.4)
             api.set_launch_args(game_id, "-n 30 127.0.0.1")
-            window.evaluate_js(
-                "document.querySelector('#hallRow .gi.focus').dispatchEvent("
-                "new MouseEvent('dblclick',{bubbles:true}));")
+            window.evaluate_js("document.getElementById('btnHallPlay').click();")
             time.sleep(4)
             dbl = probe(window, """
               return JSON.stringify({page: !document.getElementById('view').hidden,
                                      running: !document.getElementById('pillRunning').hidden});
             """)
-            step("双击封面直接启动", bool(dbl.get("running")) and api._pm.is_running(game_id), dbl)
+            step("主页启动按钮直接启动", bool(dbl.get("running")) and api._pm.is_running(game_id), dbl)
             api.stop(game_id)
             time.sleep(2)
+            # 后面的判据都在环形队列上，切回去（这一步不该改变后续用例的布局）
+            window.evaluate_js("""(() => {
+              const sel = document.getElementById('setHallLayout');
+              if (sel && sel.value !== 'ring') {
+                sel.value = 'ring';
+                sel.dispatchEvent(new Event('change'));
+              }
+            })()""")
+            time.sleep(1.2)
 
             # 4. 启动 / 结束（用 ping 冒充常驻进程）
             launched = api.launch(game_id)
