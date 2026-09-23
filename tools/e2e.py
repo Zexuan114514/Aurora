@@ -1308,6 +1308,88 @@ def main() -> int:
             })()""")
             time.sleep(1.2)
 
+            # 3.6b 右键菜单（反馈第 19-b 条）：环形下右键封面 → 启动 / 收藏 / 详情 / 移除
+            def open_hall_menu() -> None:
+                window.evaluate_js("""(() => {
+                  // 用焦点那本（在环形中间、可见），别点环形边上那张
+                  const tile = document.querySelector('#hallRow .gi.focus[data-id]')
+                    || document.querySelector('#hallRow .gi[data-id]');
+                  if (!tile) return;
+                  const box = tile.getBoundingClientRect();
+                  tile.dispatchEvent(new MouseEvent('contextmenu', {bubbles: true,
+                    clientX: box.left + box.width / 2, clientY: box.top + box.height / 2}));
+                })()""")
+                time.sleep(0.7)
+
+            open_hall_menu()
+            menu = probe(window, """
+              const menu = document.getElementById('hallMenu');
+              return JSON.stringify({open: !menu.hidden,
+                                     acts: [...menu.querySelectorAll('button')].map(b => b.dataset.act),
+                                     left: menu.style.left, top: menu.style.top});
+            """)
+            step("右键封面弹出菜单（启动/收藏/详情/移除）",
+                 bool(menu.get("open"))
+                 and menu.get("acts") == ["play", "favorite", "detail", "remove"], menu)
+
+            # 悬停不再抢焦点（第 19-b 条删掉的那条交互）
+            hover_before = window.evaluate_js("""(() => {
+              const focus = (document.querySelector('#hallRow .gi.focus') || {}).dataset?.id || '';
+              const other = [...document.querySelectorAll('#hallRow .gi[data-id]')]
+                .find((t) => t.dataset.id !== focus);
+              if (!other) return focus;
+              const box = other.getBoundingClientRect();
+              other.dispatchEvent(new MouseEvent('mousemove', {bubbles: true,
+                clientX: box.left + box.width / 2, clientY: box.top + box.height / 2}));
+              return focus;
+            })()""")
+            time.sleep(0.9)
+            hover_after = probe(window, """
+              return JSON.stringify({focus: (document.querySelector('#hallRow .gi.focus') || {}).dataset?.id || ''});
+            """)
+            step("悬停不再切换焦点", hover_after.get("focus") == hover_before,
+                 f"{hover_before} -> {hover_after.get('focus')}")
+
+            # 菜单里启动（仍用 ping 冒充常驻进程）
+            api.set_launch_args(game_id, "-n 30 127.0.0.1")
+            open_hall_menu()
+            window.evaluate_js("document.querySelector('#hallMenu button[data-act=play]').click();")
+            time.sleep(4)
+            menu_play = probe(window, """
+              return JSON.stringify({page: !document.getElementById('view').hidden,
+                                     running: !document.getElementById('pillRunning').hidden});
+            """)
+            step("菜单里能启动", bool(menu_play.get("running")) and api._pm.is_running(game_id),
+                 menu_play)
+            api.stop(game_id)
+            time.sleep(2)
+            window.evaluate_js("document.getElementById('btnBack').click();")
+            time.sleep(1.2)
+
+            # 菜单里收藏（点完还原，别影响后面的判据）
+            fav_before = bool(api._library.get(game_id).get("favorite"))
+            open_hall_menu()
+            window.evaluate_js("document.querySelector('#hallMenu button[data-act=favorite]').click();")
+            time.sleep(1.4)
+            fav_after = bool(api._library.get(game_id).get("favorite"))
+            step("菜单里能收藏 / 取消收藏", fav_after != fav_before, f"{fav_before} -> {fav_after}")
+            if fav_after != fav_before:
+                api.set_games_favorite([game_id], fav_before)
+                time.sleep(1.0)
+
+            # 菜单里进详情
+            open_hall_menu()
+            window.evaluate_js("document.querySelector('#hallMenu button[data-act=detail]').click();")
+            time.sleep(1.6)
+            menu_detail = probe(window, """
+              return JSON.stringify({page: document.body.classList.contains('page-game'),
+                                     menu: !document.getElementById('hallMenu').hidden});
+            """)
+            step("菜单里能进详情且菜单收起",
+                 bool(menu_detail.get("page")) and not menu_detail.get("menu"), menu_detail)
+            window.evaluate_js("document.getElementById('btnBack').click();")
+            time.sleep(1.2)
+
             # 4. 启动 / 结束（用 ping 冒充常驻进程）
             launched = api.launch(game_id)
             step("启动可执行文件", bool(launched.get("ok")), launched)

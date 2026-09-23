@@ -41,7 +41,6 @@ export function createRing(hooks: RingHooks, addKey: string) {
   let size: RingSize = { unit: 1, w: 180, h: 270, rx: 580, rz: 260, depth: 1100 }
   let swipe: any = null
   let moved = false
-  let hoverTimer = 0
   let wheelLast = 0
 
   const layout = (): HallLayout => {
@@ -179,18 +178,8 @@ export function createRing(hooks: RingHooks, addKey: string) {
   /** 输入绑定：大厅挂载后调一次。 */
   function bind(app: HTMLElement) {
     if (!row || !viewport) return
-    row.addEventListener("mousemove", (event) => {
-      if (RING.dragActive) return
-      const tile = (event.target as HTMLElement).closest(".gi") as HTMLElement | null
-      if (!tile) return
-      window.clearTimeout(hoverTimer)
-      hoverTimer = window.setTimeout(() => {
-        if (state.settingsOpen || state.view === "categories") return
-        const key = tile.dataset.add ? addKey : tile.dataset.id
-        if (key && key !== state.focus) hooks.onFocus(key)
-      }, 320)
-    })
-    row.addEventListener("mouseleave", () => window.clearTimeout(hoverTimer))
+    // 「悬停 320ms 即切到该游戏」按反馈第 19-b 条删掉了：它反直觉，而且挡住右键菜单
+    // 的使用（鼠标一停就把焦点抢走）。滑动只保留滚轮 / ← → / 拖拽这些显式动作。
     row.addEventListener("click", (event) => {
       const tile = (event.target as HTMLElement).closest(".gi") as HTMLElement | null
       if (!tile || moved) return
@@ -220,7 +209,6 @@ export function createRing(hooks: RingHooks, addKey: string) {
         moved = true
         RING.dragActive = true
         row?.classList.add("ring-drag")
-        window.clearTimeout(hoverTimer)
       }
       const pos = swipe.start - dx / (RING.dragPx * size.unit)
       if (swipe.flat) {

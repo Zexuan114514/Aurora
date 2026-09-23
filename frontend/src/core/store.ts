@@ -50,7 +50,7 @@ export const state = reactive({
     vntext: false,
     get: false,
   } as Record<string, boolean>,
-  menus: { more: false, sort: false, scope: false },
+  menus: { more: false, sort: false, scope: false, hall: false },
   fetching: false,
   vntext: {} as Record<string, any>,
   locale: {} as Record<string, any>,
@@ -123,6 +123,7 @@ export const closeAllPanels = (): void => {
   state.menus.more = false
   state.menus.sort = false
   state.menus.scope = false
+  state.menus.hall = false
 }
 
 let toastTimer: number | undefined

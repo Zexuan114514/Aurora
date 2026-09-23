@@ -36,6 +36,7 @@
             type="button"
             :data-id="game.id"
             @click="setFocus(game.id)"
+            @contextmenu.prevent="openMenu($event, game.id)"
           >
             <img :src="game.custom_cover || game.cover || game.header_image || ''" alt="" loading="lazy">
             <span>
@@ -69,6 +70,7 @@
           :data-add="key === ADD_KEY ? '1' : undefined"
           :title="titleOf(key)"
           type="button"
+          @contextmenu.prevent="openMenu($event, key)"
         >
           <span class="gi-card" data-slot="cover">
             <template v-if="key === ADD_KEY">
@@ -105,6 +107,25 @@
       </div>
     </div>
 
+    <!-- 19-b：右键菜单（启动 / 收藏 / 详情 / 移除）。四种布局都能用 —— 环形与平铺挂在
+         封面上、列表挂右栏的行上；位置用 fixed，跟着点击点走。 -->
+    <div
+      id="hallMenu"
+      class="menu glass"
+      data-slot="hall-menu"
+      :hidden="!state.menus.hall"
+      :style="{ left: menuPos.left + 'px', top: menuPos.top + 'px' }"
+      @contextmenu.prevent
+    >
+      <button type="button" data-act="play" @click="menuAction('play')">启动游戏</button>
+      <button type="button" data-act="favorite" @click="menuAction('favorite')">
+        {{ menuGame?.favorite ? "取消收藏" : "加入收藏" }}
+      </button>
+      <button type="button" data-act="detail" @click="menuAction('detail')">详情</button>
+      <div class="menu-sep" />
+      <button type="button" class="danger" data-act="remove" @click="menuAction('remove')">移除游戏</button>
+    </div>
+
     <div id="hallFoot" class="hall-foot" data-drag data-slot="rail">
       <div class="hall-info">
         <div id="hallName" class="hall-name" data-slot="rail-title">{{ heroName }}</div>
@@ -124,7 +145,9 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
 import { emitUi, onUi } from "@/core/bus"
 import { enterGame, hallKeys, playGame, runtime, setFocus } from "@/core/app"
 import { importGames } from "@/core/actions"
-import { ADD_KEY, currentGame, state } from "@/core/store"
+import { call } from "@/core/api"
+import { modal } from "@/core/modal"
+import { ADD_KEY, currentGame, state, toast } from "@/core/store"
 import { STATUS_GLYPH, STATUS_LABEL, visibleGames } from "@/core/query"
 import { hours } from "@/core/time"
 import { createRing } from "@/features/hall/ring"
@@ -243,6 +266,55 @@ const ring = createRing({
   onAdd: () => { void importGames() },
 }, ADD_KEY)
 
+/* ---------------------------------------------------------------- *
+ * 19-b：右键菜单（启动 / 收藏 / 详情 / 移除）
+ * 四种布局共用一套：环形与平铺挂在封面上、列表挂右栏行上。
+ * ---------------------------------------------------------------- */
+const menuId = ref("")
+const menuPos = ref({ left: 0, top: 0 })
+const menuGame = computed(() => state.games.find((game) => game.id === menuId.value) || null)
+
+function openMenu(event: MouseEvent, id?: string): void {
+  if (!id || id === ADD_KEY) return
+  menuId.value = id
+  // 贴边时往回收，别让菜单跑出窗口（宽约 208 + 内边距，四行 + 分隔线约 176）
+  menuPos.value = {
+    left: Math.max(8, Math.min(event.clientX, window.innerWidth - 224)),
+    top: Math.max(8, Math.min(event.clientY, window.innerHeight - 184)),
+  }
+  state.menus.hall = true
+}
+
+function closeMenu(): void {
+  state.menus.hall = false
+}
+
+async function menuAction(action: string): Promise<void> {
+  const row = menuGame.value
+  closeMenu()
+  if (!row) return
+  if (action === "play") { playGame(row.id); return }
+  if (action === "detail") { enterGame(row.id); return }
+  if (action === "favorite") {
+    const res = await call("toggle_favorite", row.id)
+    if (res?.game) Object.assign(row, res.game)
+    emitUi("render")
+    toast(row.favorite ? `已收藏「${row.name}」` : `已取消收藏「${row.name}」`)
+    return
+  }
+  if (action === "remove") {
+    const ok = await modal({
+      title: "移除游戏",
+      body: `确定把「${row.name}」从库中移除吗？不会删除磁盘上的文件。`,
+      okText: "移除",
+    })
+    if (!ok) return
+    await call("remove_game", row.id)
+    emitUi("library:refresh")
+    toast("已移除")
+  }
+}
+
 onMounted(async () => {
   await nextTick()
   if (row.value && viewport.value) {
@@ -259,14 +331,22 @@ onMounted(async () => {
   onUi("tick", () => { tick.value++ })
   onUi("focus", (id: string) => setFocus(id))
   onUi("layout:apply", () => ring.applyLayout())
+  // 滚轮滑动时菜单会「悬」在原地，直接收起（Esc 由外壳统一处理）
+  window.addEventListener("wheel", closeMenu, { passive: true })
 })
-onUnmounted(() => { runtime.ring = undefined })
+onUnmounted(() => {
+  runtime.ring = undefined
+  window.removeEventListener("wheel", closeMenu)
+})
 
 // 键列表变化（导入 / 筛选 / 排序）后重新摆位
 watch(() => keys.value.join("|"), () => {
   nextTick(() => ring.update())
 })
-watch(layout, () => { nextTick(() => ring.applyLayout()) })
+watch(layout, () => {
+  closeMenu()
+  nextTick(() => ring.applyLayout())
+})
 watch(() => state.focus, () => { nextTick(() => ring.update()) })
 
 // 「大图 + 侧列表」：滚轮 / 方向键切当前游戏之后，把那一行滚进可视区

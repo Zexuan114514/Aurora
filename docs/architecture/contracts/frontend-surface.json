@@ -47,6 +47,7 @@
     "getSiteUrl",
     "getWatch",
     "hall",
+    "hallMenu",
     "hallName",
     "hallRow",
     "hallViewport",

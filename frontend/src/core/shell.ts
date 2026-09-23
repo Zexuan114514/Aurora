@@ -17,6 +17,7 @@ export function bindShell(ctx: {
     if (!target.closest("#moreMenu, #btnMore")) state.menus.more = false
     if (!target.closest("#sortMenu, #btnSort")) state.menus.sort = false
     if (!target.closest("#scopeMenu, #scopePill")) state.menus.scope = false
+    if (!target.closest("#hallMenu")) state.menus.hall = false
   })
 
   document.addEventListener("keydown", (event) => {

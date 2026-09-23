@@ -225,6 +225,10 @@
 .hall-label-actions { margin-top: 18px; display: flex; align-items: center; gap: 10px; }
 .hall-label-actions .btn.play { height: 40px; padding: 0 26px; font-size: 14px; }
 
+/* 19-b：大厅右键菜单。`.menu` 自带样式与动画，这里只把它从 absolute 改成跟着
+   点击点走的 fixed —— 大厅里没有能当定位祖先的元素，用 absolute 会跑到别处。 */
+#hallMenu { position: fixed; }
+
 .hall-side {
   display: flex;
   flex-direction: column;
