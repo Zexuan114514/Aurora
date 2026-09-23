@@ -362,6 +362,10 @@ def main() -> int:
                             t.dispatchEvent(new Event('change', {{bubbles: true}})); }}
                 }})()""")
                 time.sleep(1.2)
+                # 还原必须**真的落盘**再退：存储是「去抖 + 后台写线程」，
+                # 下面的 `os._exit` 会把还没写的还原丢掉 —— 2026-09-23 实测
+                # 跑完这个工具之后使用者的设置被留在 gallery-light。
+                api._library.flush()
             except Exception:                                 # noqa: BLE001
                 pass
             bad = [row for row in report["rows"] if row["ok"] is False]

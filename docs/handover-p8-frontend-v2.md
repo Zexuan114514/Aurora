@@ -188,6 +188,14 @@ cd frontend; npm run build; cd ..
    就算路径修对了也只会开出个空壳。
    守卫：`check_packaging.py` 现在会静态读 `HTML_PATH` 并断言文件存在。
 
+10. **`contrast.py` 用真实数据目录是有意的**（要按使用者的真实壁纸采样），
+   所以它会真的切主题 —— 但**改完必须落盘了再退**：存储是「去抖 + 后台写线程」，
+   还原之后紧跟的 `os._exit` 会把还没写的还原丢掉。2026-09-23 实测：跑完这个工具，
+   使用者的设置被留在 `gallery-light`（他原本是 `aurora-dark`），
+   还得手动改回去。现在 `finally` 里还原之后会 `api._library.flush()`；
+   要完全避开真实数据，就带 `CONTRAST_OFFLINE=1` 跑（用 `_sandbox/contrast-data`，
+   量不到真实壁纸）。
+
 ## 5. 还没做的
 
 **三个真机门已关闭；剩下「下一轮」两项**
