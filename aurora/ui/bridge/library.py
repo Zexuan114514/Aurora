@@ -171,6 +171,88 @@ class LibraryBridgeMixin:
             self._emit("game:updated", _public(game, self._pm))
         return {"ok": True, "game": _public(game, self._pm) if game else None}
 
+    # ------------------------------------------------------------------ #
+    # 常驻背景（跟当前游戏无关的一张图，只保留一张）
+    #
+    # 默认行为是「跟着当前游戏走」，所以这几条只在用户主动选常驻图之后才起作用。
+    # 存量与缩放都记在 settings 里（background_mode / background_custom /
+    # background_custom_scale），前端 BackgroundLayer 按 mode 决定用哪张。
+    # ------------------------------------------------------------------ #
+    def _background_state(self) -> dict:
+        settings = self._library.settings
+        return {
+            "mode": "custom" if str(settings.get("background_mode")) == "custom" else "game",
+            "url": str(settings.get("background_custom") or ""),
+            "scale": float(settings.get("background_custom_scale") or 1.0),
+        }
+
+
+    def get_background_state(self) -> dict:
+        return {"ok": True, **self._background_state()}
+
+
+    def set_background_mode(self, mode: str) -> dict:
+        """背景来源：game = 跟随当前游戏，custom = 常驻图。"""
+        value = "custom" if str(mode) == "custom" else "game"
+        if value == "custom" and not self._background_state()["url"]:
+            return {"ok": False, "error": "no-image"}
+        self._library.set_setting("background_mode", value)
+        return {"ok": True, **self._background_state()}
+
+
+    def pick_persistent_background(self) -> dict:
+        """选一张常驻背景图（旧的会删掉 —— 只支持一张）。"""
+        if self._window is None:
+            return {"ok": False}
+        result = self._dialogs.create_file_dialog(
+            webview.OPEN_DIALOG,
+            allow_multiple=False,
+            file_types=("图片 (*.jpg;*.jpeg;*.png;*.webp;*.bmp)", "所有文件 (*.*)"),
+        )
+        if not result:
+            return {"ok": False, "cancelled": True}
+        return self._set_persistent_background(Path(result[0]))
+
+
+    def _set_persistent_background(self, source: Path) -> dict:
+        if not source.is_file():
+            return {"ok": False, "error": "missing"}
+        suffix = source.suffix.lower()
+        if suffix not in IMAGE_EXTS:
+            return {"ok": False, "error": "unsupported"}
+        config.ensure_dirs()
+        self._purge_persistent_background()
+        name = f"persistent-{uuid.uuid4().hex[:6]}{suffix}"
+        try:
+            shutil.copy2(source, config.BG_SOURCE_DIR / name)
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+        self._library.set_setting("background_custom", f"assets/backgrounds/{name}")
+        self._library.set_setting("background_mode", "custom")
+        return {"ok": True, **self._background_state()}
+
+
+    def _purge_persistent_background(self) -> None:
+        for path in config.BG_SOURCE_DIR.glob("persistent-*"):
+            try:
+                path.unlink()
+            except OSError:
+                pass
+
+
+    def clear_persistent_background(self) -> dict:
+        """清掉常驻图，回到「跟随当前游戏」。"""
+        self._purge_persistent_background()
+        self._library.set_setting("background_custom", "")
+        self._library.set_setting("background_mode", "game")
+        return {"ok": True, **self._background_state()}
+
+
+    def set_background_custom_scale(self, scale: float) -> dict:
+        value = max(1.0, min(3.0, float(scale or 1.0)))
+        self._library.set_setting("background_custom_scale", round(value, 3))
+        return {"ok": True, **self._background_state()}
+
 
     # ------------------------------------------------------------------ #
     # 自定义图标

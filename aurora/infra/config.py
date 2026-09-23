@@ -75,7 +75,14 @@ DEFAULT_SETTINGS = {
     "accent": "#0A84FF",         # 强调色
     "theme_mode": "dark",        # dark | light | auto（auto 跟随 Windows 应用主题）
     "palette": "aurora",         # aurora | lime | sakura | amber | custom
-    "hall_layout": "ring",       # ring（环形队列）| flat（平铺横滑，NS 大厅）
+    # v2 起风格与明暗分开存：theme = 风格（aurora | gallery | screening | shelf），
+    # theme_mode = 明暗（见 ADR-0013）。v1 前端不读 theme，忽略即可。
+    "theme": "aurora",
+    "hall_layout": "list",       # list（大图 + 侧列表，v2 默认）| ring（环形队列）| flat（平铺横滑）
+    # 背景：默认跟着当前游戏走；也可以钉一张常驻图（P8.4，只支持一张）
+    "background_mode": "game",   # game（跟随当前游戏）| custom（常驻图）
+    "background_custom": "",     # 常驻图 URL：assets/backgrounds/persistent-*.jpg
+    "background_custom_scale": 1.0,   # 常驻图缩放（1.0–3.0）
     "auto_search": True,         # 导入后自动联网搜索
     # 简介翻译：LLM 接口为主 + 免费接口兜底
     "translate_enabled": True,                  # 导入后自动翻译简介

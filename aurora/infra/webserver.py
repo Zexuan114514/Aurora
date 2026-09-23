@@ -22,6 +22,9 @@ __all__ = ["start", "AssetServer", "ASSET_PREFIX"]
 
 ASSET_PREFIX = "/assets/"
 _NO_STORE_SUFFIXES = {".html", ".css", ".js", ".mjs", ".svg", ".json"}
+#: v2 前端是 Vite 产物：bundle/ 下的文件名自带内容哈希，可以长缓存。
+#: 入口 index.html 仍然 no-store（它不带哈希，必须每次校验）。
+_IMMUTABLE_PREFIX = "/v2/bundle/"
 
 
 def _safe_join(root: Path, rel: str) -> Path | None:
@@ -101,7 +104,10 @@ class _Handler(BaseHTTPRequestHandler):
             return
 
         ctype = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
-        cache = ("no-store" if target.suffix.lower() in _NO_STORE_SUFFIXES else "no-cache")
+        if path.startswith(_IMMUTABLE_PREFIX):
+            cache = "public, max-age=31536000, immutable"
+        else:
+            cache = ("no-store" if target.suffix.lower() in _NO_STORE_SUFFIXES else "no-cache")
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))

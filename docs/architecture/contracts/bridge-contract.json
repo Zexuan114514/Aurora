@@ -15,10 +15,10 @@
   "channels": {
     "main": {
       "js_api": "gl.api.Api",
-      "method_count": 151,
-      "public_method_count": 109,
-      "internal_method_count": 42,
-      "frontend_call_count": 100,
+      "method_count": 159,
+      "public_method_count": 114,
+      "internal_method_count": 45,
+      "frontend_call_count": 103,
       "excluded_members": [
         "__init__"
       ],
@@ -91,6 +91,14 @@
             }
           ],
           "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_background_state",
+          "params": [],
+          "returns": "dict",
           "kind": "internal",
           "internal": true,
           "called_by_frontend": false
@@ -477,6 +485,14 @@
           "called_by_frontend": false
         },
         {
+          "name": "_purge_persistent_background",
+          "params": [],
+          "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
           "name": "_recover_sessions",
           "params": [],
           "returns": "None",
@@ -554,6 +570,20 @@
           "name": "_set_hooksearch",
           "params": [],
           "returns": "None",
+          "kind": "internal",
+          "internal": true,
+          "called_by_frontend": false
+        },
+        {
+          "name": "_set_persistent_background",
+          "params": [
+            {
+              "name": "source",
+              "type": "Path",
+              "required": true
+            }
+          ],
+          "returns": "dict",
           "kind": "internal",
           "internal": true,
           "called_by_frontend": false
@@ -906,6 +936,14 @@
           "called_by_frontend": true
         },
         {
+          "name": "clear_persistent_background",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
           "name": "clear_vntext_context",
           "params": [],
           "returns": "dict",
@@ -1001,6 +1039,14 @@
           "called_by_frontend": true
         },
         {
+          "name": "get_background_state",
+          "params": [],
+          "returns": "dict",
+          "kind": "query",
+          "internal": false,
+          "called_by_frontend": false
+        },
+        {
           "name": "get_download_settings",
           "params": [],
           "returns": "dict",
@@ -1014,7 +1060,7 @@
           "returns": "dict",
           "kind": "query",
           "internal": false,
-          "called_by_frontend": true
+          "called_by_frontend": false
         },
         {
           "name": "get_locale_status",
@@ -1258,7 +1304,7 @@
           "returns": "dict",
           "kind": "dialog",
           "internal": false,
-          "called_by_frontend": true
+          "called_by_frontend": false
         },
         {
           "name": "open_url",
@@ -1334,6 +1380,14 @@
         },
         {
           "name": "pick_locale_proc",
+          "params": [],
+          "returns": "dict",
+          "kind": "dialog",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "pick_persistent_background",
           "params": [],
           "returns": "dict",
           "kind": "dialog",
@@ -1428,7 +1482,7 @@
           "returns": "dict",
           "kind": "command",
           "internal": false,
-          "called_by_frontend": false
+          "called_by_frontend": true
         },
         {
           "name": "remove_site",
@@ -1636,6 +1690,34 @@
               "name": "kind",
               "type": "str",
               "required": false
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_background_custom_scale",
+          "params": [
+            {
+              "name": "scale",
+              "type": "float",
+              "required": true
+            }
+          ],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "set_background_mode",
+          "params": [
+            {
+              "name": "mode",
+              "type": "str",
+              "required": true
             }
           ],
           "returns": "dict",
