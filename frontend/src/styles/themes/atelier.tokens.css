@@ -4,9 +4,9 @@
   /* 深色态：夜里**开着台灯**的工作台 —— 全场最亮最暖的一套深色
      （五套深色里只有它不是近黑：藕紫木面 + 玫红的线）。这也是与画廊拉开
      区分度的主力：画廊是冷灰近黑，两套的整屏亮度差一档。 */
-  --s-base: #3c2c35;
-  --s-panel: #4a3742;
-  --s-elevated: #57414d;
+  --s-base: #372a31;
+  --s-panel: #443540;
+  --s-elevated: #4f3e49;
   --ramp-s: 255 240 245;      /* 带粉的纸白（不是纯白：这套的纸是暖的） */
   --ramp-s-k: 0.9;
   --ramp-l: 212 115 142;      /* 玫红当线：分隔与描边 */
@@ -36,12 +36,12 @@
   --option-bg: #42313b;
   /* 排印：楷体 + 衬线（手写贴纸与卡片目录那一档） */
   --font: "KaiTi", "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
-  --s-floor: color-mix(in srgb, #4a3742 88%, transparent);
+  --s-floor: color-mix(in srgb, #443540 88%, transparent);
 }
 
 /* Atelier · 浅色：小样那一面 —— 浅粉桌面 + 奶油纸片。 */
 :root[data-style="atelier"][data-theme="light"] {
-  --s-base: #f3e3e8;          /* 桌面：浅粉 */
+  --s-base: #ecdde2;          /* 桌面：浅粉（P8.18：比小样压暗一档，别这么亮） */
   --s-panel: #fffdfb;         /* 纸片：奶油白 */
   --s-elevated: #fffdfb;
   --ramp-s: 255 255 255;

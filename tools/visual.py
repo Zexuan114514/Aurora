@@ -152,6 +152,7 @@ THEME_MATRIX = (
     ("shelf", "dark"),
     ("aurora", "light"),
     ("atelier", "dark"),
+    ("atelier", "light"),
 )
 THEME_SCREENS = ("hall", "game", "categories", "settings", "panel")
 THEME_GRID = (16, 10)

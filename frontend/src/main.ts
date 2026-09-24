@@ -11,6 +11,7 @@ import { createApp } from "vue"
 import App from "@/App.vue"
 import { bridge, call, recordError } from "@/core/api"
 import { refreshLibrary, startLiveTicker } from "@/core/actions"
+import { onUi } from "@/core/bus"
 import { closeGame, closeSettings, runtime, setView } from "@/core/app"
 import { installElement } from "@/core/element"
 import { bindShell } from "@/core/shell"
@@ -36,6 +37,13 @@ bindShell({
   closeSettings,
   setView,
   closeGame,
+})
+
+// P8.18（反馈第 24 条）：`library:refresh` 原先**只发不收** —— 详情页移除游戏、
+// 主页右键菜单移除、元数据刷新完成、下载目录自动导入四处都在发它，却没有监听，
+// 于是「移除」只改了后端，列表要重启才更新。这里补上唯一的回读口。
+onUi("library:refresh", () => {
+  void refreshLibrary().catch((error) => recordError("刷新库", error))
 })
 
 let booted = false

@@ -51,6 +51,7 @@
 }
 .ov-btn:hover { background: var(--fil140); color: var(--text-1); }
 .ov-btn.on { background: color-mix(in srgb, var(--a-main) 32%, transparent); color: var(--text-1); }
+.ov-btn.danger:hover { background: rgb(255 69 58 / 0.22); color: #ff8a80; }
 #body {
   flex: 1;
   min-height: 0;

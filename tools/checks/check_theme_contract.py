@@ -41,7 +41,8 @@ SKIN_MAX_LINES = 200
 #: 主题截图基线（tools/visual.py 生成，见 docs/architecture/p8-frontend-v2.md）
 BASELINE = ROOT / "tools" / "baselines" / "theme-baseline.json"
 BASELINE_MATRIX = (("aurora", "dark"), ("gallery", "dark"), ("screening", "dark"),
-                   ("shelf", "dark"), ("aurora", "light"), ("atelier", "dark"))
+                   ("shelf", "dark"), ("aurora", "light"), ("atelier", "dark"),
+                   ("atelier", "light"))
 BASELINE_SCREENS = ("hall", "game", "categories", "settings", "panel")
 
 _CONTRACT = re.compile(r"/\* @contract:start \*/(.*?)/\* @contract:end \*/", re.S)

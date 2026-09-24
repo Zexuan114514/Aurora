@@ -4,13 +4,16 @@
       <b>Aurora 翻译</b>
       <span id="status">{{ statusText }}</span>
       <span class="grow" />
-      <button id="btnMode" type="button" title="切换原文/双语" @click="toggleMode">{{ modeText }}</button>
-      <button id="btnPrev" type="button" title="上一句" @click="prev">‹</button>
-      <button id="btnNext" type="button" title="下一句" @click="next">›</button>
-      <button id="btnCopy" type="button" title="复制译文" @click="copy">复制</button>
-      <button id="btnPause" type="button" title="暂停/继续" @click="togglePause">{{ pauseText }}</button>
-      <button id="btnThrough" type="button" title="切换鼠标穿透（Ctrl+Alt+T）" @click="toggleThrough">{{ throughText }}</button>
-      <button id="btnHide" class="danger" type="button" title="隐藏（Ctrl+Alt+Y）" @click="hide">✕</button>
+      <!-- P8.18（反馈第 25 条）：v2 改 Vue 时把这 7 个按钮的 `ov-btn` 类丢了，
+           overlay.css 里所有按钮样式都挂在 `.ov-btn` 下 → 退回浏览器默认白底按钮，
+           文字又继承 --text-1（深色主题是白的）→ 白底白字看不见。 -->
+      <button id="btnMode" class="ov-btn" type="button" title="切换原文/双语" @click="toggleMode">{{ modeText }}</button>
+      <button id="btnPrev" class="ov-btn" type="button" title="上一句" @click="prev">‹</button>
+      <button id="btnNext" class="ov-btn" type="button" title="下一句" @click="next">›</button>
+      <button id="btnCopy" class="ov-btn" type="button" title="复制译文" @click="copy">复制</button>
+      <button id="btnPause" class="ov-btn" type="button" title="暂停/继续" @click="togglePause">{{ pauseText }}</button>
+      <button id="btnThrough" class="ov-btn" type="button" title="切换鼠标穿透（Ctrl+Alt+T）" @click="toggleThrough">{{ throughText }}</button>
+      <button id="btnHide" class="ov-btn danger" type="button" title="隐藏（Ctrl+Alt+Y）" @click="hide">✕</button>
     </div>
     <div id="notice">{{ notice }}</div>
     <div id="body">
