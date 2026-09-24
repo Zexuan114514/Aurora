@@ -673,8 +673,23 @@ Arcade 的 START 是全屏唯一**可下压 + 呼吸灯**的键，Atelier 的 pl
 「一套主题可多张皮肤」的契约放宽（守卫与 spec 仍逐张查）。按钮风格化重新记为待办，
 教训写在 `docs/theme-templates/README.md` 最后一节。
 
+### P8.18（2026-09-24）：Atelier 观感 + 四条实测问题
+
+| 项 | 内容 |
+| --- | --- |
+| Atelier 遮罩 | 透明度整体降一档、遮罩色从近白换藕粉灰、`--s-base` 压暗 → 浅色不再发亮；深色底部压到 0.9、面板去粉 → 不再「太粉」；深色态整体亮度仍保持五套里最高（使用者拍板「先保持现状」） |
+| 详情页图层 | `#view [data-slot="hero-label"]` 垫奶油纸片 + 两段和纸胶带（游戏 icon → 底部按钮整块）→ 详情页标题对比度 **3.71 → 9.54** |
+| 封面尺寸（反馈第 23 条） | 根因：shelf 的 P8.8 段落与 atelier 皮肤都把 `[data-slot="cover-art"]` 的 `position: absolute; inset: 0` 覆盖成 `relative` → 封面框尺寸改由图片自身比例决定（矮竖版留白 / 横版只占上半 / 高竖版溢出）。删掉这两处多余的 `position`；**DOM 逐格复验**（shelf / atelier × 环形 / 平铺 = 44 格）：尺寸不符 0、偏移全 [0,0] |
+| 深色背景过曝 | 同两种主题的 `.bg-img` 滤镜是照浅色小样定的（brightness 1.14 / 1.22），深色也照用 → 各补一条深色专用滤镜（0.88 / 0.84） |
+| 移除游戏不生效（第 24 条） | `library:refresh` 有 4 处发送、0 处监听 → `main.ts` 补监听走现成的 `refreshLibrary()`（它已处理「焦点那款没了就退回第一款」） |
+| 悬浮窗按钮不可见（第 25 条） | v2 改 Vue 时丢了 7 个按钮的 `class="ov-btn"`（`overlay.css` 的样式全挂在它下面）→ 补回 + `.ov-btn.danger:hover` |
+| 矩阵 | 按拍板把 **Atelier 浅色**纳入：`THEME_MATRIX` / `BASELINE_MATRIX` 各加一行 → **30 → 35 张** |
+
+门：矩阵 **35/35 偏差 0**（区分度 **23.9**）、`contrast` **40/40**、`e2e` **101/101**、
+`run_all` 14/14、`pytest` 127、`vitest` 40；`Aurora.exe` 已重建。
+
 **留给下一轮**：按钮风格化（重新试，建议小步）；其余三套主题也可以各开一张
-`<theme>.buttons.skin.css`。
+`<theme>.buttons.skin.css`；悬浮窗「跟主题」（本轮只修了按钮不可见，整套跟随仍搁置）。
 
 ### 其它还没做的
 

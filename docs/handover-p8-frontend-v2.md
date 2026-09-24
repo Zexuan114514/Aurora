@@ -43,6 +43,7 @@
 | P8.15 右键菜单 + 删悬停切换（反馈第 19-b 条） | `HallView.vue`、`ring.ts`、`store.ts`、`shell.ts`、`app.css`、`tools/e2e.py` | ✅ `#hallMenu`（启动 / 收藏 / 详情 / 移除，四种布局共用，Esc / 空白 / 滚轮 / 切布局都收）；环形与横滑的「悬停即切换」整段下掉；e2e **101/101**（新增 5 条），表面快照 98 → 99 id |
 | P8.16 画廊按钮风格化（反馈第 21 条） | `themes/gallery.buttons.skin.css`、`app.css`、`HallView.vue` | ⏸ **已撤**（使用者实机「观感不如改动前」）：皮肤文件删除、`#btnHallPlay` 恢复纯文字、基线回滚（复跑 25/25 偏差 0）；模板与四个口径留在 `docs/theme-templates/`，**重新记为待办** |
 | P8.17 Atelier 第五套主题（反馈第 20 条） | `themes/atelier.tokens.css` + `atelier.skin.css`（新）、`core/theme.ts`、`themes.spec.ts`、`check_theme_contract.py`、`visual.py`、`contrast.py`、`SettingsView.vue` | ✅ 签名：切割垫桌面 / 胶带纸片 / 摊开的照片 / 玫红虚线便签 / 圆形红印章 CTA；深色态是「夜里开着台灯的工作台」（整屏 60–74，五套里唯一不是近黑）→ 区分度 **25.9**（目标 ≥20）。矩阵 25 → **30 张**、对比度 32 → **40 点**；顺带把 `theme_capture_sane` 的深浅分界 70 → 85 |
+| P8.18 Atelier 观感 + 四条实测问题（反馈第 22–25 条） | `atelier.skin.css` / `atelier.tokens.css`、`shelf.skin.css`、`main.ts`、`overlay/OverlayApp.vue` + `overlay.css`、`visual.py`、`check_theme_contract.py` | ✅ Atelier 遮罩降强度 + 浅色暗化 + 深色底部压暗；**详情页左下角整块垫纸片**（标题对比 3.71 → 9.54）；shelf/Atelier 环形与平铺的**封面尺寸**修好（根因是皮肤把 `cover-art` 的 `position: absolute` 覆盖成 `relative`，DOM 44 格复验 0 不符）；两种主题深色**壁纸滤镜**补分档；`library:refresh` 补监听（移除游戏立刻生效）；悬浮窗 7 个按钮补回 `ov-btn`；Atelier 浅色纳入矩阵（**35 张**，区分度 23.9） |
 
 ## 2. 现在验证到哪一步
 
