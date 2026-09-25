@@ -3,17 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Atelier 小样 · 示例主页</title>
+<title>Atelier · 示例主页</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <!--
-  Atelier（工作台）· 候选第 5 套主题的小样（反馈第 4 条）
-    · 桌面：浅粉工作台 + 极淡的切割垫网格（纯 CSS，不用位图）
-    · 纸片：奶油白卡纸，微微歪一点；四角贴一段和纸胶带（纯 CSS，clip-path 做撕口）
-    · 排印：楷体 + 衬线，标签像手写贴纸；分隔用玫红细线，不用黄铜
-    · 按钮：主按钮是玫红实色块（扁平，无渐变无投影），次按钮是描边纸片
-    · 封面：像夹在剪贴板上的照片，四角胶带、轻微错落
+  Atelier（工作台）· 第五套正式主题的设计来源（反馈第 20 条）· v4 精修版
+    · 一句话：浅粉工作台 + 纸片 + 和纸胶带。整页像一张摊开的工作台。
+    · 桌面：浅粉 + 极淡的切割垫网格（纯 CSS，不用位图：细线 20px、粗线 100px）
+    · 纸片：奶油白卡纸，整体歪一点；上沿左右各贴一段和纸胶带（clip-path 做撕口）
+    · 排印：楷体 + 衬线；标签像手写贴纸；分隔是玫红细线，不用黄铜
+    · 封面：像**摊在桌上的照片** —— 每张各自歪一点、高低错开，上面压一小段胶带；
+      当前那张回正、抬高、描玫红边
+    · 按钮：主按钮是压进纸里的红印章（正圆 138px，五套里唯一的圆形）；次按钮描边纸片
   这一版只用来「看方向」——要不要做成第 5 套、还是拿去改造收藏架，
   要先有一组真机区分度数据才好定（见 docs/frontend-ux-feedback.md 第 4 项）。
 -->
@@ -44,8 +46,8 @@
 <main class="hall">
   <section class="stage">
     <article class="sheet">
-      <span class="tape tape-l"></span>
-      <span class="tape tape-r"></span>
+      <span class="tape tape-l" aria-hidden="true"></span>
+      <span class="tape tape-r" aria-hidden="true"></span>
       <p class="kicker">剪贴 #01 · 冒险 / 恋爱</p>
       <h1>苍蓝回响</h1>
       <div class="rose"></div>
@@ -60,14 +62,18 @@
         故事从一场久别重逢开始，也从一句没有说完的再见结束。
       </p>
       <div class="actions">
-        <button class="primary">继续游戏</button>
-        <button class="ghost">背景图</button>
-        <button class="ghost">详情</button>
+        <button class="play" type="button">
+          <i class="play-ic" aria-hidden="true"></i>
+          <span class="play-lb">开始游戏</span>
+          <span class="play-sub">ENTER</span>
+        </button>
+        <button class="ghost" type="button">背景图</button>
+        <button class="ghost" type="button">详情</button>
       </div>
     </article>
 
     <div class="board-stack">
-      <div class="board-title"><span>板上的六张</span><span>← → 翻检</span></div>
+      <div class="board-title"><span>摊在桌上的六张</span><span>← → 翻检</span></div>
       <div class="board">
         <figure class="scrap on"><img src="../assets/cover-1.jpg" alt=""><figcaption>001</figcaption></figure>
         <figure class="scrap"><img src="../assets/cover-2.jpg" alt=""><figcaption>002</figcaption></figure>
@@ -94,7 +100,7 @@
 
 <footer class="hintbar">
   <span>苍蓝回响 · Studio Hoshi · 2024</span>
-  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 主页按钮启动 · Ctrl+F 搜索</span>
 </footer>
 </body>
 </html>

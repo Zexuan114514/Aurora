@@ -6,7 +6,7 @@
 而 e2e / visual 全绿。
 
 用法（会短暂切换主题，跑完写回原值）：
-    python tools\\contrast.py                # 全跑：4 套风格 × 深/浅 × 2 个页面
+    python tools\\contrast.py                # 全跑：5 套风格 × 深/浅 × 2 个页面
     $env:CONTRAST_OFFLINE="1"; python tools\\contrast.py   # 用离线沙盒数据（壁纸来自 CDN）
 
 阈值取 WCAG：正文 ≥ 4.5，大字号（标题）≥ 3.0。不达标就退出码 1。

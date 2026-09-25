@@ -58,7 +58,7 @@ function px(value: string | undefined): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-/** 模糊口径（P8.8）：四套里只有极光玻璃保留毛玻璃，其余一律 0。 */
+/** 模糊口径（P8.8）：五套里只有极光玻璃保留毛玻璃，其余一律 0。 */
 const BLUR_BY_THEME: Record<string, [number, number]> = {
   aurora: [12, 40],
   gallery: [0, 0],
@@ -69,7 +69,7 @@ const BLUR_BY_THEME: Record<string, [number, number]> = {
 
 const RADIUS_LADDER = ["--r-xs", "--r-sm", "--r-md", "--r-lg", "--r-xl"]
 
-describe("四套主题的令牌契约", () => {
+describe("五套主题的令牌契约", () => {
   const tokens = contractTokens()
 
   it("契约清单本身有 20 个以上令牌", () => {
@@ -109,7 +109,7 @@ describe("四套主题的令牌契约", () => {
     }
   })
 
-  it("四套主题文件都在（缺一套就等于少一种风格）", () => {
+  it("五套主题文件都在（缺一套就等于少一种风格）", () => {
     const files = readdirSync(join(STYLES, "themes"))
     for (const theme of THEMES) {
       expect(files).toContain(`${theme}.tokens.css`)

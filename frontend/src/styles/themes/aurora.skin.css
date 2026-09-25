@@ -68,15 +68,7 @@
 [data-style="aurora"] [data-slot="rail-title"] { font-size: 21px; }
 [data-style="aurora"] [data-slot="rail-hint"] { color: var(--text-3); }
 
-/* 唯一保留渐变的一套：P8.10 把主 CTA 的高光与投影收敛下来（别糊成一片奶白） */
-[data-style="aurora"] .btn.play,
-[data-style="aurora"] .btn.primary {
-  background: linear-gradient(180deg, var(--a-main),
-              color-mix(in srgb, var(--a-2) 55%, var(--a-main)));
-  border-color: transparent;
-  color: var(--a-on);
-  box-shadow: 0 8px 20px -12px color-mix(in srgb, var(--a-main) 65%, transparent);
-}
+/* 按钮语言：见 aurora.buttons.skin.css（P8.19）。 */
 
 /* ------------------------------------------------------------
    P8.7：极光玻璃的圆角与发光也铺到主页之外 —— 面板保持玻璃质感，

@@ -64,7 +64,7 @@ _PCT_VALUE = re.compile(r"(\d+(?:\.\d+)?)%")
 #: 胶囊（--r-pill）单独一档 —— 方角主题里它也很小，不参与这条链。
 _RADIUS_LADDER = ("--r-xs", "--r-sm", "--r-md", "--r-lg", "--r-xl")
 
-#: 模糊口径（P8.8 拍板）：四套里**只有极光玻璃**保留毛玻璃，其余一律 0。
+#: 模糊口径（P8.8 拍板）：五套里**只有极光玻璃**保留毛玻璃，其余一律 0。
 #: 极光给下限 12px —— 那是这套主题的身份，别又抹成 0（反馈第 11 条）。
 BLUR_BY_THEME = {"aurora": (12, 40), "gallery": (0, 0), "screening": (0, 0),
                  "shelf": (0, 0), "atelier": (0, 0)}
@@ -148,7 +148,7 @@ def baseline_issues() -> list[str]:
     for key in sorted(expected - set(shots)):
         issues.append(f"主题截图基线缺 {key}")
     for key in sorted(set(shots) - expected):
-        issues.append(f"主题截图基线多了 {key}（矩阵只有 4 套深色 + 浅色默认主题）")
+        issues.append(f"主题截图基线多了 {key}（矩阵按当前五套主题的深浅配置登记）")
     for key, row in sorted(shots.items()):
         cells = row.get("cells") or []
         if len(cells) != cells_expected:
@@ -239,7 +239,7 @@ def value_issues() -> list[str]:
                 if not low <= blur <= high:
                     if low == high == 0:
                         issues.append(f"{where} 的 --fx-blur 是 {blur:g}px，这一套不该有模糊"
-                                      "（四套里只有极光玻璃保留毛玻璃）")
+                                      "（五套里只有极光玻璃保留毛玻璃）")
                     else:
                         issues.append(f"{where} 的 --fx-blur 是 {blur:g}px，应在 {low}–{high}px"
                                       "（毛玻璃是极光玻璃的身份，别抹成 0）")
@@ -275,7 +275,7 @@ def value_issues() -> list[str]:
 
 
 def check() -> Result:
-    result = Result("主题契约（四套风格 × 深/浅）")
+    result = Result("主题契约（五套风格 × 深/浅）")
     if not TOKENS.is_file():
         result.fail("找不到 frontend/src/styles/tokens.css")
         return result

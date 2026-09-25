@@ -1,6 +1,6 @@
 /* Aurora v2 · 语义令牌
  *
- * 这一层是「四套风格 × 深/浅两态」的唯一真相来源：
+ * 这一层是「五套风格 × 深/浅两态」的唯一真相来源：
  *   - 下面 @contract 标记的 :root 是**默认主题（极光玻璃 / 深色）**，同时是
  *     主题契约的清单（tools/checks/check_theme_contract.py 按它校验每套主题）。
  *   - themes/*.tokens.css 只做一件事：为 [data-theme][data-mode] 重新给这些变量赋值。

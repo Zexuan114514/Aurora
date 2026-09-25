@@ -207,7 +207,9 @@ class HookSearchService:
                     pool = [row for score, row in scored[:12] if score > 0]
                     if not pool:
                         return self._hooksearch_fail(
-                            "no-text", "采样到的候选都不像台词（可能停在菜单/黑屏），翻到正文再试")
+                            "no-text",
+                            "采样阶段未找到可验证的台词候选（不代表整次侦测失败）；"
+                            "现有钩子 / 缺字补全仍会继续监听")
                     self._set_hooksearch(
                         phase="verifying", steps=len(collected),
                         candidates=[{"code": "", "count": row.get("count", 0),
@@ -556,7 +558,11 @@ class HookSearchService:
 
     def _hooksearch_fail(self, reason: str, message: str) -> None:
         config.log(f"hooksearch: {reason} {message}")
-        self._set_hooksearch(phase="error", error=reason, reason=reason, message=message)
+        # 这是某个阶段的结果，不应覆盖引擎已经在跑的监听会话。面板会继续从
+        # vntext:status 接收有效线程；因此这里保留 warning 语义，避免把
+        # “采样法失败”误报成“找钩子整体失败”。
+        phase = "warning" if reason == "no-text" else "error"
+        self._set_hooksearch(phase=phase, error=reason, reason=reason, message=message)
 
     def _hooksearch_try(self, game_id: str, hwnd: int, code: str, target: str, *,
                         clicks: int = 3, wait: float = 5.0) -> bool:

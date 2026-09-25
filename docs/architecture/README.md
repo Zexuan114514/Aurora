@@ -86,8 +86,8 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | [`p2-data-v2.md`](p2-data-v2.md) | （P2 交付记录） | 数据分账 / 迁移 / 单写者：布局、迁移规则、验收证据 |
 | [`p3-bridge-mixins.md`](p3-bridge-mixins.md) | （P3.1 交付记录） | 桥接层拆 mixin：边界、契约守卫如何跟上、验收证据 |
 | [`p7-governance.md`](p7-governance.md) | （P7 交付记录） | CI 全量、诊断包、文档同步、故意违规变红的证据 |
-| [`p8-frontend-v2.md`](p8-frontend-v2.md) | （P8 交付记录） | 前端 v2：构建链、四套主题 × 深/浅、Element Plus 按需引入与控件迁移、主题截图基线、可读性修复、下一批迁移清单 |
-| [`../frontend-ux-feedback.md`](../frontend-ux-feedback.md) | （体验反馈 / 待办） | 使用者反馈的两条已修（胶囊排版、深色态对比度）+ 一条待排期（主题区分度），带实测证据与 `tools/contrast.py` |
+| [`p8-frontend-v2.md`](p8-frontend-v2.md) | （P8 交付记录） | 前端 v2：构建链、五套主题 × 深/浅、Element Plus 按需引入、按钮皮肤、主题截图基线、可读性修复与当前待办 |
+| [`../frontend-ux-feedback.md`](../frontend-ux-feedback.md) | （体验反馈 / 待办） | 使用者反馈的主题区分度、主页启动入口、Atelier 与按钮皮肤记录；当前开放事项与历史证据分开标注，带 `tools/visual.py` / `tools/contrast.py` 口径 |
 | [`contracts/bridge-contract.json`](contracts/bridge-contract.json) | component-boundary-reviewer | 桥接方法签名快照（151 方法 / 109 公开；含前端调用点标记） |
 | [`contracts/events.md`](contracts/events.md) | runtime-view-writer | 事件信封、主题表、兼容规则 |
 | [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md) | service-decomposition-advisor | 插件与引擎规则包契约 |

@@ -490,10 +490,14 @@ class VnTextEngine:
             threads = sorted(
                 ({"key": key, "name": row["name"], "code": row["code"],
                   "count": row["count"], "dialogue": row.get("dialogue", 0),
-                  "sample": row["sample"],
+                  "lines": row["count"], "sample": row.get("sample", ""),
+                  "last_text": row.get("last_text", ""),
+                  "last_seen": row.get("last_seen", 0),
+                  "recent": list(row.get("recent", []))[-6:],
+                  "spam": bool(row.get("spam")),
                   "active": key == active}
                  for key, row in self._seen.items()),
-                key=lambda row: -row["count"])
+                key=lambda row: (not row["active"], -row["count"], -row["last_seen"]))
             return {
                 "ok": True,
                 "running": bool(engine),
@@ -505,7 +509,7 @@ class VnTextEngine:
                 "target_bits": self._target_bits,
                 "builds": cli_builds(str((self._get_settings() or {}).get("vntext_tractor_path") or "")),
                 "locked": self._locked,
-                "threads": threads[:12],
+                "threads": threads[:24],
                 "region": dict(self._region),
                 "lang": self._lang,
                 "hook_skip": self._hook_skip,
@@ -1136,8 +1140,13 @@ class VnTextEngine:
             seen = self._seen.setdefault(key, {"name": key, "code": "", "count": 0,
                                                "sample": "", "dialogue": 0,
                                                "last_seen": time.time()})
+            now = time.time()
             seen["raw"] = text[:160]
-            seen["last_seen"] = time.time()
+            seen["last_text"] = text[:160]
+            seen["last_seen"] = now
+            recent = list(seen.get("recent") or [])
+            recent.append({"text": text[:160], "at": now})
+            seen["recent"] = recent[-6:]
         if self._on_raw:
             try:
                 self._on_raw({"text": text, "thread": key,

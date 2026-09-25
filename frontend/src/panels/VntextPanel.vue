@@ -27,14 +27,37 @@
     <div id="vnThreads" class="vn-threads">
       <button
         v-for="thread in threads"
-        :key="thread.id"
-        class="vn-thread"
+        :key="thread.key"
+        class="vn-thread-row"
         :class="{ on: thread.active }"
         type="button"
-        @click="lockThread(thread.id)"
+        :aria-expanded="selectedThreadKey === thread.key"
+        @click="lockThread(thread.key)"
       >
-        {{ thread.name || `线程 ${thread.id}` }}<small>{{ thread.lines ?? 0 }}</small>
+        <span class="vn-thread-head">
+          <b>{{ thread.name || thread.key || "未命名线程" }}</b>
+          <small>{{ thread.count ?? thread.lines ?? 0 }} 条</small>
+        </span>
+        <span class="vn-thread-key">{{ thread.key }}</span>
+        <span class="vn-thread-sample">{{ thread.last_text || thread.sample || "尚未收到文本" }}</span>
       </button>
+    </div>
+    <div v-if="selectedThread" class="vn-thread-detail">
+      <div class="vn-thread-detail-head">
+        <b>{{ selectedThread.name || "线程详情" }}</b>
+        <span>线程：{{ selectedThread.key }}</span>
+        <span>Hcode：{{ selectedThread.code || "未提供" }}</span>
+        <span v-if="selectedThread.last_seen">最近：{{ formatThreadTime(selectedThread.last_seen) }}</span>
+      </div>
+      <div class="vn-thread-detail-meta">
+        累计 {{ selectedThread.count ?? selectedThread.lines ?? 0 }} 条
+        · 台词 {{ selectedThread.dialogue ?? 0 }} 条
+        <span v-if="selectedThread.active">· 当前领跑</span>
+      </div>
+      <ol v-if="selectedThread.recent?.length" class="vn-thread-recent">
+        <li v-for="(row, index) in selectedThread.recent" :key="`${row.at}-${index}`">{{ row.text }}</li>
+      </ol>
+      <p v-else class="vn-thread-detail-empty">当前会话还没有可展示的文本记录。</p>
     </div>
 
     <div class="set-actions">
@@ -113,6 +136,7 @@ const hookNote = ref("—")
 const findText = ref("")
 const findNote = ref("Textractor 抓不到文本时：Aurora 会自己盯住这句台词的内存。")
 const threads = ref<any[]>([])
+const selectedThreadKey = ref("")
 const candidates = ref<any[]>([])
 const history = ref<any[]>([])
 const regionText = ref("未框选，默认全屏识别")
@@ -129,6 +153,15 @@ const selectionStyle = computed(() => ({
   width: `${selection.value.w}px`,
   height: `${selection.value.h}px`,
 }))
+const selectedThread = computed(() => threads.value.find((thread) => thread.key === selectedThreadKey.value) || null)
+
+function formatThreadTime(value: unknown): string {
+  const stamp = Number(value || 0)
+  if (!stamp) return "—"
+  return new Date(stamp * 1000).toLocaleTimeString("zh-CN", {
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+  })
+}
 
 const ENGINE_LABEL: Record<string, string> = {
   auto: "自动", hook: "Textractor 钩子", textractor: "Textractor 钩子", ocr: "OCR",
@@ -141,12 +174,22 @@ function applyStatus(payload: any): void {
   through.value = !!(payload?.overlay?.click_through ?? payload?.click_through)
   overlayOn.value = !!(payload?.overlay_open ?? payload?.overlay)
   threads.value = payload?.threads || []
+  const usefulHook = threads.value.find((thread: any) => {
+    const count = Number(thread.count ?? thread.lines ?? 0)
+    const name = String(thread.name || "").toLowerCase()
+    return count > 0 && !!(thread.last_text || thread.sample) && name.includes("userhook")
+  })
+  if (usefulHook) {
+    const count = usefulHook.count ?? usefulHook.lines ?? 0
+    findNote.value = `已发现并监听 ${usefulHook.name || usefulHook.key}：已提取 ${count} 条，最新文本已同步`
+  }
   candidates.value = payload?.candidates || candidates.value
   hookCode.value = payload?.game_hook || payload?.hook_code || hookCode.value
   const engine = String(payload?.engine || payload?.mode || "")
   const engineLabel = ENGINE_LABEL[engine] || engine
   const bits: string[] = []
-  if (payload?.locked_thread != null) bits.push(`锁定线程 ${payload.locked_thread}`)
+  const lockedThread = payload?.locked_thread ?? payload?.locked
+  if (lockedThread) bits.push(`锁定线程 ${lockedThread}`)
   if (payload?.hook_skip) bits.push(String(payload.hook_skip))
   // 判据（tools/e2e.py）：运行中时 #vnState 里必须有「正在翻译」
   const head = running.value ? `正在翻译${engineLabel ? `（${engineLabel}）` : ""}` : "未在翻译"
@@ -192,8 +235,9 @@ async function toggleThrough(): Promise<void> {
   through.value = !through.value
   await call("set_overlay_click_through", through.value)
 }
-async function lockThread(id: number): Promise<void> {
-  await call("lock_vntext_thread", id)
+async function lockThread(key: string): Promise<void> {
+  selectedThreadKey.value = String(key || "")
+  await call("lock_vntext_thread", selectedThreadKey.value)
   await refresh()
 }
 async function sendHook(): Promise<void> {
@@ -293,7 +337,9 @@ onMounted(() => {
     }
   })
   onUi("hooksearch:status", (payload: any) => {
-    if (payload?.message) findNote.value = payload.message
+    if (payload?.message) findNote.value = payload.phase === "warning"
+      ? `采样阶段：${payload.message}`
+      : payload.message
     if (Array.isArray(payload?.candidates)) candidates.value = payload.candidates
     if (payload?.code) hookCode.value = payload.code
   })

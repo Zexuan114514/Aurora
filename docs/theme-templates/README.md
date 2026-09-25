@@ -1,10 +1,65 @@
-# 按钮模板（画廊）
+# 主题按钮模板
+
+## 当前版本：五套主题按钮（P8.19，2026-09-24）
+
+五个 Vue 单文件组件均支持一般、确认、启动三种按钮，以及运行中、禁用状态。
+它们直接引用应用的 `<theme>.buttons.skin.css`，模板和应用共用一份按钮实现。
+组件内仅补独立预览需要的主题令牌与基础尺寸；应用继续使用现有按钮 DOM 和事件。
+
+| 主题 | Vue 模板 | 一般按钮 | 启动按钮 |
+| --- | --- | --- | --- |
+| 极光玻璃 | [aurora-themed-button.vue](aurora-themed-button.vue) | 薄边玻璃胶囊 | 青紫折射边与一条高光，悬停轻抬 |
+| 展签式画廊 | [gallery-themed-button.vue](gallery-themed-button.vue) | 直角墨线展签 | 强调色双框，悬停内框收紧；无外投影 |
+| 夜间放映厅 | [screening-themed-button.vue](screening-themed-button.vue) | 琥珀底线、窄体排印 | 指示灯与底边胶片刻度，悬停点亮 |
+| 收藏架 | [shelf-themed-button.vue](shelf-themed-button.vue) | 黄铜细边、纸面压线 | 书脊双线，悬停向右抽出 2px |
+| Atelier 工作台 | [atelier-themed-button.vue](atelier-themed-button.vue) | 虚线纸签 | 椭圆双圈印章，轻微倾斜，悬停回正 |
+
+可直接打开 [交互预览](preview-themes.html)，或查看 [深浅模式总览](preview-themes.png)。
+预览与应用一样保留 hover / active / focus-visible；使用 Tab 检查焦点。
+
+```vue
+<script setup lang="ts">
+import GalleryButton from './gallery-themed-button.vue'
+</script>
+
+<template>
+  <GalleryButton mode="light" @click="openBackgrounds">背景图</GalleryButton>
+  <GalleryButton mode="light" variant="primary" @click="save">保存设置</GalleryButton>
+  <GalleryButton mode="light" variant="play" :running="running" @click="toggleGame" />
+  <GalleryButton mode="light" disabled>暂不可用</GalleryButton>
+</template>
+```
+
+`mode` 为 `light | dark`（默认 light），`variant` 为 `default | primary | play`。
+文案可由 slot 覆盖，原生事件、title、aria-label 等属性转交内部 button。
+组件应使用唯一的外部标签说明操作；示例里的业务函数由使用方提供。
+
+### 应用接入与验收约定
+
+- 实现位于 `frontend/src/styles/themes/<theme>.buttons.skin.css`，五张皮肤均不超过 200 行。
+- `app.css` 在主题签名、布局、Element Plus 桥接之后导入按钮皮肤；旧签名文件中的按钮覆盖已迁出。
+- `.btn` / `.mini-btn` 是一般操作，`.btn.primary` 是确认，`.btn.play` 覆盖大厅和详情页启动键。
+- 保留现有 id、事件、文案和布局定位。装饰伪元素仅限启动键，且不接收鼠标事件。
+- 字体、强调色来自主题令牌。浅色态主按钮底色压暗到强调色的 80%，使白字具有足够余量。
+  薄荷青、樱花粉、琥珀橙三种强调色覆盖使用深墨字；运行中退为中性描边。
+- 无常驻动画；开启系统「减少动态效果」后，按钮位移与过渡关闭。
+- Atelier 启动印章为 56px 高的椭圆，确认按钮仍为方形纸片。避免把大印章铺进设置行或弹窗。
+
+模板已通过 Vue SFC 编译检查。五主题 × 深浅 × 四种强调色 × 四种状态 × 四类可用按钮，
+共 **640 个文字对比度采样全部 ≥4.5，最低 4.94**；禁用态不参与正文对比度验收。
+完整的应用验收与真窗口检查记录见 [P8.19 交付记录](../architecture/p8-frontend-v2.md)。
+
+## 历史存档：P8.16 画廊按钮试验（已撤回）
+
+以下两份原始 Uiverse 模板及其旧预览保留作参考；下文的「落地口径」描述的是当时版本，
+当前实现以本页上方的 P8.19 为准。
 
 使用者 2026-09-23 提供的两份按钮样式（来自 Uiverse，均为 **MIT License**）。
 它们曾按下面的四条口径落进画廊主题（P8.16），但**使用者实机看着「观感不如改动前」，
 2026-09-24 凌晨已把应用里的那版皮肤下线**（`gallery.buttons.skin.css` 删除、
 `#btnHallPlay` 恢复纯文字、主题基线回滚并复跑 25/25 偏差 0）。
-这里保留原样样式与三态预览作为模板与对照 —— **按钮风格化重新记为待办**。
+这里保留原样样式与三态预览作为模板与对照 —— **按钮风格化的当前实现以 P8.19 为准，
+本节只记录 P8.16 的撤回教训**。
 
 下次开工前先读这页最后那节「这次的教训」。
 

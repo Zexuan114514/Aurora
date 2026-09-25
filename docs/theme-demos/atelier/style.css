@@ -1,20 +1,25 @@
-/* Atelier（工作台）· 候选第 5 套主题的小样 —— 反馈第 4 条
-   语言三件事：浅粉工作台 + 奶油纸片 + 和纸胶带。
-   刻意保持扁平：纸片靠「歪一点 + 胶带」立起来，不靠投影；
-   主按钮是玫红实色块，没有渐变与内高光（与 v2/v3 的扁平取向一致）。 */
+/* Atelier（工作台）· 第五套正式主题的设计来源 —— 反馈第 20 条 · v4 精修版
+   设计语言：浅粉工作台 + 奶油纸片 + 和纸胶带。整页像一张摊开的工作台。
+   · 桌面：切割垫网格用纯 CSS 画（细线 20px、粗线 100px），不用位图
+   · 纸片：靠「歪一点 + 胶带」立起来，不靠投影；折角与胶带都是纯色 / clip-path
+   · 封面：摊在桌上的照片 —— 每张各自歪一点、高低错开；当前那张回正并描玫红边
+   · 主按钮：压进纸里的红印章（正圆 138px，五套里唯一的圆形）
+*/
 :root {
   --desk: #f3e3e8;
   --card: #fffdfb;
   --ink: #3b2f36;
-  --ink-2: rgb(59 47 54 / 0.72);
-  --ink-3: rgb(59 47 54 / 0.46);
+  --ink-2: rgb(59 47 54 / 0.74);
+  --ink-3: rgb(59 47 54 / 0.5);
   --rose: #d4738e;
+  --rose-deep: #b8506c;
   --rose-soft: rgb(212 115 142 / 0.28);
-  --rose-hair: rgb(212 115 142 / 0.40);
+  --rose-hair: rgb(212 115 142 / 0.4);
   --on-rose: #fff8fa;
-  --tape: rgb(226 190 196 / 0.58);
+  --tape: rgb(228 186 194 / 0.74);
   --serif: "KaiTi", "Songti SC", "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
   --sans: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 * { box-sizing: border-box; }
@@ -25,62 +30,91 @@ body {
   display: flex; flex-direction: column;
 }
 
-/* ---------- 工作台：浅粉桌面 + 极淡的切割垫网格（纯 CSS，不用位图） ---------- */
-.bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+/* ---------- 工作台：浅粉桌面 + 切割垫网格（细线 20px / 粗线 100px，纯 CSS） ---------- */
+.bg { position: fixed; inset: 0; z-index: -3; overflow: hidden; }
 .bg img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   filter: saturate(0.5) brightness(1.24) sepia(0.2) hue-rotate(-14deg);
-  transition: opacity 0.25s;
+  transition: opacity 0.3s var(--ease);
 }
 .bg .pinned { opacity: 0; }
 body:has(#bgmode:checked) .bg .pinned { opacity: 1; }
 body:has(#bgmode:checked) .bg .follow { opacity: 0; }
 .desk {
-  position: fixed; inset: 0; z-index: -1;
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background:
-    linear-gradient(rgb(243 227 232 / 0.9), rgb(240 222 229 / 0.88)),
-    repeating-linear-gradient(0deg, rgb(150 100 120 / 0.055) 0 1px, transparent 1px 26px),
-    repeating-linear-gradient(90deg, rgb(150 100 120 / 0.055) 0 1px, transparent 1px 26px);
+    linear-gradient(rgb(243 227 232 / 0.8), rgb(240 222 229 / 0.78)),
+    repeating-linear-gradient(0deg, rgb(150 100 120 / 0.075) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(90deg, rgb(150 100 120 / 0.075) 0 1px, transparent 1px 20px),
+    repeating-linear-gradient(0deg, rgb(150 100 120 / 0.13) 0 1px, transparent 1px 100px),
+    repeating-linear-gradient(90deg, rgb(150 100 120 / 0.13) 0 1px, transparent 1px 100px);
 }
 
 /* ---------- 顶栏 ---------- */
 .topbar {
+  flex: none;
   display: flex; align-items: center; gap: 18px;
-  padding: 15px 28px; border-bottom: 1px solid var(--rose-hair);
+  padding: 15px 28px;
+  border-bottom: 1px solid var(--rose-hair);
 }
 .brand { display: flex; align-items: baseline; gap: 9px; }
-.brand b { font-family: var(--serif); font-size: 21px; letter-spacing: 0.6px; }
+.brand b { font-family: var(--serif); font-size: 21px; font-weight: 600; letter-spacing: 0.6px; }
 .brand span { font-size: 11px; letter-spacing: 0.14em; color: var(--ink-3); }
+
 .search {
-  flex: 1; display: flex; align-items: center; gap: 9px; height: 32px; padding: 0 12px;
-  border: 1px solid var(--rose-hair); border-radius: 2px; background: rgb(255 255 255 / 0.66);
+  flex: 1; display: flex; align-items: center; gap: 9px;
+  height: 32px; padding: 0 12px; min-width: 0;
+  border: 1px solid var(--rose-hair); border-radius: 2px;
+  background: rgb(255 255 255 / 0.66);
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
 }
-.search svg { width: 14px; height: 14px; fill: none; stroke: var(--ink-3); stroke-width: 1.6; }
-.search input { flex: 1; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); }
+.search:hover { border-color: var(--rose); }
+.search:focus-within { border-color: var(--rose); background: rgb(255 255 255 / 0.9); }
+.search svg { flex: none; width: 14px; height: 14px; fill: none; stroke: var(--ink-3); stroke-width: 1.6; }
+.search:focus-within svg { stroke: var(--rose); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--ink); }
 .search input::placeholder { color: var(--ink-3); }
+
 .views { display: flex; gap: 20px; font-size: 13px; }
-.views b, .views span { font-weight: 500; color: var(--ink-2); }
+.views b, .views span { font-weight: 500; color: var(--ink-2); cursor: pointer; transition: color 0.18s var(--ease); }
+.views span:hover { color: var(--ink); }
 .views b.on { color: var(--ink); border-bottom: 2px solid var(--rose); padding-bottom: 3px; }
+
 .bg-pill {
-  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; cursor: pointer;
   border: 1px solid var(--rose-hair); border-radius: 2px; color: var(--ink-2); font-size: 12px;
+  transition: background 0.18s var(--ease), border-color 0.18s var(--ease), color 0.18s var(--ease);
+}
+.bg-pill::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--rose); flex: none;
 }
 .bg-pill:hover { background: var(--rose); border-color: var(--rose); color: var(--on-rose); }
+.bg-pill:hover::before { background: var(--on-rose); }
 .bg-pill .pinned-text { display: none; }
 body:has(#bgmode:checked) .bg-pill .follow-text { display: none; }
 body:has(#bgmode:checked) .bg-pill .pinned-text { display: inline; }
+/* 常驻图只支持一张：切到常驻图时才露出「换一张」的入口（纯 CSS，演示这一行为） */
 .bg-swap {
   display: none; align-items: center; height: 30px; padding: 0 12px;
   border: 1px dashed var(--rose-hair); border-radius: 2px; background: none;
   color: var(--ink-3); font-size: 11.5px; cursor: pointer;
+  transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
 }
-.bg-swap:hover { border-color: var(--rose); color: var(--rose); }
+.bg-swap:hover { border-style: solid; border-color: var(--rose); color: var(--rose-deep); }
 body:has(#bgmode:checked) .bg-swap { display: inline-flex; }
-.winbtns { display: flex; gap: 16px; color: var(--ink-3); font-size: 12px; }
 
-/* ---------- 主区：说明纸片 + 剪贴板 ---------- */
+.winbtns { display: flex; gap: 4px; color: var(--ink-3); font-size: 12px; }
+.winbtns i {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 2px;
+  font-style: normal; cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
+}
+.winbtns i:hover { background: var(--rose-soft); color: var(--ink); }
+.winbtns i:last-child:hover { background: rgb(184 68 42 / 0.16); color: #a33a1f; }
+
+/* ---------- 主区：说明纸片 + 摊开的照片 ---------- */
 .hall { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 348px; }
-.stage { display: flex; flex-direction: column; padding: 28px 34px 20px; min-width: 0; }
+.stage { display: flex; flex-direction: column; padding: 26px 34px 18px; min-width: 0; }
 
 /* 纸片：奶油白 + 玫红细边，靠两段胶带「贴」在桌面上（不做投影） */
 .sheet {
@@ -90,7 +124,7 @@ body:has(#bgmode:checked) .bg-swap { display: inline-flex; }
   transform: rotate(-0.35deg);
 }
 .tape {
-  position: absolute; top: -11px; width: 76px; height: 22px;
+  position: absolute; top: -9px; width: 88px; height: 26px;
   background:
     repeating-linear-gradient(90deg, rgb(255 255 255 / 0.22) 0 3px, transparent 3px 7px),
     var(--tape);
@@ -100,7 +134,7 @@ body:has(#bgmode:checked) .bg-swap { display: inline-flex; }
 .tape-l { left: 36px; transform: rotate(-4deg); }
 .tape-r { right: 36px; transform: rotate(3.2deg); }
 
-.kicker { margin: 0 0 10px; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--rose); }
+.kicker { margin: 0 0 10px; font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--rose-deep); }
 h1 { margin: 0; font-family: var(--serif); font-size: 43px; font-weight: 600; letter-spacing: 0.015em; }
 .rose { height: 2px; margin: 16px 0; background: var(--rose); max-width: 124px; }
 .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0 0 16px; }
@@ -108,86 +142,143 @@ h1 { margin: 0; font-family: var(--serif); font-size: 43px; font-weight: 600; le
 .facts dt { font-size: 10.5px; letter-spacing: 0.12em; color: var(--ink-3); }
 .facts dd { margin: 5px 0 0; font-size: 13px; }
 .desc { margin: 0; font-size: 13.5px; line-height: 1.85; color: var(--ink-2); max-width: 52ch; }
-.actions { margin-top: 26px; display: flex; align-items: center; gap: 10px; }
+.actions { margin-top: 20px; display: flex; align-items: center; gap: 22px; }
 
-/* 按钮：一律扁平 —— 主按钮玫红实色块，次按钮是描边纸片 */
+/* 按钮：一律扁平 —— 主按钮是红印章，次按钮是描边纸片 */
 button {
   font: inherit; font-size: 13px; cursor: pointer;
   height: 38px; padding: 0 18px; border-radius: 2px;
   border: 1px solid var(--rose-hair); background: rgb(255 255 255 / 0.5); color: var(--ink);
-  transition: background 0.16s, border-color 0.16s, color 0.16s;
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
 }
 button:hover { background: var(--rose-soft); border-color: var(--rose); }
-button.primary {
-  height: 50px; padding: 0 30px; font-size: 15.5px; font-weight: 620;
-  background: var(--rose); border-color: transparent; color: var(--on-rose);
-}
-button.primary:hover { background: #c1647f; }
+button:active { transform: translateY(1px); }
 button.ghost { border-color: transparent; background: none; color: var(--ink-2); }
 button.ghost:hover { color: var(--ink); background: var(--rose-soft); }
+:focus-visible { outline: 2px solid var(--rose); outline-offset: 3px; }
 
-/* ---------- 剪贴板：照片四角贴胶带，轻微错落 ---------- */
+/* ---------- 启动键：压进纸里的红印章 ----------
+   五套里唯一的正圆。双层白描边 + 玫红光晕 + 大投影 + 油墨颗粒，
+   外圈再撒一圈不规则的油墨飞溅（手盖章才会有的毛边）；
+   常驻歪 7°，hover 回正放大 —— 像伸手去按它。
+   注意：印面用的是**朱砂色阶**（比桌面的玫红深一档），白字才压得住 —— 见 README 的可读性实测。 */
+.play {
+  position: relative; display: inline-flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px;
+  width: 138px; height: 138px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: #fff6f8;
+  transform: rotate(-7deg);
+  transition: transform 0.2s var(--ease);
+}
+.play::before {                        /* 印章本体：朱砂墨 */
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg,
+      rgb(255 255 255 / 0.055) 0deg 3deg, transparent 3deg 7deg),
+    radial-gradient(circle at 38% 32%, #b8506c, #9c3f5a 58%, #6d2537);
+  box-shadow:
+    inset 0 0 0 3px #fffdfb, inset 0 0 0 4px rgb(120 40 60 / 0.5),
+    0 0 0 2px #fffdfb, 0 0 0 7px rgb(156 63 90 / 0.34),
+    0 14px 26px -10px rgb(110 40 58 / 0.62);
+}
+.play::after {                         /* 边缘的油墨飞溅 */
+  content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none;
+  background:
+    radial-gradient(circle at 17% 74%, rgb(212 115 142 / 0.5) 0 7%, transparent 8%),
+    radial-gradient(circle at 85% 29%, rgb(212 115 142 / 0.44) 0 5%, transparent 6%),
+    radial-gradient(circle at 67% 92%, rgb(212 115 142 / 0.4) 0 4%, transparent 5%),
+    radial-gradient(circle at 29% 11%, rgb(212 115 142 / 0.36) 0 3%, transparent 4%);
+}
+.play > * { position: relative; z-index: 1; }
+.play:hover { transform: rotate(0deg) scale(1.06); }
+.play:active { transform: rotate(0deg) scale(0.97); }
+.play-ic {
+  width: 0; height: 0; margin-left: 4px;
+  border-left: 15px solid #fff6f8;
+  border-top: 9px solid transparent; border-bottom: 9px solid transparent;
+}
+.play-lb { font-family: var(--serif); font-size: 19px; font-weight: 700; letter-spacing: 0.06em; }
+.play-sub { font-family: var(--sans); font-size: 9.5px; font-weight: 400; letter-spacing: 0.24em; color: rgb(255 246 248 / 0.9); }
+
+/* ---------- 摊在桌上的六张：各自歪一点、高低错开，上面压一小段胶带 ---------- */
 .board-stack { margin-top: auto; min-width: 0; }
 .board-title {
-  display: flex; justify-content: space-between; margin-bottom: 18px;
+  display: flex; justify-content: space-between; margin-bottom: 10px;
   font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-3);
 }
-.board { position: relative; display: flex; align-items: flex-start; gap: 22px; padding: 12px 8px 6px; }
+.board { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 20px 8px 8px; }
 .scrap {
-  position: relative; margin: 0; cursor: pointer; padding: 7px 7px 19px;
+  position: relative; margin: 0; cursor: pointer; padding: 7px 7px 20px;
   background: var(--card); border: 1px solid var(--rose-hair);
+  transition: transform 0.22s var(--ease), border-color 0.22s var(--ease), box-shadow 0.22s var(--ease);
 }
-.scrap img { display: block; width: 106px; height: 158px; object-fit: cover; filter: saturate(0.94); }
+.scrap img {
+  display: block; width: 106px; height: 158px; object-fit: cover;
+  filter: saturate(0.94); transition: outline-color 0.2s var(--ease);
+  outline: 2px solid transparent; outline-offset: -2px;
+}
 .scrap figcaption {
   position: absolute; left: 0; right: 0; bottom: 3px; text-align: center;
   font-size: 10px; letter-spacing: 0.16em; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
 }
 .scrap::before {                    /* 每张上面压一小段胶带 */
-  content: ""; position: absolute; top: -9px; left: 50%; width: 52px; height: 17px;
+  content: ""; position: absolute; top: -10px; left: 50%; width: 58px; height: 19px;
   transform: translateX(-50%) rotate(-2.4deg);
   background: var(--tape);
   clip-path: polygon(0 22%, 8% 0, 92% 6%, 100% 26%, 97% 78%, 90% 100%, 9% 94%, 3% 74%);
 }
-.scrap:nth-child(odd) { transform: rotate(-1.3deg); }
-.scrap:nth-child(even) { transform: rotate(1.1deg); }
-.scrap.on { transform: rotate(0deg); }
-.scrap.on img { outline: 2px solid var(--rose); outline-offset: -2px; }
-.scrap.on figcaption { color: var(--rose); }
+/* 每张各自歪一点、高低错开 —— 像随手摊在桌上的照片 */
+.scrap:nth-child(1) { transform: rotate(-2.6deg) translateY(6px); }
+.scrap:nth-child(2) { transform: rotate(1.8deg) translateY(-5px); }
+.scrap:nth-child(3) { transform: rotate(-1.5deg) translateY(9px); }
+.scrap:nth-child(4) { transform: rotate(2.4deg) translateY(-3px); }
+.scrap:nth-child(5) { transform: rotate(-2deg) translateY(5px); }
+.scrap:nth-child(6) { transform: rotate(1.5deg) translateY(-7px); }
+.scrap:hover { transform: rotate(0deg) translateY(-8px); z-index: 3; border-color: var(--rose); }
+.scrap.on { transform: rotate(0deg) translateY(-2px); z-index: 2; border-color: var(--rose); }
+.scrap.on img { outline-color: var(--rose); }
+.scrap.on figcaption { color: var(--rose-deep); }
 
 /* ---------- 便签目录 ---------- */
-.notes {
-  border-left: 1px solid var(--rose-hair);
-  display: flex; flex-direction: column; min-height: 0;
-}
+.notes { border-left: 1px solid var(--rose-hair); display: flex; flex-direction: column; min-height: 0; }
 .note-head {
-  display: flex; justify-content: space-between; padding: 20px 24px 12px;
-  border-bottom: 2px solid var(--rose);
+  flex: none; display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 24px 13px; border-bottom: 2px solid var(--rose);
   font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-3);
 }
-.notes ul { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.notes ul { list-style: none; margin: 0; padding: 0; overflow: auto; scrollbar-gutter: stable; }
 .notes li {
+  position: relative;
   display: grid; grid-template-columns: 34px minmax(0, 1fr) auto;
   grid-template-rows: auto auto; align-items: center; column-gap: 12px;
   padding: 13px 24px; border-bottom: 1px dashed var(--rose-hair); cursor: pointer;
+  transition: background 0.16s var(--ease);
+}
+.notes li::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: var(--rose); transition: width 0.2s var(--ease);
 }
 .notes li:hover { background: var(--rose-soft); }
-.notes li.on { border-left: 3px solid var(--rose); padding-left: 21px; }
+.notes li.on::before { width: 3px; }
+.notes li:active { background: rgb(212 115 142 / 0.36); }
 .pin {
   grid-area: 1 / 1 / 3 / 2; display: grid; place-items: center;
   width: 30px; height: 30px; border: 1px solid var(--rose-hair); border-radius: 50%;
-  font-size: 11px; color: var(--rose); font-variant-numeric: tabular-nums;
+  font-size: 11px; color: var(--rose-deep); font-variant-numeric: tabular-nums;
   transform: rotate(-3deg);
 }
+.notes li.on .pin { background: var(--rose); border-color: var(--rose); color: var(--on-rose); }
 .notes b { grid-area: 1 / 2 / 2 / 3; font-family: var(--serif); font-size: 15.5px; font-weight: 600; }
 .notes small { grid-area: 2 / 2 / 3 / 3; font-size: 11px; color: var(--ink-3); }
 .notes em {
   grid-area: 1 / 3 / 3 / 4; font-style: normal; font-size: 11px;
-  color: var(--rose); font-variant-numeric: tabular-nums; text-align: right;
+  color: var(--rose-deep); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
 }
 
 /* ---------- 底条 ---------- */
 .hintbar {
-  display: flex; justify-content: space-between; align-items: center;
+  flex: none; display: flex; justify-content: space-between; align-items: center; gap: 16px;
   padding: 12px 28px; border-top: 1px solid var(--rose-hair);
   font-size: 11.5px; color: var(--ink-3);
 }

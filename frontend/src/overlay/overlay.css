@@ -3,7 +3,9 @@
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  background: transparent;
+  /* 窗口已改为实心无边框窗口；透明 body 会露出 WebView 的白色底，
+     在窗口顶缘形成一条白线。直接用主题底色铺满整个视口。 */
+  background: var(--s-base);
   font-family: var(--font);
   color: var(--text-1);
   user-select: none;
@@ -38,8 +40,10 @@
 #bar #status { max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #bar .grow, #foot .grow { flex: 1; }
 .ov-btn {
-  width: 22px;
+  min-width: 30px;
+  width: auto;
   height: 22px;
+  padding: 0 7px;
   display: grid;
   place-items: center;
   border: none;
@@ -47,6 +51,8 @@
   background: none;
   color: var(--text-2);
   font-size: 11px;
+  white-space: nowrap;
+  flex: none;
   cursor: pointer;
 }
 .ov-btn:hover { background: var(--fil140); color: var(--text-1); }

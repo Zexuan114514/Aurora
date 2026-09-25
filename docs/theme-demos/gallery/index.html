@@ -8,14 +8,15 @@
 </head>
 <body>
 <!--
-  主题签名（gallery / 展签式画廊）· v2 扁平版
-    · 背景：去饱和提亮成「展墙」；右上角可切常驻图
-    · 版面：封面当展品（白卡纸 + 墨色细框），说明像展签压在墙上
-    · 排印：Fraunces 那类衬线做展示标题（这里用系统衬线栈，54px）；
-      标签一律大写 + 宽字距；展签下的第一条横线用墨色，不灰
-    · 按钮：直角、无阴影；主按钮是实心墨块，次按钮只有下划线
-    · 列表：编号目录 + 细线，没有卡片、没有圆角
-  令牌对应：--paper/--ink*/--rule/--hair/--accent（对应应用里的 ln140 与 text-*）
+  主题签名（gallery / 展签式画廊）· v4 精修版
+    · 一句话：界面退成展签。直角细线 + 衬线标题 + 目录编号，整页只有线没有面。
+    · 背景：去饱和提亮成「展墙」；右上角开关可切常驻图
+    · 展品：封面当裱起来的印刷品 —— 白卡纸 + 10px 衬边 + 1px 墨框，没有投影
+    · 排印：衬线做展示标题（54px）；标签一律大写 + 宽字距；
+      展签下的第一条横线用墨色（--rule），不灰
+    · 按钮：直角、无阴影；主按钮是实心墨块，次按钮只有一条下划线
+    · 目录：编号 001…006 + 细线，当前那件用强调色编号 + 标题下划线
+  令牌对应应用：--s-base / --s-panel / --text-1..3 / --ln* / --a-main（gallery 浅色 = 展墙蓝）/ --r-* = 1px
 -->
 
 <div class="bg">
@@ -43,19 +44,34 @@
 
 <main class="hall">
   <section class="hero">
-    <figure class="hero-art"><img src="../assets/cover-1.jpg" alt=""></figure>
+    <figure class="hero-art">
+      <img src="../assets/cover-1.jpg" alt="">
+      <figcaption>001 · 布面微喷 · 300 × 452</figcaption>
+    </figure>
+
     <div class="meta">
       <p class="kicker">展品 01 · 冒险 / 恋爱 · Studio Hoshi</p>
       <h1>苍蓝回响</h1>
-      <p class="sub">2024　已玩 12.4 小时　最近一次 3 天前　VNDB 7.8</p>
+      <p class="sub">Studio Hoshi　2024　VNDB 7.8</p>
       <p class="desc">
         离岛的海风、褪色的夏天，和一个说自己来自大海深处的少女。
         故事从一场久别重逢开始，也从一句没有说完的再见结束。
       </p>
+
+      <dl class="stats">
+        <div><dt>已玩</dt><dd>12.4 小时</dd></div>
+        <div><dt>最近</dt><dd>3 天前</dd></div>
+        <div><dt>评分</dt><dd>VNDB 7.8</dd></div>
+      </dl>
+
       <div class="actions">
-        <button class="primary">继续游戏</button>
-        <button class="ghost">背景图</button>
-        <button class="ghost">详情</button>
+        <button class="play" type="button">
+          <i class="play-ic" aria-hidden="true"></i>
+          <span class="play-lb">开始游戏</span>
+          <span class="play-sub">ENTER</span>
+        </button>
+        <button class="ghost" type="button">背景图</button>
+        <button class="ghost" type="button">详情</button>
       </div>
     </div>
   </section>
@@ -81,7 +97,7 @@
 
 <footer class="hintbar">
   <span>苍蓝回响 · Studio Hoshi · 2024</span>
-  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 主页按钮启动 · Ctrl+F 搜索</span>
 </footer>
 </body>
 </html>

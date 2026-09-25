@@ -1,3 +1,4 @@
 # 仅开发/CI 使用，不进发布包（PyInstaller 打包时显式排除 pytest）
 # 安装： python -m pip install -r requirements-dev.txt
 pytest>=8.0
+Pillow>=10.0  # tools/make_icon.py 与打包图标生成

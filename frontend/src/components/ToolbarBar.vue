@@ -21,7 +21,7 @@
     <!-- 右侧一列：搜索之后所有控件都贴到窗口右边，窗口按钮在最外侧 -->
     <div class="toolbar-right">
       <el-tooltip content="排序方式" placement="bottom" :show-after="420">
-        <button id="btnSort" class="icon-btn" type="button" title="排序方式" @click.stop="toggleSort">
+        <button id="btnSort" class="icon-btn" type="button" aria-label="排序方式" @click.stop="toggleSort">
           <svg viewBox="0 0 24 24" class="ic"><path d="M4 7h16M6 12h12M9 17h6" /></svg>
         </button>
       </el-tooltip>
@@ -36,7 +36,7 @@
           id="btnSettings"
           class="icon-btn"
           type="button"
-          title="设置"
+          aria-label="设置"
           :class="{ on: state.settingsOpen }"
           @click="toggleSettings"
         >
@@ -54,7 +54,6 @@
           id="btnGetGames"
           class="icon-btn get-pill"
           type="button"
-          title="获取游戏"
           aria-label="获取游戏"
           :hidden="!hallActions"
           @click="openGet"
@@ -68,7 +67,6 @@
             id="scopePick"
             class="scope-main"
             type="button"
-            title="选择要浏览的分类"
             aria-label="浏览范围"
             @click="toggleScopeMenu"
           >
@@ -80,7 +78,7 @@
             id="scopeClear"
             class="scope-clear"
             type="button"
-            title="清除筛选，显示全部"
+            aria-label="清除筛选，显示全部"
             :hidden="state.scope.type === 'all'"
             @click="clearScope"
           >×</button>
@@ -89,17 +87,17 @@
 
       <div class="win-btns" data-slot="win">
         <el-tooltip content="最小化" placement="bottom" :show-after="420">
-          <button id="btnMin" class="wbtn" type="button" title="最小化">
+          <button id="btnMin" class="wbtn" type="button" aria-label="最小化">
             <svg viewBox="0 0 12 12"><path d="M2 6h8" /></svg>
           </button>
         </el-tooltip>
         <el-tooltip content="最大化 / 还原" placement="bottom" :show-after="420">
-          <button id="btnMax" class="wbtn" type="button" title="最大化">
+          <button id="btnMax" class="wbtn" type="button" aria-label="最大化">
             <svg viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7" rx="1" /></svg>
           </button>
         </el-tooltip>
         <el-tooltip content="关闭" placement="bottom" :show-after="420">
-          <button id="btnClose" class="wbtn wclose" type="button" title="关闭">
+          <button id="btnClose" class="wbtn wclose" type="button" aria-label="关闭">
             <svg viewBox="0 0 12 12"><path d="M3 3l6 6M9 3l-6 6" /></svg>
           </button>
         </el-tooltip>

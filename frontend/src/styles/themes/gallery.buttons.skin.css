@@ -1,0 +1,57 @@
+/* P8.19 · 展签式画廊按钮皮肤。模板与应用共用此文件；每条选择器限定主题。
+ * .btn / .mini-btn：一般操作；.primary：确认；.play：启动；.running：结束游戏。
+ * 形状只用于按钮，保持页面与封面几何；强调色取令牌，文案在所有状态中保留。 */
+[data-style="gallery"] { --button-face: var(--a-main); --button-ink: var(--a-on); }
+[data-style="gallery"][data-theme="light"] { --button-face: color-mix(in srgb, var(--a-main) 80%, #000); --button-ink: #fff; }
+[data-style="gallery"][data-palette="lime"], [data-style="gallery"][data-palette="sakura"], [data-style="gallery"][data-palette="amber"] {
+  --button-face: var(--a-main); --button-ink: #182027;
+}
+[data-style="gallery"] .btn, [data-style="gallery"] .mini-btn {
+  font-family: var(--font); text-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--text-1) 25%, var(--s-panel));
+  background: var(--s-panel); color: var(--text-1); box-shadow: none; filter: none;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+[data-style="gallery"] .btn:hover:not(:disabled), [data-style="gallery"] .mini-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--s-panel) 92%, var(--a-main));
+  border-color: var(--a-main); color: var(--text-1); filter: none;
+}
+[data-style="gallery"] .btn.primary, [data-style="gallery"] .btn.play {
+  background: var(--button-face); border-color: var(--button-face); color: var(--button-ink);
+  box-shadow: none; filter: none; font-weight: 650;
+}
+[data-style="gallery"] .btn.play { position: relative; isolation: isolate; min-width: 140px; }
+[data-style="gallery"] .btn.primary:hover:not(:disabled), [data-style="gallery"] .btn.play:hover:not(:disabled) {
+  background: var(--button-face); border-color: var(--button-face); color: var(--button-ink); filter: none;
+}
+[data-style="gallery"] .btn.primary:hover:not(:disabled) { box-shadow: inset 0 0 0 1px currentColor; }
+/* 双线展签：无外投影，不把展墙变成浮起的键盘。 */
+[data-style="gallery"] .btn, [data-style="gallery"] .mini-btn { border-radius: var(--r-xs); box-shadow: none; }
+[data-style="gallery"] .btn:not(.primary):not(.play) { border-color: color-mix(in srgb, var(--text-1) 40%, var(--s-panel)); }
+[data-style="gallery"] .btn.primary { border-radius: var(--r-xs); }
+[data-style="gallery"] .btn.play { border-radius: var(--r-xs); letter-spacing: .08em; box-shadow: none; }
+[data-style="gallery"] .btn.play::after {
+  content: ""; position: absolute; inset: 4px;
+  border: 1px solid currentColor; opacity: .6; pointer-events: none;
+  transition: inset 160ms ease, opacity 160ms ease;
+}
+[data-style="gallery"] .btn.play:hover:not(:disabled):not(.running) { background: var(--button-face); box-shadow: none; }
+[data-style="gallery"] .btn.play:hover:not(:disabled)::after { inset: 6px; opacity: 1; }
+[data-style="gallery"] .btn.play:active:not(:disabled)::after { inset: 5px; }
+/* 键盘与状态优先于材质装饰。运行中不沿用强调色填充。 */
+[data-style="gallery"] .btn.play.running, [data-style="gallery"] .btn.play.running:hover {
+  background: var(--s-panel); border-color: color-mix(in srgb, var(--text-1) 40%, var(--s-panel));
+  color: var(--text-1); box-shadow: none; transform: none;
+}
+[data-style="gallery"] .btn.play.running::before, [data-style="gallery"] .btn.play.running::after { display: none; }
+[data-style="gallery"] .btn:active:not(:disabled):not(.running), [data-style="gallery"] .mini-btn:active:not(:disabled) { transform: translateY(1px); }
+[data-style="gallery"] .btn:focus-visible, [data-style="gallery"] .mini-btn:focus-visible {
+  outline: 2px solid var(--text-1); outline-offset: 3px;
+}
+[data-style="gallery"] .btn:disabled, [data-style="gallery"] .mini-btn:disabled, [data-style="gallery"] .btn.is-disabled {
+  opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-style="gallery"] .btn, [data-style="gallery"] .mini-btn, [data-style="gallery"] .btn::before, [data-style="gallery"] .btn::after { transition: none; }
+  [data-style="gallery"] .btn.play, [data-style="gallery"] .btn.play:hover:not(:disabled):not(.running), [data-style="gallery"] .btn:active:not(:disabled):not(.running) { transform: none; }
+}

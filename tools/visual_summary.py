@@ -69,7 +69,7 @@ if icon:
 themes = d.get("themes")
 if themes:
     cols, rows = themes["grid"]
-    print("\n主题矩阵（深色 4 套 + 浅色默认主题 × 5 界面）:")
+    print("\n主题矩阵（当前五套主题的深浅配置 × 5 界面）:")
     print(f"   指纹 {cols}×{rows} 网格平均色，容差 ±{themes['tolerance']}；"
           f"截图 {len(themes['shots'])} 张 → {themes['shots_dir']}")
     print(f"   基线 {themes['baseline']}"
@@ -85,7 +85,7 @@ if themes:
         if ok is None:
             ok = spread["mean"] >= spread.get("target", 20)
         flag = "达标" if ok else "✗ **不达标**（已进 failed）"
-        print(f"   区分度（深色四套两两平均色差）{spread['mean']} / 目标 ≥ {spread['target']}"
+        print(f"   区分度（当前五套主题深色两两平均色差）{spread['mean']} / 目标 ≥ {spread['target']}"
               f"，{flag}；参照：深/浅两态 {spread.get('light_dark_ref')}")
         for row in spread.get("pairs") or []:
             print(f"      {row['pair']:<24} 平均 {row['mean']:>5}  最大 {row['max']}")

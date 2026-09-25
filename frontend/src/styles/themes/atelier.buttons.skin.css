@@ -1,0 +1,60 @@
+/* P8.19 · Atelier 工作台按钮皮肤。模板与应用共用此文件；每条选择器限定主题。
+ * .btn / .mini-btn：一般操作；.primary：确认；.play：启动；.running：结束游戏。
+ * 形状只用于按钮，保持页面与封面几何；强调色取令牌，文案在所有状态中保留。 */
+[data-style="atelier"] { --button-face: var(--a-main); --button-ink: var(--a-on); }
+[data-style="atelier"][data-theme="light"] { --button-face: color-mix(in srgb, var(--a-main) 80%, #000); --button-ink: #fff; }
+[data-style="atelier"][data-palette="lime"], [data-style="atelier"][data-palette="sakura"], [data-style="atelier"][data-palette="amber"] {
+  --button-face: var(--a-main); --button-ink: #182027;
+}
+[data-style="atelier"] .btn, [data-style="atelier"] .mini-btn {
+  font-family: var(--font); text-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--text-1) 25%, var(--s-panel));
+  background: var(--s-panel); color: var(--text-1); box-shadow: none; filter: none;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+[data-style="atelier"] .btn:hover:not(:disabled), [data-style="atelier"] .mini-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--s-panel) 92%, var(--a-main));
+  border-color: var(--a-main); color: var(--text-1); filter: none;
+}
+[data-style="atelier"] .btn.primary, [data-style="atelier"] .btn.play {
+  background: var(--button-face); border-color: var(--button-face); color: var(--button-ink);
+  box-shadow: none; filter: none; font-weight: 650;
+}
+[data-style="atelier"] .btn.play { position: relative; isolation: isolate; min-width: 140px; }
+[data-style="atelier"] .btn.primary:hover:not(:disabled), [data-style="atelier"] .btn.play:hover:not(:disabled) {
+  background: var(--button-face); border-color: var(--button-face); color: var(--button-ink); filter: none;
+}
+[data-style="atelier"] .btn.primary:hover:not(:disabled) { box-shadow: inset 0 0 0 1px currentColor; }
+/* 椭圆印章配纸签：只让启动键盖章；确认按钮仍是便于排版的纸片。 */
+[data-style="atelier"] .btn, [data-style="atelier"] .mini-btn { border-radius: var(--r-xs); box-shadow: none; }
+[data-style="atelier"] .btn:not(.primary):not(.play) { border-style: dashed; border-color: color-mix(in srgb, var(--a-main) 52%, var(--s-panel)); }
+[data-style="atelier"] .btn.primary { border-radius: var(--r-xs); transform: none; }
+[data-style="atelier"] .btn.play {
+  min-width: 142px; height: 56px; padding-inline: 25px;
+  border-radius: 50%; border: 1px solid var(--button-face);
+  box-shadow: inset 0 0 0 3px var(--s-panel), inset 0 0 0 4px var(--button-face);
+  transform: rotate(-2deg); letter-spacing: .08em;
+}
+[data-style="atelier"] .btn.play::after {
+  content: ""; position: absolute; inset: 7px; border: 1px dotted currentColor;
+  border-radius: 50%; opacity: .55; pointer-events: none;
+}
+[data-style="atelier"] .btn.play:hover:not(:disabled):not(.running) { transform: rotate(0); }
+[data-style="atelier"] .btn.play:active:not(:disabled):not(.running) { transform: rotate(0) scale(.97); }
+/* 键盘与状态优先于材质装饰。运行中不沿用强调色填充。 */
+[data-style="atelier"] .btn.play.running, [data-style="atelier"] .btn.play.running:hover {
+  background: var(--s-panel); border-color: color-mix(in srgb, var(--text-1) 40%, var(--s-panel));
+  color: var(--text-1); box-shadow: none; transform: none;
+}
+[data-style="atelier"] .btn.play.running::before, [data-style="atelier"] .btn.play.running::after { display: none; }
+[data-style="atelier"] .btn:active:not(:disabled):not(.running), [data-style="atelier"] .mini-btn:active:not(:disabled) { transform: translateY(1px); }
+[data-style="atelier"] .btn:focus-visible, [data-style="atelier"] .mini-btn:focus-visible {
+  outline: 2px solid var(--text-1); outline-offset: 3px;
+}
+[data-style="atelier"] .btn:disabled, [data-style="atelier"] .mini-btn:disabled, [data-style="atelier"] .btn.is-disabled {
+  opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-style="atelier"] .btn, [data-style="atelier"] .mini-btn, [data-style="atelier"] .btn::before, [data-style="atelier"] .btn::after { transition: none; }
+  [data-style="atelier"] .btn.play, [data-style="atelier"] .btn.play:hover:not(:disabled):not(.running), [data-style="atelier"] .btn:active:not(:disabled):not(.running) { transform: none; }
+}

@@ -1,17 +1,24 @@
 # 交接 · P8 前端 v2 与主题外观重构（P8.4）
 
+> **2026-09-26 / P8.21 更新**：找钩子采样告警已与实际有效钩子分层，翻译面板线程现显示真实条数 / 最新文本，
+> 点击线程可展开 Hcode 与最近原文；这些交互已由使用者实测通过。小窗口下的线程列表与翻译面板也已补滚动。
+> P8.19 的五主题按钮已接入独立的 `*.buttons.skin.css`，打包图标链也已切到
+> 512×512 RGBA 源图 + 7 尺寸 ICO，并由打包脚本自动重建。
+> Vue 模板、深浅模式预览与使用说明在 [`theme-templates/`](theme-templates/README.md)。
+> 下方 P8.16 撤回、Atelier 待做等较早记录为历史，当前以 P8.21 / P8.20 / P8.19 交付记录为准。
+
 > 写给下一个接手的人。总览看 [`handover.md`](handover.md)，
 > 交付细节看 [`architecture/p8-frontend-v2.md`](architecture/p8-frontend-v2.md)，
 > 体验反馈与验收口径看 [`frontend-ux-feedback.md`](frontend-ux-feedback.md)。
-> 最后更新：2026-09-23 夜（**P8.11 真机门全部补跑通过** + **P8.13 修掉使用者实机反馈的
-> 两条观感问题**：极光浅色没有毛玻璃、画廊顶部没有遮罩）。
-> 三道真机门都是绿的：主题矩阵重录 **25/25（偏差 0）**、`contrast` **32/32**、
-> `e2e` **96/96** —— 见第 2 节；P8.11/P8.13 的 bug 与坑见第 1、4、5 节。
+> 最后更新：2026-09-26（**P8.21 找钩子事实口径与线程诊断修复**；P8.20 提示 / 悬浮窗 / 输入框可读性修复；
+> P8.19 主题按钮与打包图标已由使用者实测）。
+> 当前验收口径是：主题矩阵 **35/35（偏差 0，区分度 23.9）**、`contrast` **40/40**、
+> `e2e` **101/101**、`run_all` **14/14**；P8.11–P8.18 的历史 bug 与工具坑仍见第 1、4、5 节。
 
 ## 1. 这一轮做完了什么
 
-按「四套主题区分度不足」那条反馈（`frontend-ux-feedback.md` 第 2 条）把示例页里的
-四类签名搬进了应用皮肤，并落地前一晚定下的两件明确要求：
+按「主题区分度不足」那条反馈（`frontend-ux-feedback.md` 第 2 条）把示例页里的
+五类签名搬进了应用皮肤，并落地前一晚定下的两件明确要求：
 
 | 事项 | 位置 | 状态 |
 | --- | --- | --- |
@@ -19,7 +26,7 @@
 | 常驻背景图（只支持一张） | `aurora/infra/config.py`（`background_mode/background_custom/background_custom_scale`）、`aurora/ui/bridge/library.py`（5 个桥接方法 + `_set_persistent_background` 测试缝）、`BackgroundLayer.vue`、`MediaPanels.vue`（背景面板来源胶囊 + 更换/清除 + 常驻缩放） | ✅ 真机探针全绿 |
 | DOM 结构性钩子 | `HallView.vue` / `GameView.vue` / `CategoriesView.vue` 的 `data-slot="…"`（只加属性，不动几何与 id） | ✅ |
 | 皮肤契约放宽 | `check_theme_contract.py` / `themes.spec.ts`：皮肤 ≤80 → **≤200 行**；「选择器必须挂在自己的 `[data-style=…]` 下」不变 | ✅ |
-| 四套主题签名 | `themes/*.skin.css`（背景处理 / 排印 / 分隔与框架 / 封面呈现 / 底栏）+ `themes/*.tokens.css`（底色与表面色温分层） | ✅ |
+| 五套主题签名 | `themes/*.skin.css` + `themes/*.tokens.css`（含 Atelier 的桌面、纸片、胶带和印章语言） | ✅ |
 | 区分度度量 | `tools/visual.py` 的 `theme_spread()` + `visual_summary.py` 输出；目标 ≥ 20 | ✅ **20.4**（改造前 8.6） |
 | P8.5 侧列表修补 | `app.css` 的 P8.5 小节（右栏 264px / 行网格 / hover 反馈）、`HallView.vue` 的 `watch([state.focus, layout])`、`#hall.hall-list .hall-viewport { pointer-events: none }` | ✅ 真鼠标探针（`_sandbox/probe_real_mouse.py`） |
 | P8.6 反馈收尾 | 删 `#addMenu`（导入游戏直接进本地导入）、`#btnGetGames` / `#scopePill` 搬进顶部栏做纯图标、`#toast` 挪到画面下方、`visual.py` 区分度判红、`contrast.py` 遮挡检测 | ✅ 见下面第 2 节 |
@@ -27,8 +34,8 @@
 | P8.8 主题二轮（模糊归零 / 字号放大 / 画廊饱和度 / 极光毛玻璃 / 参考图两块） | `themes/*.tokens.css`、`themes/*.skin.css`、`layout.css`、`app.css` | ✅ 已落地 + 真机门已补跑（P8.12：25/25 偏差 0、`contrast` 32/32） |
 | P8.8-b 主题令牌值域守卫 | `tools/checks/check_theme_contract.py` 第 6 节、`themes.spec.ts` | ✅ 故意违规 4 种实测全部变红 |
 | P8.9 删 v1（22 个文件 + ADR-0014 + 扫描面 / 打包清单 / 契约快照 / 基线登记同步） | `gl/web/**`、`main.py`、`tools/build_exe.py`、`tools/checks/*` | ✅ `run_all` 14/14、`pytest` 127 passed |
-| P8.10 主 CTA 四套风格化（反馈第 12 条） | `themes/*.skin.css`、`themes.spec.ts`、`build-info.mjs` | ✅ 已落地 + 真机矩阵已重录复跑（见 P8.12） |
-| P8.10-b 收藏架 Atelier 语言 | — | 🟡 小样已出（`docs/theme-demos/atelier/`）；已拍板做第 5 套，排到下一轮（见第 5 节） |
+| P8.10 主 CTA 四套风格化（反馈第 12 条） | `themes/*.skin.css`、`themes.spec.ts`、`build-info.mjs` | ✅ 四套历史版本已落地；当前由五套独立按钮皮肤统一维护 |
+| P8.10-b 收藏架 Atelier 语言 | `themes/atelier.*`、`core/theme.ts`、矩阵与契约工具 | ✅ 已由 P8.17–P8.19 取代小样阶段，Atelier 已是正式第五套主题 |
 | P8.15 五套示例页的启动键 | `docs/theme-demos/*/style.css`、`*/index.html`、`preview/` | ✅ 五套各一个启动键（流动光带 / 双框印章 / 琥珀灯珠 / 黄铜书脊 / 正圆印章），headless Chromium 逐张核过静止 + hover；对比图 `preview/buttons-{launch,hover}.jpg` |
 | P8.11 真机门补跑 | `tools/visual.py`、`tools/contrast.py`、`tools/e2e.py` | ✅ **三道全绿**（2026-09-23 深夜：25/25 偏差 0、32/32 tainted 0、96/96） |
 | P8.11-a 画廊「色块不一致」（使用者实机反馈） | `layout.css` 的 `#hall::before` | ✅ 修：整屏遮罩从写死的极光深蓝黑改成 `var(--scrim-rgb)`（见第 5 节末） |
@@ -41,17 +48,34 @@
 | P8.14-c 删「双击封面启动」 | `HallView.vue`、`ring.ts`、`core/app.ts`、`tools/e2e.py` | ✅ 删：侧栏 `@dblclick` + 环形 `dblclick` + 提示条「双击 启动」；e2e 第 3.6 步改写为「主页启动按钮直接启动」 |
 | P8.14-d 主页启动按钮 | `HallView.vue`、`app.css` | ✅ 加 `#btnHallPlay`（大图 + 侧列表，简介下方，走 `.btn.play`）；e2e 判据通过 |
 | P8.15 右键菜单 + 删悬停切换（反馈第 19-b 条） | `HallView.vue`、`ring.ts`、`store.ts`、`shell.ts`、`app.css`、`tools/e2e.py` | ✅ `#hallMenu`（启动 / 收藏 / 详情 / 移除，四种布局共用，Esc / 空白 / 滚轮 / 切布局都收）；环形与横滑的「悬停即切换」整段下掉；e2e **101/101**（新增 5 条），表面快照 98 → 99 id |
-| P8.16 画廊按钮风格化（反馈第 21 条） | `themes/gallery.buttons.skin.css`、`app.css`、`HallView.vue` | ⏸ **已撤**（使用者实机「观感不如改动前」）：皮肤文件删除、`#btnHallPlay` 恢复纯文字、基线回滚（复跑 25/25 偏差 0）；模板与四个口径留在 `docs/theme-templates/`，**重新记为待办** |
-| P8.17 Atelier 第五套主题（反馈第 20 条） | `themes/atelier.tokens.css` + `atelier.skin.css`（新）、`core/theme.ts`、`themes.spec.ts`、`check_theme_contract.py`、`visual.py`、`contrast.py`、`SettingsView.vue` | ✅ 签名：切割垫桌面 / 胶带纸片 / 摊开的照片 / 玫红虚线便签 / 圆形红印章 CTA；深色态是「夜里开着台灯的工作台」（整屏 60–74，五套里唯一不是近黑）→ 区分度 **25.9**（目标 ≥20）。矩阵 25 → **30 张**、对比度 32 → **40 点**；顺带把 `theme_capture_sane` 的深浅分界 70 → 85 |
-| P8.18 Atelier 观感 + 四条实测问题（反馈第 22–25 条） | `atelier.skin.css` / `atelier.tokens.css`、`shelf.skin.css`、`main.ts`、`overlay/OverlayApp.vue` + `overlay.css`、`visual.py`、`check_theme_contract.py` | ✅ Atelier 遮罩降强度 + 浅色暗化 + 深色底部压暗；**详情页左下角整块垫纸片**（标题对比 3.71 → 9.54）；shelf/Atelier 环形与平铺的**封面尺寸**修好（根因是皮肤把 `cover-art` 的 `position: absolute` 覆盖成 `relative`，DOM 44 格复验 0 不符）；两种主题深色**壁纸滤镜**补分档；`library:refresh` 补监听（移除游戏立刻生效）；悬浮窗 7 个按钮补回 `ov-btn`；Atelier 浅色纳入矩阵（**35 张**，区分度 23.9） |
+| P8.16 画廊按钮风格化（反馈第 21 条） | `docs/theme-templates/`、`themes/*.buttons.skin.css`、`app.css` | ⏸ 画廊整张皮肤已撤；保留模板与口径，P8.19 已用小步方案完成五套按钮皮肤并由使用者实测 |
+| P8.17 Atelier 第五套主题（反馈第 20 条） | `themes/atelier.tokens.css` + `atelier.skin.css`、契约与矩阵工具 | ✅ 正式主题；P8.18 纳入浅色后当前矩阵为 35 张，区分度 23.9 |
+| P8.18 Atelier 观感 + 四条实测问题（反馈第 22–25 条） | `atelier.skin.css` / `atelier.tokens.css`、`shelf.skin.css`、`main.ts`、`overlay/OverlayApp.vue` + `overlay.css`、`visual.py`、`check_theme_contract.py` | ✅ 遮罩、详情页纸片、封面尺寸、深色滤镜、library refresh、悬浮窗按钮与 Atelier 浅色矩阵均已收口（**35 张，区分度 23.9**） |
+| P8.19 五主题按钮模板与独立按钮皮肤 | `frontend/src/styles/themes/*.buttons.skin.css`、五个 Vue 模板、`app.css`、`tools/build_exe.py`、`tools/make_icon.py` | ✅ 五套按钮状态齐全；源图 512×512 RGBA，ICO 含 7 个尺寸；用户已完成实机验证 |
+| P8.20 三条体验反馈（反馈第 26–28 条） | `ToolbarBar.vue`、`overlay/overlay.css`、`styles/layout.css`、`docs/frontend-ux-feedback.md` | ✅ 顶部栏只保留主题提示；悬浮窗按钮单行 + 主题底色；原生输入框补主题文字 / 背景色；v2 产物已重建 |
+| P8.21 少女之剑找钩子与线程诊断（反馈第 29–32 条） | `app/services/hooksearch.py`、`infra/vntext.py`、`VntextPanel.vue`、`styles/layout.css` | ✅ 采样失败改为阶段告警；有效 `UserHook` 出现后提示收敛；线程显示真实条数 / 最新文本，点击展开 Hcode 与最近 6 条原文；提示与详情已由使用者实测通过；小窗口下线程列表和面板均可滚动 |
 
 ## 2. 现在验证到哪一步
 
-**P8.11（2026-09-23 深夜）—— 离线门 + 真机门全部绿**
+**当前快照（P8.21，2026-09-26）**：翻译面板的钩子查找分阶段提示与线程详情已由使用者在少女之剑实测通过；
+新发现的小窗口内容裁切已通过限制线程列表高度、允许面板纵向滚动补修。滚动交互仍需使用者在小窗口下复核。
+
+**历史快照（P8.20，2026-09-26）—— 主题按钮与图标链已由使用者实测**
+
+| 项目 | 当前口径 |
+| --- | --- |
+| 主题矩阵 | **35/35，逐张最大偏差 0**；五套主题，区分度 **23.9** |
+| `tools/contrast.py` | **40/40 达标，tainted 0** |
+| `tools/e2e.py` | **101/101 passed, 0 skipped** |
+| `tools/checks/run_all.py` | **14/14** |
+| 打包图标 | `gl/assets/aurora-icon.png` 为 512×512 RGBA；`aurora.ico` 含 16/24/32/48/64/128/256 七个尺寸；`build_exe.py` 会在打包时重建并刷新 Explorer 缓存 |
+| 产物 | 当前 `gl/web/v2` 入口引用新哈希包；`Aurora.exe` 已重建。用户已完成主题按钮和打包图标的功能实测 |
+
+**历史快照（P8.11–P8.13，2026-09-23）—— 离线门 + 真机门全部绿**
 
 | 门 | 结果 |
 | --- | --- |
-| `tools/visual.py`（主题矩阵） | ✅ **25/25，逐张最大偏差 0**；基线 19:2× 重录（P8.13 改完玻璃与遮罩之后）；区分度 **20.2**（目标 ≥ 20） |
+| `tools/visual.py`（主题矩阵） | ✅ **25/25，逐张最大偏差 0**；基线 19:2× 重录（P8.13 改完玻璃与遮罩之后）；区分度 **20.2**（目标 ≥ 20，历史四套口径） |
 | `tools/contrast.py` | ✅ **32/32 达标、tainted 0**（最低 6.66 对门槛 4.5）；极光恢复 20px 毛玻璃后复验通过 |
 | `tools/e2e.py` | ✅ **96/96 passed, 0 skipped**（修掉悬浮窗入口之后） |
 | `tools/checks/run_all.py` | ✅ **14/14**（新增「悬浮窗入口必须存在」一条断言） |
@@ -98,9 +122,9 @@
 ```powershell
 cd C:\Users\HuHu1\Desktop\Tasks\v4.1\Aurora
 
-# 0) 真机工具要 pywebview + Pillow。项目 .venv 已有 pywebview，Pillow 是本轮补装的：
+# 0) 真机工具要 pywebview + Pillow。项目 .venv 已有 pywebview；Pillow 是主题截图与图标打包工具依赖：
 #    .venv\Scripts\python.exe -m pip install "Pillow>=10.0"
-#    （requirements.txt 里 Pillow 是「仅 tools/ 自检脚本需要」的可选项）
+#    （运行时 exe 不依赖 Pillow；开发 / 打包脚本需要它）
 
 .venv\Scripts\python.exe tools\checks\run_all.py     # 先离线，14 项
 D:\Anaconda\python.exe -m pytest -q -p no:cacheprovider `
@@ -111,11 +135,11 @@ $env:VISUAL_OFFLINE="1"
 $env:VISUAL_UPDATE_THEME_BASELINE="1"
 .venv\Scripts\python.exe tools\visual.py
 Remove-Item Env:\VISUAL_UPDATE_THEME_BASELINE
-.venv\Scripts\python.exe tools\visual.py             # 复跑：期望 25/25、偏差 0
+.venv\Scripts\python.exe tools\visual.py             # 复跑：当前期望 35/35、偏差 0
 .venv\Scripts\python.exe tools\visual_summary.py     # 区分度，目标 ≥ 20
 
-.venv\Scripts\python.exe tools\contrast.py           # 32 个采样点，硬门槛 32/32
-.venv\Scripts\python.exe tools\e2e.py                # 96 项，需要 Steam
+.venv\Scripts\python.exe tools\contrast.py           # 当前 40 个采样点，硬门槛 40/40
+.venv\Scripts\python.exe tools\e2e.py                # 当前 101 项，需要 Steam
 
 # 前端变了就要重建（产物入库）：先 npm，再 exe
 cd frontend; npm run build; cd ..
@@ -137,9 +161,9 @@ cd frontend; npm run build; cd ..
    缩略图占位隐藏（`.bg-item i`）、**`el-tooltip` 浮层隐藏**（`.el-popper` ——
    鼠标恰好停在按钮上就会多出一块浅色矩形）；还加了「等环形浮动收敛」与
    「抓图前确认页面到位」。录基线时切不过去的主题会**跳过不写**，不会把错帧录进去。
-2.5. **进游戏页要单击，别双击**：环上双击是「启动游戏」——主题矩阵原来用双击进页，
-   等于每录一轮就把沙盒游戏启动五次，游戏页多一条「运行中 · 00:00」徽标，
-   前后两次跑出来自然不一样（实测差 69）。`contrast.py` 同一处也改了。
+2.5. **进游戏页要单击，启动走显式入口**：当前主页用启动按钮或右键菜单启动，已删除封面双击启动。
+   主题矩阵旧版曾用双击进页，等于每录一轮就把沙盒游戏启动多次，游戏页多出「运行中 · 00:00」徽标，
+   前后两次跑出来自然不一样（实测差 69）；`contrast.py` 与 `e2e.py` 已同步改成显式入口。
 2.8. **圆角只写在令牌里，皮肤只管线与排印**（P8.7 之后的规矩）：
    共享层（`layout.css` / `app.css` / `element.css`）里出现写死的 `border-radius`
    会被主题契约守卫直接拦下 —— 因为「画廊 / 放映厅是方角、极光是圆角」这条语言
@@ -214,27 +238,29 @@ cd frontend; npm run build; cd ..
    要完全避开真实数据，就带 `CONTRAST_OFFLINE=1` 跑（用 `_sandbox/contrast-data`，
    量不到真实壁纸）。
 
-## 5. 还没做的
+## 5. 当前待办（历史收尾记录见下方）
 
-**三个真机门已关闭；剩下「下一轮」两项**
+主题按钮、第五套主题和图标打包链已完成；下面列的是仍开放的产品 / 真机事项，旧阶段的
+「下一轮」描述只作为历史证据保留。
 
 | # | 事项 | 状态 |
 | --- | --- | --- |
-| 1 | **真机门补跑**：`visual.py` 主题矩阵重录 + `contrast.py` 32/32 + `e2e.py` 96/96 | ✅ 已完成（P8.11，2026-09-23 深夜）；基线已重录到 17:52 的样式 |
-| 2 | **四套主题的「开始游戏」按钮风格化**（反馈第 12 条） | ✅ 已落地（P8.10）并已过真机矩阵；画廊实色 + 直角 + 1px 内框、放映厅琥珀实色 + 时间码字距 + 按下辉光、收藏架黄铜实色 + 内阴影压印、极光保留渐变但收敛投影；`.btn.primary` 一并收口 |
-| 3 | **收藏架引入 Atelier 语言**（反馈第 4 项） | 🟡 **小样已出**（`docs/theme-demos/atelier/`，独立静态示例页，**没动应用里的收藏架**）。**新基线下的 gallery–shelf 是 16.1**（旧 14.6，目标 20）→ 按原口径仍属「不够」，要么把 Atelier 做成第 5 套（矩阵 25 → 30 张），要么真去改造收藏架；两条都要先定方向再动皮肤 |
-| 4 | **悬浮窗跟主题**：`overlay/main.ts` 只挂了 app.css，没有像主窗那样调 `applyTheme()`，所以永远用 `:root` 默认令牌（极光深色）。圆角已经改成令牌（`--r-md` / `--r-xs`），真要变脸得让 Python 侧把 `theme / theme_mode` 推给悬浮窗（跟 `vntext:line` 同一条 `evaluate_js` 链路） | ⏸ 搁置（使用者明确暂不做） |
+| 1 | **真机翻译链复验**：少女之剑缺字补全 / 修订回发；冷启动连点翻页 0 漏句审计 | ⏳ 仅有离线回归，待真实游戏复验 |
+| 2 | **RIDDLE JOKER 复测** | ⏳ 双同名线程修复后建议按 `engines.md` 模板重跑 20 句 |
+| 3 | **书架页与存档管理** | ⏳ 跨分类总览、存档目录快捷方式、手动备份 / 恢复 |
+| 4 | **低优先级能力** | ⏳ 手柄、多主题扩展、Magpie 集成、CI 自动发布 |
+| 5 | **悬浮窗跟主题** | ⏸ 暂缓；当前只修复按钮可见性，整套 `theme / theme_mode` 推送仍未做 |
 
 **P8.11 修掉的两个真机 bug（都不是「上一轮没做完」，而是上一轮真机门没跑才漏出来的）**
 
 | bug | 现象 | 根因 | 修法 |
 | --- | --- | --- | --- |
-| 画廊「色块不一致」（使用者实机反馈） | 列表布局下右栏与底栏那条**比别处明显更暗**；浅色态尤其刺眼 —— 右下一整块 lum≈60，旁边 242 | 布局层 `#hall::before` 的整屏遮罩把**极光的深蓝黑写死**（`rgba(3,4,9,…)`），而画廊的整屏遮罩只写了 `#hall:not(.hall-list)`（列表布局改用局部 hero 遮罩）→ 列表布局漏用默认色 | `layout.css` 改成 `rgb(var(--scrim-rgb) / …)`：四套主题任何布局都跟自己的深浅走；写了整屏遮罩的皮肤照旧覆盖 |
+| 画廊「色块不一致」（使用者实机反馈） | 列表布局下右栏与底栏那条**比别处明显更暗**；浅色态尤其刺眼 —— 右下一整块 lum≈60，旁边 242 | 布局层 `#hall::before` 的整屏遮罩把**极光的深蓝黑写死**（`rgba(3,4,9,…)`），而画廊的整屏遮罩只写了 `#hall:not(.hall-list)`（列表布局改用局部 hero 遮罩）→ 列表布局漏用默认色 | `layout.css` 改成 `rgb(var(--scrim-rgb) / …)`：五套主题任何布局都跟自己的深浅走；写了整屏遮罩的皮肤照旧覆盖 |
 | 悬浮窗不出现 | `e2e` 第 85 步 `1 个窗口`（期望 ≥2）；日志 `overlay html missing: …\gl\web\overlay.html` | P8.9 删 v1 时只改了主窗入口；且 v2 产物是 ES module，`file://` 下会被拦 | `HTML_PATH` 指到 `gl/web/v2/overlay.html` + `main.build_window()` 注入 `{server.url}/v2/overlay.html?v=…`；`check_packaging.py` 加断言 |
 
-**本轮已关闭的**（原清单 1–7 条 + 第 12 条）：模糊归零、字号放大、画廊饱和度、极光毛玻璃、
-参考图两块、删 v1、令牌值域守卫、主 CTA 四套风格化 —— 代码与产物全部落地，离线门全绿；
-只剩上面的真机门。逐条做法与验收口径见
+**历史已关闭的**（原清单 1–7 条 + 第 12 条）：模糊归零、字号放大、画廊饱和度、极光毛玻璃、
+参考图两块、删 v1、令牌值域守卫、主 CTA 四套风格化 —— 代码与产物全部落地；P8.17–P8.19
+又补齐 Atelier、五套按钮皮肤和图标打包链。逐条做法与验收口径见
 [`../frontend-ux-feedback.md`](../frontend-ux-feedback.md) 第四轮 + 本文第 2 节。
 
 **一个反直觉的坑（本轮踩到）**：`git rm -r` 一条命令会把**未跟踪的邻居**一起带走 ——

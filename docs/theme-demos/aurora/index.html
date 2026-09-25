@@ -8,20 +8,23 @@
 </head>
 <body>
 <!--
-  主题签名（aurora / 极光玻璃）· v2 扁平版
-    · 背景：默认跟随当前游戏；右上角开关切「常驻图」（纯 CSS，演示这一行为）
-    · 色罩：青紫极光 + 一层按主题定的暗罩（scrim）
-    · 面板：半透明底 + 1px 细边；只留轻模糊，没有内高光、没有大投影
-    · 排印：无衬线，展示标题 46px；标签用大写 + 宽字距
-    · 封面：300×452 的大卡片，1px 细边，不做悬浮光晕
-    · 按钮：主按钮 = 实体色块（50px 高），次按钮 = 描边 / 纯文字
-  令牌对应：--s-base / --panel / --hair / --text-1..3 / --a-main / --a-2 / --r-md
+  主题签名（aurora / 极光玻璃）· v4 精修版
+    · 一句话：毛玻璃 + 青紫极光。这套是默认主题，也是五套里唯一还留着模糊的。
+    · 背景：默认跟随当前游戏，右上角开关切成「常驻图」（纯 CSS，真能点）
+    · 色罩：青紫极光洗色 + 一层暗罩；壁纸提饱和，冷青调
+    · 面板：一层半透明底 + 1px 发丝边 + 20px 毛玻璃；圆角走 --r-* 令牌
+    · 排印：无衬线；展示标题 46px、字距收紧；标签一律大写 + 宽字距
+    · 封面：300×452 大卡片，14px 圆角 + 1px 细边 + 柔影，焦点那本外圈极光
+    · 按钮：主按钮 = 实色块（50px 高）；次按钮 = 细边 / 纯文字；一律无渐变无投影
+    · 交互：行悬停有青色左条、封面悬停轻微提亮、启动键光带常驻流动
+  令牌对应应用：--s-base / --s-panel / --srf* / --ln* / --text-1..3 / --a-main / --a-2 / --r-*
 -->
 
 <div class="bg">
   <img class="follow" src="../assets/hero-aurora.jpg" alt="">
   <img class="pinned" src="../assets/cover-3.jpg" alt="">
 </div>
+<div class="wash"></div>
 <div class="scrim"></div>
 
 <header class="topbar">
@@ -43,26 +46,41 @@
 
 <main class="hall">
   <section class="hero">
-    <figure class="hero-art"><img src="../assets/cover-1.jpg" alt=""></figure>
+    <figure class="hero-art">
+      <img src="../assets/cover-1.jpg" alt="">
+      <span class="hero-art-ring" aria-hidden="true"></span>
+    </figure>
+
     <div class="meta">
+      <span class="rule" aria-hidden="true"></span>
       <p class="kicker">Studio Hoshi · 2024 · 冒险 / 恋爱</p>
       <h1>苍蓝回响</h1>
-      <p class="sub">已玩 12.4 小时　·　最近一次 3 天前　·　VNDB 7.8</p>
+      <p class="sub">已玩 12.4 小时<span class="dot"></span>最近一次 3 天前<span class="dot"></span>VNDB 7.8</p>
       <p class="desc">
         离岛的海风、褪色的夏天，和一个说自己来自大海深处的少女。
         故事从一场久别重逢开始，也从一句没有说完的再见结束。
       </p>
       <p class="state"><i></i>运行中 12:04:31</p>
       <div class="actions">
-        <button class="primary">继续游戏</button>
-        <button class="ghost">背景图</button>
-        <button class="ghost">详情</button>
+        <button class="play" type="button">
+          <i class="play-ic" aria-hidden="true"></i>
+          <span class="play-lb">开始游戏</span>
+          <span class="play-sub">ENTER</span>
+        </button>
+        <button class="ghost" type="button">背景图</button>
+        <button class="ghost" type="button">详情</button>
       </div>
     </div>
+
+    <dl class="stats">
+      <div><dt>已玩</dt><dd>12.4<small>h</small></dd></div>
+      <div><dt>最近</dt><dd>3<small>天前</small></dd></div>
+      <div><dt>评分</dt><dd>7.8</dd></div>
+    </dl>
   </section>
 
   <aside class="library">
-    <div class="lib-head"><span>全部游戏</span><span>6 款</span></div>
+    <div class="lib-head"><span>全部游戏</span><span class="lib-count">6 款</span></div>
     <ul>
       <li class="row on"><img src="../assets/cover-1.jpg" alt="">
         <div><b>苍蓝回响</b><small>Studio Hoshi · 2024</small></div><em>12.4h</em></li>
@@ -81,8 +99,8 @@
 </main>
 
 <footer class="hintbar">
-  <span>苍蓝回响 · Studio Hoshi · 2024</span>
-  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+  <span class="hint-name">苍蓝回响 <i>Studio Hoshi · 2024</i></span>
+  <span class="hint-keys">共 6 个游戏　<b>←→</b> 切换 · <b>Enter</b> 进入 · <b>Ctrl+F</b> 搜索</span>
 </footer>
 </body>
 </html>

@@ -8,13 +8,15 @@
 </head>
 <body>
 <!--
-  主题签名（shelf / 收藏架）· v2 扁平版
-    · 背景：纸 + 木的暖色罩；右上角可切常驻图
-    · 封面：立在一条 1px 黄铜基线上（下面一排平刻度），取消了木横档与落影
-    · 说明：纸面卡片（很淡的纸纹、黄铜细线、衬线标题 42px），折角用纯色三角
-    · 按钮：主按钮是实心黄铜块（50px 高），次按钮描边 / 纯文字
-    · 列表：卡片目录，行间是黄铜虚线，当前项左侧一条 3px 黄铜竖条
-  令牌对应：--paper/--ink*/--brass/--brass-hair（应用里的 --a-main 与 --ln*）
+  主题签名（shelf / 收藏架）· v4 精修版
+    · 一句话：纸 + 木横档 + 黄铜卡片目录。整套像一间亮着台灯的书房。
+    · 背景：纸 + 木的暖色罩（极平的重复细线当纸纹）；右上角开关可切常驻图
+    · 横档：一条**扁平**的木色板（纯色，不做木纹渐变）+ 上沿一条黄铜基线 +
+      下沿一排平刻度；封面直接立在基线上，当前那张往前挪一格并描黄铜边
+    · 说明：纸面卡片（折角是纯色三角），衬线标题 42px，四条「标签 / 值」规格
+    · 按钮：主按钮是实心黄铜块（54px 高），次按钮描边 / 纯文字
+    · 列表：黄铜卡片目录，行间是虚线，当前项左侧一条 3px 黄铜竖条
+  令牌对应应用：--s-base / --s-panel / --text-1..3 / --a-main（黄铜）/ --ln* / --r-*
 -->
 
 <div class="bg">
@@ -57,22 +59,26 @@
         故事从一场久别重逢开始，也从一句没有说完的再见结束。
       </p>
       <div class="actions">
-        <button class="primary">继续游戏</button>
-        <button class="ghost">背景图</button>
-        <button class="ghost">详情</button>
+        <button class="play" type="button">
+          <i class="play-ic" aria-hidden="true"></i>
+          <span class="play-lb">开始游戏</span>
+          <span class="play-sub">ENTER</span>
+        </button>
+        <button class="ghost" type="button">背景图</button>
+        <button class="ghost" type="button">详情</button>
       </div>
     </article>
 
     <div class="shelf-stack">
       <div class="shelf-title"><span>架上的六册</span><span>← → 翻检</span></div>
       <div class="shelf">
+        <div class="plank" aria-hidden="true"></div>
         <figure class="book on"><img src="../assets/cover-1.jpg" alt=""><figcaption>001</figcaption></figure>
         <figure class="book"><img src="../assets/cover-2.jpg" alt=""><figcaption>002</figcaption></figure>
         <figure class="book"><img src="../assets/cover-3.jpg" alt=""><figcaption>003</figcaption></figure>
         <figure class="book"><img src="../assets/cover-4.jpg" alt=""><figcaption>004</figcaption></figure>
         <figure class="book"><img src="../assets/cover-5.jpg" alt=""><figcaption>005</figcaption></figure>
         <figure class="book"><img src="../assets/cover-6.jpg" alt=""><figcaption>006</figcaption></figure>
-        <div class="baseline"></div>
       </div>
     </div>
   </section>
@@ -92,7 +98,7 @@
 
 <footer class="hintbar">
   <span>苍蓝回响 · Studio Hoshi · 2024</span>
-  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 双击启动 · Ctrl+F 搜索</span>
+  <span>共 6 个游戏　←→ 切换 · Enter 进入 · 主页按钮启动 · Ctrl+F 搜索</span>
 </footer>
 </body>
 </html>

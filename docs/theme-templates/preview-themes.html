@@ -1,0 +1,168 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aurora · 主题按钮模板</title><style>*{box-sizing:border-box}body{margin:0;padding:36px;background:#e3e5e8;color:#252930;font:14px/1.6 'Segoe UI','Microsoft YaHei UI',sans-serif}
+h1{font-size:28px;margin:0}p{margin:6px 0 24px;color:#59616b}main{max-width:1160px;margin:auto}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.specimen{padding:22px 24px;background:var(--s-panel);color:var(--text-1);border:1px solid color-mix(in srgb,var(--text-1) 18%,transparent);min-height:220px}
+h2{margin:0 0 14px;font:600 16px/1.5 'Microsoft YaHei UI',sans-serif}.mode{float:right;opacity:.6;font-size:12px}.row{display:flex;align-items:center;gap:14px;min-height:64px;flex-wrap:wrap}.caption{font-size:11px;opacity:.6;margin-top:10px}
+.button-template{--font:'Segoe UI','Microsoft YaHei UI',sans-serif}
+:where(.btn){display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 18px;font-size:14px;font-weight:560;white-space:nowrap;cursor:pointer;border-radius:var(--r-md)}
+:where(.btn.play){height:46px;padding:0 26px;font-size:15px}
+@media(max-width:850px){body{padding:16px}.pair{grid-template-columns:1fr}.specimen{padding:20px}}
+.button-template[data-style="aurora"] {
+  --s-panel: #0c1622;
+  --s-elevated: #121e2c;
+  --text-1: #ffffff;
+  --a-main: #4fd6c4;
+  --a-2: #8b7cff;
+  --a-on: #04211f;
+  --r-md: 16px;
+  --r-xs: 8px;
+  --r-pill: 999px;
+}
+.button-template[data-style="aurora"][data-theme="light"] {
+  --s-panel: #ffffff;
+  --s-elevated: #ffffff;
+  --text-1: #14161d;
+  --a-main: #0f9e90;
+  --a-2: #6c5ce0;
+  --a-on: #ffffff;
+  --r-md: 16px;
+  --r-xs: 8px;
+  --r-pill: 999px;
+}
+
+.button-template[data-style="gallery"] {
+  --s-panel: #262c35;
+  --s-elevated: #2f3640;
+  --text-1: #ffffff;
+  --a-main: #3f63e8;
+  --a-2: #c9ced8;
+  --a-on: #ffffff;
+  --r-md: 1px;
+  --r-xs: 1px;
+  --r-pill: 1px;
+  --font: "Times New Roman", "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+}
+.button-template[data-style="gallery"][data-theme="light"] {
+  --s-panel: #fdfcfa;
+  --s-elevated: #fdfcfa;
+  --text-1: #0e0f12;
+  --a-main: #2c4bd0;
+  --a-2: #5a6478;
+  --a-on: #ffffff;
+  --r-md: 1px;
+  --r-xs: 1px;
+  --r-pill: 1px;
+}
+
+.button-template[data-style="screening"] {
+  --s-panel: #1c1209;
+  --s-elevated: #26190d;
+  --text-1: #f8f0e4;
+  --a-main: #e9a13b;
+  --a-2: #d08a4a;
+  --a-on: #1a1409;
+  --r-md: 3px;
+  --r-xs: 2px;
+  --r-pill: 2px;
+  --font: "Bahnschrift SemiCondensed", "Arial Narrow", "Microsoft YaHei UI",
+          "Microsoft YaHei", sans-serif;
+}
+.button-template[data-style="screening"][data-theme="light"] {
+  --s-panel: #fffaf1;
+  --s-elevated: #fffaf1;
+  --text-1: #201a12;
+  --a-main: #b4761f;
+  --a-2: #8a5b1c;
+  --a-on: #fffaf1;
+  --r-md: 3px;
+  --r-xs: 2px;
+  --r-pill: 2px;
+}
+
+.button-template[data-style="shelf"] {
+  --s-panel: #3a2f22;
+  --s-elevated: #463a2a;
+  --text-1: #ede7dd;
+  --a-main: #c8a24a;
+  --a-2: #8c6b3f;
+  --a-on: #1a1509;
+  --r-md: 4px;
+  --r-xs: 2px;
+  --r-pill: 3px;
+  --font: "KaiTi", "Songti SC", "SimSun", Georgia, "Microsoft YaHei", serif;
+}
+.button-template[data-style="shelf"][data-theme="light"] {
+  --s-panel: #fdf8f4;
+  --s-elevated: #fdf8f4;
+  --text-1: #1b1712;
+  --a-main: #9a7a2e;
+  --a-2: #a8857f;
+  --a-on: #fbf7f0;
+  --r-md: 4px;
+  --r-xs: 2px;
+  --r-pill: 3px;
+}
+
+.button-template[data-style="atelier"] {
+  --s-panel: #443540;
+  --s-elevated: #4f3e49;
+  --text-1: #f6ecf0;
+  --a-main: #e08aa4;
+  --a-2: #b8506c;
+  --a-on: #2a141b;
+  --r-md: 2px;
+  --r-xs: 2px;
+  --r-pill: 2px;
+  --font: "KaiTi", "Songti SC", "SimSun", "Source Han Serif SC", Georgia, serif;
+}
+.button-template[data-style="atelier"][data-theme="light"] {
+  --s-panel: #fffdfb;
+  --s-elevated: #fffdfb;
+  --text-1: #3b2f36;
+  --a-main: #b8506c;
+  --a-2: #d4738e;
+  --a-on: #fff8fa;
+  --r-md: 2px;
+  --r-xs: 2px;
+  --r-pill: 2px;
+}
+</style><link rel="stylesheet" href="../../frontend/src/styles/themes/aurora.buttons.skin.css"><link rel="stylesheet" href="../../frontend/src/styles/themes/gallery.buttons.skin.css"><link rel="stylesheet" href="../../frontend/src/styles/themes/screening.buttons.skin.css"><link rel="stylesheet" href="../../frontend/src/styles/themes/shelf.buttons.skin.css"><link rel="stylesheet" href="../../frontend/src/styles/themes/atelier.buttons.skin.css"><body><main><h1>Aurora · 主题按钮</h1><p>五套材质，两种明暗。鼠标悬停查看反馈；使用 Tab 查看键盘焦点，按住查看按下状态。</p><div class="pair"><section class="button-template specimen" data-style="aurora" data-theme="light">
+<h2>极光玻璃<span class="mode">浅色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section><section class="button-template specimen" data-style="aurora" data-theme="dark">
+<h2>极光玻璃<span class="mode">深色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section></div><div class="pair"><section class="button-template specimen" data-style="gallery" data-theme="light">
+<h2>展签式画廊<span class="mode">浅色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section><section class="button-template specimen" data-style="gallery" data-theme="dark">
+<h2>展签式画廊<span class="mode">深色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section></div><div class="pair"><section class="button-template specimen" data-style="screening" data-theme="light">
+<h2>夜间放映厅<span class="mode">浅色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section><section class="button-template specimen" data-style="screening" data-theme="dark">
+<h2>夜间放映厅<span class="mode">深色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section></div><div class="pair"><section class="button-template specimen" data-style="shelf" data-theme="light">
+<h2>收藏架<span class="mode">浅色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section><section class="button-template specimen" data-style="shelf" data-theme="dark">
+<h2>收藏架<span class="mode">深色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section></div><div class="pair"><section class="button-template specimen" data-style="atelier" data-theme="light">
+<h2>Atelier 工作台<span class="mode">浅色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section><section class="button-template specimen" data-style="atelier" data-theme="dark">
+<h2>Atelier 工作台<span class="mode">深色</span></h2>
+<div class="row"><button class="btn">背景图</button><button class="btn primary">保存设置</button><button class="btn play">开始游戏</button></div>
+<div class="row"><button class="btn play running">结束游戏</button><button class="btn" disabled>暂不可用</button></div>
+<div class="caption">一般操作 / 主要操作 / 启动 · 下排为运行中与禁用状态</div></section></div></main></body></html>

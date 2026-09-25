@@ -6,7 +6,7 @@
  *   el-popper.css 提示层（el-tooltip.css 本身是空壳，样式都在 popper 里）
  *
  * 加组件 = 这里加一行，`src/core/element.ts` 里注册同名组件。
- * 外观仍然由 `./element.css` 的 `--el-*` 桥接控制，四套主题自动跟随。
+ * 外观仍然由 `./element.css` 的 `--el-*` 桥接控制，五套主题自动跟随。
  *
  * 本文件只在 `app.css` 顶部引一次（原因见 app.css 的注释）。
  */

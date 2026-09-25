@@ -90,21 +90,8 @@
   box-shadow: inset 3px 0 0 var(--a-main);
 }
 
-/* 控件：一律实色 / 描边，没有渐变与投影 */
-[data-style="screening"] .btn.play,
-[data-style="screening"] .btn.primary {
-  background: rgb(233 161 59); border-color: transparent; color: var(--a-on);
-  font-variant-numeric: tabular-nums; letter-spacing: 0.08em;   /* P8.10 时间码那一档 */
-}
-[data-style="screening"] .btn.play:active,
-[data-style="screening"] .btn.primary:active {
-  background: rgb(214 143 43); box-shadow: 0 0 26px -6px rgb(233 161 59 / 0.6);
-}
-[data-style="screening"] .btn.play.running {
-  background: rgb(255 255 255 / 0.08);
-  border-color: rgb(233 161 59 / 0.42);
-  color: var(--text-1);
-}
+/* 按钮语言：见 screening.buttons.skin.css（P8.19）。 */
+
 [data-style="screening"] .chip.accent,
 [data-style="screening"] .pill.live {
   color: var(--a-main);

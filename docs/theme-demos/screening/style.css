@@ -1,18 +1,26 @@
-/* 夜间放映厅 v2 —— 扁平取向：去掉光束与发光，改用琥珀细线和实心色块；
-   当前封面只是一张大卡片（细边 + 两侧压暗），不再有「放映机光晕」。 */
+/* 夜间放映厅 v4 —— 精修版。
+   设计语言：暖黑 + 琥珀 + 节目单。整页像一场夜场放映：画面压到只剩轮廓，
+   剩下的信息全交给琥珀细线与等宽时间码。
+   · 放映格：封面 1px 琥珀细边 + 深影，背后一层琥珀晕（「正在放映」的那一格）
+   · 排印：窄体无衬线做标题；时间码 / 数字一律等宽；标签大写 + 宽字距
+   · 按钮：主按钮是实心琥珀块（56px 高），次按钮纯文字、悬停才上琥珀
+   · 圆角：一律 2–4px —— 放映厅里没有圆润的东西（对应 --r-* = 4/3/3/2/5/2）
+*/
 :root {
-  --s-base: #14100b;
-  --panel: rgb(255 236 205 / 0.05);
+  --s-base: #0c0805;
+  --s-panel: #1c1209;
+  --amber: #e9a13b;
+  --amber-2: #d08a4a;
+  --amber-deep: #b4761f;
+  --on-amber: #1a1409;
   --text-1: #f8f0e4;
-  --text-2: rgb(226 214 196 / 0.92);
-  --text-3: rgb(178 163 142 / 0.86);
-  --amber: #e2a33c;
-  --amber-2: #b8802a;
-  --on-amber: #24190a;
-  --hair: rgb(226 163 60 / 0.26);
+  --text-2: rgb(226 214 196 / 0.96);
+  --text-3: rgb(178 163 142 / 0.92);
+  --hair: rgb(233 161 59 / 0.26);
   --hair-soft: rgb(255 236 205 / 0.12);
   --wide: "Bahnschrift SemiCondensed", "Bahnschrift", "DIN Alternate", "Arial Narrow", "Segoe UI", sans-serif;
   --mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 * { box-sizing: border-box; }
@@ -24,116 +32,238 @@ body {
   display: flex; flex-direction: column;
 }
 
-/* ---------- 背景：暗到底，只留轮廓（色罩按主题走） ---------- */
-.bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+/* ---------- 背景：暗到底，只留轮廓 ---------- */
+.bg { position: fixed; inset: 0; z-index: -3; overflow: hidden; }
 .bg img {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   filter: brightness(0.44) saturate(0.7) sepia(0.16);
-  transition: opacity 0.25s;
+  transition: opacity 0.3s var(--ease);
 }
 .bg .pinned { opacity: 0; }
 body:has(#bgmode:checked) .bg .pinned { opacity: 1; }
 body:has(#bgmode:checked) .bg .follow { opacity: 0; }
+.wash {
+  position: fixed; inset: 0; z-index: -2; pointer-events: none;
+  background: radial-gradient(72% 60% at 30% 42%, rgb(233 161 59 / 0.1), transparent 70%);
+}
 .scrim {
-  position: fixed; inset: 0; z-index: -1;
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(70% 58% at 34% 44%, rgb(226 163 60 / 0.1), transparent 70%),
-    linear-gradient(to top, rgb(12 9 6 / 0.95), rgb(16 12 8 / 0.74) 60%, rgb(18 13 9 / 0.86));
+    linear-gradient(to top, rgb(10 7 4 / 0.95) 0%, rgb(14 10 6 / 0.8) 52%, rgb(16 11 7 / 0.88) 100%);
 }
 
 /* ---------- 顶栏：琥珀细线收口 ---------- */
 .topbar {
+  flex: none;
   display: flex; align-items: center; gap: 20px;
-  padding: 14px 26px; border-bottom: 1px solid var(--hair);
+  padding: 14px 26px;
+  border-bottom: 1px solid var(--hair);
 }
 .brand { display: flex; align-items: baseline; gap: 10px; }
-.brand b { font-family: var(--wide); font-size: 21px; letter-spacing: 0.16em; text-transform: uppercase; }
+.brand b { font-family: var(--wide); font-size: 21px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
 .brand span { font-size: 11px; color: var(--text-3); letter-spacing: 0.12em; }
+
 .search {
-  flex: 1; display: flex; align-items: center; gap: 9px; height: 34px; padding: 0 13px;
-  border: 1px solid var(--hair-soft); background: var(--panel);
+  flex: 1; display: flex; align-items: center; gap: 9px;
+  height: 34px; padding: 0 13px; min-width: 0;
+  border: 1px solid var(--hair-soft); background: rgb(255 236 205 / 0.05);
+  transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
 }
-.search svg { width: 14px; height: 14px; fill: none; stroke: var(--text-3); stroke-width: 1.6; }
-.search input { flex: 1; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--text-1); }
+.search:hover { border-color: var(--hair); }
+.search:focus-within { border-color: var(--amber); background: rgb(233 161 59 / 0.08); }
+.search svg { flex: none; width: 14px; height: 14px; fill: none; stroke: var(--text-3); stroke-width: 1.6; }
+.search:focus-within svg { stroke: var(--amber); }
+.search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--text-1); }
 .search input::placeholder { color: var(--text-3); }
-.views { display: flex; gap: 22px; font-family: var(--wide); font-size: 14px; letter-spacing: 0.14em; }
-.views b, .views span { font-weight: 500; color: var(--text-2); }
+
+.views { display: flex; gap: 24px; font-family: var(--wide); font-size: 14px; letter-spacing: 0.14em; }
+.views b, .views span { font-weight: 500; color: var(--text-2); cursor: pointer; transition: color 0.18s var(--ease); }
+.views span:hover { color: var(--text-1); }
 .views b.on { color: var(--amber); }
+
 .bg-pill {
-  display: inline-flex; align-items: center; height: 30px; padding: 0 12px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 13px; cursor: pointer;
   border: 1px solid var(--hair); color: var(--text-2);
   font-family: var(--wide); font-size: 12px; letter-spacing: 0.1em;
+  transition: border-color 0.18s var(--ease), color 0.18s var(--ease), background 0.18s var(--ease);
 }
-.bg-pill:hover { border-color: var(--amber); color: var(--amber); }
+.bg-pill::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--amber); flex: none;
+}
+.bg-pill:hover { border-color: var(--amber); color: var(--amber); background: rgb(233 161 59 / 0.08); }
 .bg-pill .pinned-text { display: none; }
 body:has(#bgmode:checked) .bg-pill .follow-text { display: none; }
 body:has(#bgmode:checked) .bg-pill .pinned-text { display: inline; }
+
 /* 常驻图只支持一张：切到常驻图时才露出「换一张」的入口（纯 CSS，演示这一行为） */
 .bg-swap {
-  display: none; align-items: center; height: 30px; padding: 0 12px;
-  border: 1px dashed var(--hair); background: none;
-  color: var(--text-3); font-family: var(--wide); font-size: 11.5px;
-  letter-spacing: 0.1em; cursor: pointer;
+  display: none; align-items: center; height: 30px; padding: 0 13px;
+  border: 1px dashed var(--hair); background: none; color: var(--text-3); cursor: pointer;
+  font-family: var(--wide); font-size: 11.5px; letter-spacing: 0.1em;
+  transition: border-color 0.18s var(--ease), color 0.18s var(--ease);
 }
 .bg-swap:hover { border-style: solid; border-color: var(--amber); color: var(--amber); }
 body:has(#bgmode:checked) .bg-swap { display: inline-flex; }
-.winbtns { display: flex; gap: 16px; color: var(--text-3); font-size: 12px; }
 
-/* ---------- 主区：一张大卡片 + 节目单 ---------- */
-.hall { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 352px; }
-.hero {
-  display: grid; grid-template-columns: 300px minmax(0, 1fr);
-  align-items: center; gap: 40px; padding: 30px 34px; min-width: 0;
+.winbtns { display: flex; gap: 4px; color: var(--text-3); font-size: 12px; }
+.winbtns i {
+  display: grid; place-items: center; width: 26px; height: 26px; font-style: normal; cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
 }
+.winbtns i:hover { background: rgb(233 161 59 / 0.16); color: var(--amber); }
+.winbtns i:last-child:hover { background: rgb(200 60 40 / 0.28); color: #ff9d97; }
+
+/* ---------- 主区：放映格 + 节目单 ---------- */
+.hall { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 352px; }
+
+.hero {
+  position: relative; overflow: hidden; min-width: 0;
+  display: grid; grid-template-columns: auto minmax(0, 1fr);
+  align-items: center; gap: 44px; padding: 30px 34px;
+}
+.hero::before {                    /* 放映机打在封面背后的那一层琥珀晕 */
+  content: ""; position: absolute; left: -60px; top: 50%; transform: translateY(-50%);
+  width: 560px; height: 640px; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(233 161 59 / 0.17), transparent 72%);
+}
+.hero::after {                     /* 两侧压暗：像银幕边缘 */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgb(10 7 4 / 0.55) 0%, transparent 30%,
+              transparent 74%, rgb(10 7 4 / 0.6) 100%);
+}
+.hero > * { position: relative; z-index: 1; }
+
 .hero-art { margin: 0; }
 .hero-art img {
   display: block; width: 300px; height: 452px; object-fit: cover;
-  border: 1px solid var(--amber);
+  border: 1px solid rgb(233 161 59 / 0.5);
+  box-shadow: 0 0 0 1px rgb(233 161 59 / 0.16), 0 26px 50px -22px rgb(0 0 0 / 0.95);
+  transition: filter 0.25s var(--ease);
 }
+.hero-art:hover img { filter: brightness(1.06); }
+
 .meta { min-width: 0; max-width: 560px; }
 .kicker {
-  margin: 0 0 12px; font-family: var(--wide); font-size: 11.5px;
-  letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber);
+  margin: 0 0 13px; display: flex; align-items: center; gap: 9px;
+  font-family: var(--wide); font-size: 11.5px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--amber);
+}
+.kicker i {
+  width: 7px; height: 7px; border-radius: 50%; flex: none;
+  background: var(--amber); animation: lamp 2.6s ease-in-out infinite;
+}
+@keyframes lamp {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgb(233 161 59 / 0.5); }
+  50%      { opacity: 0.7; box-shadow: 0 0 0 5px rgb(233 161 59 / 0); }
 }
 h1 { margin: 0; font-family: var(--wide); font-size: 50px; font-weight: 500; letter-spacing: 0.02em; line-height: 1.06; }
-.sub { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--hair); font-size: 12.5px; color: var(--text-2); }
+.sub {
+  margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--hair);
+  font-size: 12.5px; color: var(--text-2);
+}
 .desc { margin: 16px 0 0; font-size: 13.5px; line-height: 1.82; color: var(--text-2); max-width: 44ch; }
-.actions { margin-top: 26px; display: flex; align-items: center; gap: 12px; }
+
+/* 三格速览：等宽数字 + 琥珀，像放映机的读数 */
+.stats {
+  margin: 18px 0 0; max-width: 430px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--hair);
+}
+.stats > div { padding: 11px 16px 11px 0; border-right: 1px solid var(--hair-soft); }
+.stats > div:last-child { border-right: 0; }
+.stats dt {
+  font-family: var(--wide); font-size: 10px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--text-3);
+}
+.stats dd {
+  margin: 6px 0 0; font-family: var(--mono); font-size: 19px;
+  color: var(--amber); font-variant-numeric: tabular-nums;
+}
+.stats dd small { margin-left: 2px; font-size: 11px; color: var(--text-2); }
+
+.actions { margin-top: 24px; display: flex; align-items: center; gap: 14px; }
 button {
   font: inherit; font-size: 13px; cursor: pointer;
   height: 38px; padding: 0 18px; border: 1px solid var(--hair);
   background: none; color: var(--text-1); letter-spacing: 0.06em;
-  transition: background 0.16s, border-color 0.16s, color 0.16s;
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
 }
-button:hover { background: rgb(226 163 60 / 0.14); border-color: var(--amber); }
+button:hover { background: rgb(233 161 59 / 0.14); border-color: var(--amber); }
+button:active { transform: translateY(1px); }
 button.primary {
   height: 50px; padding: 0 32px; font-size: 15.5px; font-weight: 600;
   background: var(--amber); border-color: transparent; color: var(--on-amber);
 }
-button.primary:hover { background: var(--amber-2); color: #fff5e2; }
 button.ghost { border-color: transparent; color: var(--text-2); }
 button.ghost:hover { color: var(--amber); background: none; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+/* ---------- 启动键：放映机点亮 ----------
+   琥珀实色块 + 左侧一颗灯珠 + 下缘一条时间码刻度；常驻极轻的呼吸辉光
+   （像机房里那盏待机的灯），hover 时停住呼吸、辉光撑到最亮。 */
+.play {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 14px;
+  height: 56px; padding: 0 34px 0 30px; border-radius: 2px;
+  border: 1px solid transparent; background: var(--amber); color: var(--on-amber);
+  font-family: var(--wide); font-size: 16px; font-weight: 600; letter-spacing: 0.1em;
+  animation: play-lamp 2.6s ease-in-out infinite;
+}
+@keyframes play-lamp {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(233 161 59 / 0.46), 0 0 20px -6px rgb(233 161 59 / 0.5); }
+  50%      { box-shadow: 0 0 0 5px rgb(233 161 59 / 0.14), 0 0 34px -6px rgb(233 161 59 / 0.85); }
+}
+.play:hover {
+  animation-play-state: paused;
+  background: var(--amber-2); color: #fff5e2;
+  box-shadow: 0 0 0 4px rgb(233 161 59 / 0.26), 0 0 42px -8px rgb(233 161 59 / 0.95);
+}
+.play:active { transform: translateY(1px); }
+.play-ic {                             /* 放映机的灯珠 */
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #fff6e2, var(--amber) 60%, #7a5312);
+  box-shadow: 0 0 12px 1px rgb(255 246 226 / 0.75);
+}
+.play::after {                         /* 下缘时间码刻度 */
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: repeating-linear-gradient(90deg, rgb(36 25 10 / 0.55) 0 1px, transparent 1px 7px);
+}
+.play-sub {
+  font-family: var(--mono); font-size: 10px; font-weight: 400;
+  letter-spacing: 0.16em; opacity: 0.78; font-variant-numeric: tabular-nums;
+}
 
 /* ---------- 节目单：等宽时间码 + 细线 ---------- */
 .programme { border-left: 1px solid var(--hair); display: flex; flex-direction: column; min-height: 0; }
 .pg-head {
-  display: flex; justify-content: space-between; padding: 18px 24px 12px;
-  border-bottom: 1px solid var(--hair);
+  flex: none; display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 24px 13px; border-bottom: 1px solid var(--hair);
   font-family: var(--wide); font-size: 11.5px; letter-spacing: 0.22em;
   text-transform: uppercase; color: var(--amber);
 }
-.programme ol { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.programme ol { list-style: none; margin: 0; padding: 0; overflow: auto; scrollbar-gutter: stable; }
+.programme::after {                    /* 片尾：一排齿孔，把空场收住 */
+  content: ""; flex: none; margin: auto 24px 18px; height: 18px;
+  border-top: 1px solid var(--hair-soft); border-bottom: 1px solid var(--hair-soft);
+  background: repeating-linear-gradient(90deg, var(--hair) 0 8px, transparent 8px 24px);
+}
 .programme li {
+  position: relative;
   display: grid; grid-template-columns: 58px minmax(0, 1fr) auto;
   grid-template-rows: auto auto; align-items: center; column-gap: 12px;
   padding: 13px 24px 13px 20px;
   border-bottom: 1px solid var(--hair-soft);
-  cursor: pointer; position: relative;
+  cursor: pointer;
+  transition: background 0.16s var(--ease);
 }
-.programme li:hover { background: rgb(226 163 60 / 0.07); }
-.programme li.on::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--amber);
+.programme li::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+  background: var(--amber); transition: width 0.2s var(--ease);
 }
+.programme li:hover { background: rgb(233 161 59 / 0.07); }
+.programme li.on::before { width: 3px; }
+.programme li:active { background: rgb(233 161 59 / 0.12); }
 .time {
   grid-area: 1 / 1 / 3 / 2; font-family: var(--mono); font-size: 13px;
   color: var(--text-3); font-variant-numeric: tabular-nums;
@@ -142,13 +272,14 @@ button.ghost:hover { color: var(--amber); background: none; }
 .programme b { grid-area: 1 / 2 / 2 / 3; font-size: 13.5px; font-weight: 540; }
 .programme small { grid-area: 2 / 2 / 3 / 3; font-size: 11px; color: var(--text-3); }
 .programme em {
-  grid-area: 1 / 3 / 3 / 4; font-style: normal; font-size: 11px;
-  color: var(--text-3); font-variant-numeric: tabular-nums; text-align: right;
+  grid-area: 1 / 3 / 3 / 4; font-style: normal; font-family: var(--mono);
+  font-size: 11px; color: var(--text-3);
+  font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
 }
 
 /* ---------- 底条 ---------- */
 .hintbar {
-  display: flex; justify-content: space-between; align-items: center;
+  flex: none; display: flex; justify-content: space-between; align-items: center; gap: 16px;
   padding: 12px 26px; border-top: 1px solid var(--hair);
   font-size: 11.5px; color: var(--text-3);
 }

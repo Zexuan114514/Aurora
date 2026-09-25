@@ -81,23 +81,8 @@
 }
 [data-style="shelf"] [data-slot="row"].on { box-shadow: inset 3px 0 0 var(--a-main); }
 
-/* 控件：黄铜实色，无渐变；P8.10 的压印感靠内阴影（像盖在纸上的火漆） */
-[data-style="shelf"] .btn.play,
-[data-style="shelf"] .btn.primary {
-  background: rgb(200 162 74);
-  border-color: transparent;
-  color: #241f18;
-  box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.26),
-              inset 0 -2px 5px rgb(90 66 20 / 0.45);
-}
-[data-style="shelf"] .btn.play:active,
-[data-style="shelf"] .btn.primary:active {
-  box-shadow: inset 0 3px 7px rgb(90 66 20 / 0.55);
-}
-[data-style="shelf"] .btn.play.running {
-  background: transparent; border-color: rgb(200 162 74 / 0.42); box-shadow: none;
-  color: var(--text-1);
-}
+/* 按钮语言：见 shelf.buttons.skin.css（P8.19）。 */
+
 [data-style="shelf"] .chip,
 [data-style="shelf"] .pill,
 [data-style="shelf"] .sheet.glass,

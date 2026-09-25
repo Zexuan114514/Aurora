@@ -194,15 +194,4 @@
 [data-style="gallery"][data-theme="light"] .gi.focus [data-slot="cover"] { outline-color: rgb(14 15 18 / 0.82); }
 [data-style="gallery"][data-theme="light"] [data-slot="rail"] { border-top-color: rgb(14 15 18 / 0.26); }
 
-/* P8.10 主 CTA：展签上的印章 —— 实色 + 直角 + 一道内框，没有渐变与内高光 */
-[data-style="gallery"] .btn.play,
-[data-style="gallery"] .btn.primary {
-  background: var(--a-main);
-  border-color: var(--a-main);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.34);
-  color: var(--a-on);
-}
-[data-style="gallery"] .btn.play.running {
-  background: transparent; border-color: var(--stroke); box-shadow: none;
-  color: var(--text-1);
-}
+/* 按钮语言：见 gallery.buttons.skin.css（P8.19）。 */

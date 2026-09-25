@@ -1,0 +1,59 @@
+/* P8.19 · 夜间放映厅按钮皮肤。模板与应用共用此文件；每条选择器限定主题。
+ * .btn / .mini-btn：一般操作；.primary：确认；.play：启动；.running：结束游戏。
+ * 形状只用于按钮，保持页面与封面几何；强调色取令牌，文案在所有状态中保留。 */
+[data-style="screening"] { --button-face: var(--a-main); --button-ink: var(--a-on); }
+[data-style="screening"][data-theme="light"] { --button-face: color-mix(in srgb, var(--a-main) 80%, #000); --button-ink: #fff; }
+[data-style="screening"][data-palette="lime"], [data-style="screening"][data-palette="sakura"], [data-style="screening"][data-palette="amber"] {
+  --button-face: var(--a-main); --button-ink: #182027;
+}
+[data-style="screening"] .btn, [data-style="screening"] .mini-btn {
+  font-family: var(--font); text-shadow: none;
+  border: 1px solid color-mix(in srgb, var(--text-1) 25%, var(--s-panel));
+  background: var(--s-panel); color: var(--text-1); box-shadow: none; filter: none;
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+[data-style="screening"] .btn:hover:not(:disabled), [data-style="screening"] .mini-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--s-panel) 92%, var(--a-main));
+  border-color: var(--a-main); color: var(--text-1); filter: none;
+}
+[data-style="screening"] .btn.primary, [data-style="screening"] .btn.play {
+  background: var(--button-face); border-color: var(--button-face); color: var(--button-ink);
+  box-shadow: none; filter: none; font-weight: 650;
+}
+[data-style="screening"] .btn.play { position: relative; isolation: isolate; min-width: 140px; }
+[data-style="screening"] .btn.primary:hover:not(:disabled), [data-style="screening"] .btn.play:hover:not(:disabled) {
+  background: var(--button-face); border-color: var(--button-face); color: var(--button-ink); filter: none;
+}
+[data-style="screening"] .btn.primary:hover:not(:disabled) { box-shadow: inset 0 0 0 1px currentColor; }
+/* 放映键：左侧指示灯、下缘胶片刻度；只有交互时亮起。 */
+[data-style="screening"] .btn, [data-style="screening"] .mini-btn { border-radius: var(--r-xs); font-variant-numeric: tabular-nums; }
+[data-style="screening"] .btn:not(.primary):not(.play) { border-bottom: 2px solid color-mix(in srgb, var(--a-main) 45%, var(--s-panel)); }
+[data-style="screening"] .btn.play { padding-inline: 30px 24px; border-radius: var(--r-xs); letter-spacing: .08em; }
+[data-style="screening"] .btn.play::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor;
+  flex: none; opacity: .8; box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-ink) 12%, transparent);
+}
+[data-style="screening"] .btn.play::after {
+  content: ""; position: absolute; left: 9px; right: 9px; bottom: 3px; height: 2px;
+  background: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 8px);
+  opacity: .35; pointer-events: none;
+}
+[data-style="screening"] .btn.play:hover:not(:disabled):not(.running) { box-shadow: 0 0 18px -8px var(--a-main); }
+[data-style="screening"] .btn.play:hover:not(:disabled)::before { opacity: 1; box-shadow: 0 0 0 3px color-mix(in srgb, var(--button-ink) 20%, transparent); }
+/* 键盘与状态优先于材质装饰。运行中不沿用强调色填充。 */
+[data-style="screening"] .btn.play.running, [data-style="screening"] .btn.play.running:hover {
+  background: var(--s-panel); border-color: color-mix(in srgb, var(--text-1) 40%, var(--s-panel));
+  color: var(--text-1); box-shadow: none; transform: none;
+}
+[data-style="screening"] .btn.play.running::before, [data-style="screening"] .btn.play.running::after { display: none; }
+[data-style="screening"] .btn:active:not(:disabled):not(.running), [data-style="screening"] .mini-btn:active:not(:disabled) { transform: translateY(1px); }
+[data-style="screening"] .btn:focus-visible, [data-style="screening"] .mini-btn:focus-visible {
+  outline: 2px solid var(--text-1); outline-offset: 3px;
+}
+[data-style="screening"] .btn:disabled, [data-style="screening"] .mini-btn:disabled, [data-style="screening"] .btn.is-disabled {
+  opacity: .45; cursor: not-allowed; transform: none; box-shadow: none; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-style="screening"] .btn, [data-style="screening"] .mini-btn, [data-style="screening"] .btn::before, [data-style="screening"] .btn::after { transition: none; }
+  [data-style="screening"] .btn.play, [data-style="screening"] .btn.play:hover:not(:disabled):not(.running), [data-style="screening"] .btn:active:not(:disabled):not(.running) { transform: none; }
+}

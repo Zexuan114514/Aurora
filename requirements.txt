@@ -16,5 +16,5 @@ winrt-Windows.Storage>=3.0
 winrt-Windows.Foundation>=3.0
 winrt-Windows.Foundation.Collections>=3.0
 
-# 可选：仅 tools/ 下的自检脚本需要（生成图标、截图分析）
-# Pillow>=10.0
+# Pillow 用于打包时生成图标以及 tools/ 下的截图分析，见 requirements-dev.txt；
+# build_exe.py 也会在专用构建环境中自动安装。

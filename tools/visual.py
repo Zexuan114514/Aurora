@@ -136,9 +136,9 @@ def cell_stats(img, box):
 
 
 # ---------------------------------------------------------------
-# 主题矩阵：四套风格 × 深/浅
+# 主题矩阵：五套风格 × 深/浅
 #
-# 分级截图基线（ADR-0013 说好的「深色 4 套 × 5 界面 + 浅色默认主题 5 张」）：
+# 分级截图基线（当前五套主题的深浅配置 × 5 界面）：
 # 每个主题截 5 个界面，指纹取 16×10 网格的平均色，按容差比 —— 不做逐像素比对。
 # 主题改的是整块面板 / 文字 / 强调色，网格均值足够抓回归，又不会被一两个像素带偏。
 #
@@ -312,10 +312,10 @@ def theme_delta(base: dict, now: dict) -> tuple[int, list[int] | None]:
 
 
 def theme_spread(shots: dict, screens: tuple[str, ...], mode: str = "dark") -> dict:
-    """四套深色风格两两之间的平均色差（0–255）——「区分度」的量化口径。
+    """五套深色风格两两之间的平均色差（0–255）——「区分度」的量化口径。
 
     用现成的指纹算：同一界面、两套风格，逐格逐通道取绝对差，再对格子与界面求平均。
-    深浅两态之间是 200 上下（另算），四套风格之间如果只有个位数，用户感知到的
+    深浅两态之间是 200 上下（另算），五套风格之间如果只有个位数，用户感知到的
     「换主题」就只是换了个强调色（2026-09-22 的体验反馈第 2 条）。
     目标线：≥ 20（见 docs/frontend-ux-feedback.md）。P8.6 起**判红** ——
     皮肤已经改到位（实测 20.4），这条下限就是防止以后又退回「换个强调色」。
@@ -366,7 +366,7 @@ def theme_capture_sane(path: Path, mode: str) -> bool:
     实测过一次：`data-theme` 已经是 light，画面却还是上一套深色 ——
     录基线时这种「换主题没画完」的帧会被当成正常外观录进去，之后就再也修不回来了。
 
-    分界取 **85**：四套老主题的深色态是 9–49，浅色态 190–250，中间留了很宽的空档；
+    分界取 **85**：四套老主题的深色态是 9–49，Atelier 深色态更亮，浅色态 190–250，中间留了很宽的空档；
     而 Atelier（第 5 套）的深色态是「开着台灯的工作台」，实测 **60–74** —— 用原来的
     70 当分界会把它的 categories（73.7）当成「明暗没画完」反复重拍、最后整张跳过。
     这条自检要抓的是「卡在上一套深浅里」，85 仍然离浅色态（≥190）很远。
@@ -638,7 +638,7 @@ def main() -> int:
                 time.sleep(1.5)
                 report["custom_icon"]["after_clear"] = api._library.get(gid).get("custom_icon")
 
-            # ---------------- 主题矩阵（四套风格 × 深/浅 × 5 界面） ----------------
+            # ---------------- 主题矩阵（五套风格 × 深/浅 × 5 界面） ----------------
             update_baseline = bool(os.environ.get("VISUAL_UPDATE_THEME_BASELINE"))
             THEME_SHOTS.mkdir(parents=True, exist_ok=True)
             window.evaluate_js(THEME_FREEZE)
@@ -738,7 +738,7 @@ def main() -> int:
                 THEME_BASELINE.parent.mkdir(parents=True, exist_ok=True)
                 THEME_BASELINE.write_text(json.dumps({
                     "schema": "aurora.theme-baseline/1",
-                    "note": "四套风格 × 深/浅的界面指纹：16×10 网格平均色 + 亮度 / 对比度；"
+                    "note": "五套风格 × 深/浅的界面指纹：16×10 网格平均色 + 亮度 / 对比度；"
                             "重录：VISUAL_UPDATE_THEME_BASELINE=1 python tools\\visual.py",
                     "grid": list(THEME_GRID),
                     "tolerance": THEME_TOLERANCE,
@@ -753,7 +753,7 @@ def main() -> int:
             spread = report["themes"]["spread"]
             if spread.get("ok") is False:
                 failed.append(f"区分度 {spread.get('mean')} < 目标 {spread.get('target')}"
-                              f"（深色四套两两平均色差，见 docs/frontend-ux-feedback.md 第 2 条）")
+                              f"（深色五套两两平均色差，见 docs/frontend-ux-feedback.md 第 2 条）")
         except Exception as exc:
             import traceback
 

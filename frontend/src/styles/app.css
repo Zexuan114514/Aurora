@@ -3,7 +3,7 @@
  * 顺序有意义：
  *   0. element-plus —— 组件库默认值（按需，见 element-plus.css）
  *   1. tokens        —— 语义令牌 + 默认主题值 + v1 布局层变量的推导
- *   2. themes/*.tokens —— 四套主题各自覆盖（深 / 浅两态）
+ *   2. themes/*.tokens —— 五套主题各自覆盖（深 / 浅两态）
  *   3. themes/*.skin   —— 每套主题的结构性签名（细线 / 光斑 / 架线）
  *   4. layout.css      —— v1 迁移过来的布局（环形几何、面板、分类、设置…）
  *   5. element.css     —— Element Plus 变量桥接与组件几何（必须最后，才能盖住组件库默认值）
@@ -26,15 +26,21 @@
 @import "./themes/atelier.skin.css";
 @import "./layout.css";
 @import "./element.css";
+/* P8.19：按钮皮肤在布局与组件桥接之后加载。 */
+@import "./themes/aurora.buttons.skin.css";
+@import "./themes/gallery.buttons.skin.css";
+@import "./themes/screening.buttons.skin.css";
+@import "./themes/shelf.buttons.skin.css";
+@import "./themes/atelier.buttons.skin.css";
 
-/* 旧的四套调色板保留为「强调色覆盖层」：
+/* 旧的四个强调色预设保留为「强调色覆盖层」：
    aurora = 跟随主题（不覆盖），其余三套只改强调色，风格仍由 data-style 决定。
    tools/e2e.py 会点 #setPalettes [data-palette=lime] 并读 --accent，所以这条必须留。 */
 [data-palette="lime"] { --a-main: #26C6A8; --a-2: #6FE0C8; }
 [data-palette="sakura"] { --a-main: #FF5C8A; --a-2: #FF9AB6; }
 [data-palette="amber"] { --a-main: #FF9F0A; --a-2: #FFC46B; }
 
-/* 设置 → 外观：强调色（旧调色板）+ 四套风格卡片 */
+/* 设置 → 外观：强调色（旧调色板）+ 五套风格卡片 */
 .palette-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .palette-chip {
   display: inline-flex;
@@ -222,7 +228,7 @@
   overflow: hidden;
 }
 .hall-label .hall-label-desc:empty { display: none; }
-/* 19-a：简介下方的「启动游戏」。只在「大图 + 侧列表」出现，四套主题的主 CTA
+/* 19-a：简介下方的「启动游戏」。只在「大图 + 侧列表」出现，五套主题的主 CTA
    语言（.btn.play）自动生效 —— 位置贴着信息列，不跟底栏抢。 */
 .hall-label-actions { margin-top: 18px; display: flex; align-items: center; gap: 10px; }
 .hall-label-actions .btn.play { height: 40px; padding: 0 26px; font-size: 14px; }

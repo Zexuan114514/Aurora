@@ -4,7 +4,7 @@
     python tools\\build_exe.py
     python tools\\build_exe.py --dry-run     # 只检查打包输入（CI 用），不调用 PyInstaller
 
-脚本会自动准备 PyInstaller（优先用当前环境，没有就在 _build\\venv 里装一个），
+脚本会自动准备 PyInstaller 与 Pillow（优先用当前环境，没有就在 _build\\venv 里安装），
 然后用一组固定的参数打包，最后把结果复制到项目根目录。
 """
 from __future__ import annotations
@@ -29,6 +29,7 @@ VENV = BUILD / "venv"
 DIST = BUILD / "dist"
 STAGE = BUILD / "web-stage"
 ICON = ROOT / "gl" / "assets" / "aurora.ico"
+ICON_SOURCE = ROOT / "gl" / "assets" / "aurora-icon.png"
 TARGET = ROOT / "Aurora.exe"
 
 #: 真正要打进 exe 的前端文件。用户素材（背景 / 自定义封面 / 图标）P5 起不进 web 目录，
@@ -59,11 +60,11 @@ EXCLUDES = [
 
 
 def python_with_pyinstaller() -> Path | None:
-    """返回一个能用 PyInstaller 的 python 解释器。"""
+    """返回一个能用 PyInstaller 和 Pillow 的 python 解释器。"""
     for candidate in (Path(sys.executable), VENV / "Scripts" / "python.exe"):
         if not candidate.exists():
             continue
-        probe = subprocess.run([str(candidate), "-c", "import PyInstaller"],
+        probe = subprocess.run([str(candidate), "-c", "import PyInstaller, PIL"],
                                capture_output=True)
         if probe.returncode == 0:
             return candidate
@@ -74,12 +75,12 @@ def ensure_builder() -> Path:
     found = python_with_pyinstaller()
     if found:
         return found
-    print("未找到 PyInstaller，正在 _build\\venv 中安装 ...")
+    print("未找到完整打包依赖，正在 _build\\venv 中安装 PyInstaller 与 Pillow ...")
     subprocess.run([sys.executable, "-m", "venv", "--system-site-packages", str(VENV)],
                    check=True)
     python = VENV / "Scripts" / "python.exe"
     subprocess.run([str(python), "-m", "pip", "install", "--quiet",
-                    "--upgrade", "pip", "pyinstaller"], check=True)
+                    "--upgrade", "pip", "pyinstaller", "pillow"], check=True)
     return python
 
 
@@ -100,6 +101,27 @@ def stage_web() -> Path:
     return STAGE
 
 
+def refresh_explorer_icon(path: Path) -> None:
+    """通知 Windows Shell 已替换同路径的 EXE，清除旧图标缓存。"""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        notify = ctypes.windll.shell32.SHChangeNotify
+        notify.argtypes = (ctypes.c_long, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p)
+        notify.restype = None
+        name = ctypes.create_unicode_buffer(str(path.resolve()))
+        # 让 Shell 丢弃旧的图标/缩略图缓存；不重启资源管理器。
+        notify(0x08000000, 0x0000 | 0x1000, None, None)
+        # SHCNE_UPDATEITEM / SHCNE_UPDATEDIR + SHCNF_PATHW + SHCNF_FLUSH。
+        notify(0x00002000, 0x0005 | 0x1000, ctypes.cast(name, ctypes.c_void_p), None)
+        folder = ctypes.create_unicode_buffer(str(path.parent.resolve()))
+        notify(0x00001000, 0x0005 | 0x1000, ctypes.cast(folder, ctypes.c_void_p), None)
+    except OSError as exc:
+        print(f"资源管理器图标缓存刷新失败（不影响打包）：{exc}")
+
+
 def dry_run() -> int:
     """`--dry-run`：不装 PyInstaller、不打包，只证明「打进包里的东西都在」。"""
     problems: list[str] = []
@@ -113,6 +135,8 @@ def dry_run() -> int:
             problems.append(f"缺少前端模块目录：gl/web/{name}")
         elif not any(p.is_file() for p in folder.rglob("*.js")):
             problems.append(f"前端模块目录里没有 js：gl/web/{name}")
+    if not ICON_SOURCE.is_file():
+        problems.append(f"缺少图标源文件：{ICON_SOURCE.relative_to(ROOT)}")
     if not ICON.is_file():
         problems.append(f"缺少图标：{ICON.relative_to(ROOT)}（先跑 python tools\\make_icon.py）")
     rules = ROOT / "aurora" / "rules" / "engines"
@@ -140,8 +164,10 @@ def dry_run() -> int:
 
 
 def build(python: Path) -> int:
-    if not ICON.exists():
-        print("缺少图标，先运行 python tools\\make_icon.py")
+    # 每次打包都从项目内的 PNG 重建图标，避免使用过期的 ICO。
+    icon_result = subprocess.run([str(python), str(ROOT / "tools" / "make_icon.py")], cwd=str(ROOT))
+    if icon_result.returncode != 0:
+        print("图标生成失败")
         return 1
     for folder in (DIST, BUILD / "build"):
         shutil.rmtree(folder, ignore_errors=True)
@@ -180,6 +206,7 @@ def build(python: Path) -> int:
         print("没有生成 Aurora.exe")
         return 1
     shutil.copy2(produced, TARGET)
+    refresh_explorer_icon(TARGET)
     print(f"\n完成：{TARGET}  ({TARGET.stat().st_size / 1024 / 1024:.1f} MB)")
     print("直接双击即可运行，数据保存在同目录的 data\\ 下。")
     return 0

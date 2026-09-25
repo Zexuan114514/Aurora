@@ -2,8 +2,8 @@
  * Aurora v2 · 主题与深浅模式
  *
  * 视觉风格只由两个根属性决定：
- *   <html data-style="aurora|gallery|screening|shelf" data-theme="dark|light">
- * 切换只改属性，不重载、不重新构建 —— 四套主题的 CSS 始终都在包里。
+ *   <html data-style="aurora|gallery|screening|shelf|atelier" data-theme="dark|light">
+ * 切换只改属性，不重载、不重新构建 —— 五套主题的 CSS 始终都在包里。
  * 旧的「调色板 / 强调色 / 模糊 / 压暗」四个设置只读兼容，不再写回。
  *
  * 注意属性名不是随便起的：`data-theme` 保持 v1 的语义（dark / light），
@@ -23,7 +23,7 @@ export const THEMES = [
 export const THEME_IDS = THEMES.map((row) => row.id) as string[]
 export const MODES = ["dark", "light", "auto"] as const
 
-/** 旧的四套调色板（e2e 会点 #setPalettes[data-palette=lime]，所以保留）。 */
+/** 旧的四个强调色预设（e2e 会点 #setPalettes[data-palette=lime]，所以保留）。 */
 export const PALETTES = [
   { key: "aurora", name: "跟随主题", accent: "", accent2: "" },
   { key: "lime", name: "薄荷青", accent: "#26C6A8", accent2: "#6FE0C8" },
@@ -53,7 +53,7 @@ export function applyTheme(settings: Record<string, any>): void {
   const theme = effectiveTheme(settings.theme)
   const root = document.documentElement
   root.dataset.theme = mode          // v1 语义：dark / light（探针判据）
-  root.dataset.style = theme         // 四套视觉风格
+  root.dataset.style = theme         // 五套视觉风格
   root.dataset.palette = String(settings.palette || "aurora")
   try {
     call("apply_window_theme", mode === "light").catch(() => {})

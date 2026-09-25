@@ -1,6 +1,6 @@
 /* 主题 · 收藏架：封面像立在架上的实体盒，说明卡是纸质的，分隔线是黄铜。 */
 :root[data-style="shelf"] {
-  /* 深色态：暖纸/木色（四套里最亮最暖的一档，像台灯下的书架） */
+  /* 深色态：暖纸/木色（五套里偏亮偏暖的一档，像台灯下的书架） */
   --s-base: #2a2117;
   --s-panel: #3a2f22;
   --s-elevated: #463a2a;
@@ -33,7 +33,7 @@
   --option-bg: #221e19;
   /* 排印：楷体 + 衬线（手写卡片与卡片目录，对着 atelier 那套语言） */
   --font: "KaiTi", "Songti SC", "SimSun", Georgia, "Microsoft YaHei", serif;
-  --s-floor: color-mix(in srgb, #453829 90%, transparent);   /* 暖纸：四套里最亮 */
+  --s-floor: color-mix(in srgb, #453829 90%, transparent);   /* 暖纸：五套里偏亮偏暖 */
 }
 
 /* 收藏架 · 浅色：纸质说明卡的那一面，米白底 + 深墨字。 */
