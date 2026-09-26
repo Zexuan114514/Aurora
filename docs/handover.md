@@ -4,7 +4,7 @@
 > [`architecture/README.md`](architecture/README.md)（为什么这么设计）与
 > [`../README.md`](../README.md)（有什么功能）。**
 > 最后更新：2026-09-26（前端 v2 已扩展为五主题；P8.19 按钮皮肤与图标打包链已接入，P8.20 提示 / 悬浮窗 / 输入框可读性修复、
-> P8.21 找钩子事实口径、线程诊断与小窗口滚动已完成，
+> P8.21 找钩子事实口径、线程诊断、小窗口滚动与分类页封面交互已完成，
 > 主题按钮和打包图标已由使用者实测；P8.11–P8.18 的真机 bug 与修复详见
 > [`handover-p8-frontend-v2.md`](handover-p8-frontend-v2.md)）
 >

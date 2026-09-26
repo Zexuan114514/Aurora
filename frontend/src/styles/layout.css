@@ -1848,7 +1848,17 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 .cat-art img { position: relative; z-index: 1; }        /* 首字兜底只垫在图片下面 */
 .cat-art.img-broken img { display: none; }
 .cat-card:hover .cat-art { transform: translateY(-3px); }
-.cat-card.on .cat-art { box-shadow: 0 0 0 2px var(--accent), var(--fx-cover-shadow); }
+.cat-card.on .cat-art {
+  z-index: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--accent), var(--fx-cover-shadow);
+}
+[data-style="gallery"] .cat-card.on .cat-art,
+[data-style="atelier"] .cat-card.on .cat-art {
+  outline-color: var(--a-main);
+  box-shadow: inset 0 0 0 2px var(--a-main), 0 0 0 2px var(--a-main);
+}
 .cat-mark {
   position: absolute; top: 8px; right: 8px;
   width: 22px; height: 22px; border-radius: 50%;
@@ -1871,6 +1881,28 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 }
 .cat-bar b { font-size: 12.5px; font-weight: 600; }
 .cat-bar .hint { font-size: 11px; color: var(--text-3); }
+#catMenu { position: fixed; min-width: 208px; }
+#catMenu > button > span[aria-hidden="true"] {
+  margin-left: auto; color: var(--text-3); font-size: 17px; line-height: 1;
+}
+.cat-menu-shelves {
+  display: flex; flex-direction: column; gap: 2px;
+  margin: 0 0 2px; padding: 3px 0 3px 10px;
+  border-left: 1px solid var(--stroke-soft);
+  max-height: 190px;
+  overflow-y: auto;
+}
+.cat-menu-shelves button {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 30px; padding: 0 9px;
+  border: none; border-radius: var(--r-xs);
+  background: none; color: var(--text-2);
+  font-size: 12px; text-align: left; cursor: pointer;
+}
+.cat-menu-shelves button:hover:not(:disabled) { background: var(--fil130); color: var(--text); }
+.cat-menu-shelves button:disabled { color: var(--text-3); cursor: default; }
+.cat-menu-shelves small { margin-left: 8px; color: var(--text-3); font-size: 10px; }
+.cat-menu-empty { padding: 5px 9px; color: var(--text-3); font-size: 11px; line-height: 1.4; }
 .cat-bar select {
   height: 30px; padding: 0 8px;
   border-radius: var(--r-xs);

@@ -108,7 +108,7 @@
           </div>
           <button v-for="game in visible" :key="game.id" class="cat-card" data-slot="tile"
                   :class="{ on: state.selected.has(game.id) }" :data-id="game.id" :title="game.name"
-                  @click="onCard(game)">
+                  @click="onCard(game)" @contextmenu.prevent="openMenu($event, game.id)">
             <span class="cat-art" data-slot="cover-art">
               <b>{{ String(game.name || "?").trim().charAt(0).toUpperCase() }}</b>
               <img v-if="coverOf(game)" :src="coverOf(game)" alt="" loading="lazy">
@@ -135,15 +135,33 @@
         </div>
       </section>
     </div>
+    <div id="catMenu" class="menu glass" data-slot="cat-menu" role="menu" data-nodrag
+         :hidden="!state.menus.cat" :style="{ left: menuPos.left + 'px', top: menuPos.top + 'px' }"
+         @contextmenu.prevent>
+      <button type="button" role="menuitem" data-act="play" @click="menuAction('play')">启动游戏</button>
+      <button type="button" role="menuitem" data-act="detail" @click="menuAction('detail')">详情</button>
+      <button type="button" role="menuitem" data-act="shelf" :aria-expanded="menuShelfOpen"
+              @click="toggleMenuShelves">加入一个分类 <span aria-hidden="true">›</span></button>
+      <div v-if="menuShelfOpen" class="cat-menu-shelves" role="group" aria-label="选择分类">
+        <button v-for="shelf in state.shelves" :key="shelf.id" type="button" role="menuitem"
+                :disabled="menuGame?.bookshelf_ids?.includes(shelf.id)"
+                @click="addMenuGameToShelf(shelf.id)">
+          <span>{{ shelf.name }}</span><small v-if="menuGame?.bookshelf_ids?.includes(shelf.id)">已加入</small>
+        </button>
+        <span v-if="!state.shelves.length" class="cat-menu-empty">还没有分类，请先在左栏新建。</span>
+      </div>
+      <div class="menu-sep" />
+      <button type="button" role="menuitem" class="danger" data-act="remove" @click="menuAction('remove')">移除游戏</button>
+    </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue"
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue"
 
 import { call } from "@/core/api"
 import { onUi, emitUi } from "@/core/bus"
-import { runtime } from "@/core/app"
+import { closeGame, enterGame, playGame, runtime, setFocus, setView } from "@/core/app"
 import { domValue } from "@/core/dom"
 import { modal } from "@/core/modal"
 import { replaceShelves, state, toast } from "@/core/store"
@@ -156,6 +174,11 @@ const showCreate = ref(false)
 const newShelfName = ref("")
 const catHint = ref("")
 const target = ref("")
+const menuId = ref("")
+const menuPos = ref({ left: 0, top: 0 })
+const menuAnchor = ref({ x: 0, y: 0 })
+const menuShelfOpen = ref(false)
+const menuGame = computed(() => state.games.find((game) => game.id === menuId.value) || null)
 
 const unfiledCount = computed(() =>
   state.shelfStats.unfiled ?? state.games.filter((g) => !(g.bookshelf_ids || []).length).length)
@@ -237,9 +260,64 @@ function onCard(game: any): void {
     else state.selected.add(game.id)
     return
   }
-  state.focus = game.id
-  emitUi("render")
-  emitUi("detail:open")
+  showOnHome(game.id)
+}
+function showOnHome(id: string): void {
+  state.filter = ""
+  state.scope = { type: "all", value: "" }
+  try { localStorage.setItem("aurora.scope", JSON.stringify(state.scope)) } catch { /* ignore */ }
+  setView("home")
+  closeGame()
+  setFocus(id)
+}
+function positionMenu(expanded = false): void {
+  const height = expanded ? 204 + Math.min(state.shelves.length, 5) * 34 : 190
+  menuPos.value = {
+    left: Math.max(8, Math.min(menuAnchor.value.x, window.innerWidth - 236)),
+    top: Math.max(8, Math.min(menuAnchor.value.y, window.innerHeight - height - 8)),
+  }
+}
+function openMenu(event: MouseEvent, id: string): void {
+  menuId.value = id
+  menuAnchor.value = { x: event.clientX, y: event.clientY }
+  menuShelfOpen.value = false
+  positionMenu()
+  state.menus.cat = true
+  void nextTick(() => (document.querySelector("#catMenu [data-act='play']") as HTMLElement | null)?.focus())
+}
+function closeMenu(): void {
+  state.menus.cat = false
+  menuShelfOpen.value = false
+}
+function toggleMenuShelves(): void {
+  menuShelfOpen.value = !menuShelfOpen.value
+  positionMenu(menuShelfOpen.value)
+}
+async function addMenuGameToShelf(shelfId: string): Promise<void> {
+  const game = menuGame.value
+  const shelf = state.shelves.find((row) => row.id === shelfId)
+  closeMenu()
+  if (!game || !shelf) return
+  const res = await call("add_games_to_shelf", [game.id], [shelfId])
+  if (!res?.ok) { toast("加入分类失败"); return }
+  applyPayload(res)
+  toast(`已把「${game.name}」加入「${shelf.name}」`)
+}
+async function menuAction(action: "play" | "detail" | "remove"): Promise<void> {
+  const game = menuGame.value
+  closeMenu()
+  if (!game) return
+  if (action === "play") { showOnHome(game.id); playGame(game.id); return }
+  if (action === "detail") { showOnHome(game.id); enterGame(game.id); return }
+  const ok = await modal({
+    title: "移除游戏",
+    body: `确定把「${game.name}」从库中移除吗？不会删除磁盘上的文件。`,
+    okText: "移除",
+  })
+  if (!ok) return
+  await call("remove_game", game.id)
+  emitUi("library:refresh")
+  toast("已移除")
 }
 function selectAll(): void {
   state.selected = new Set(list.value.map((game) => game.id))
@@ -328,6 +406,12 @@ async function favorite(value: boolean): Promise<void> {
 onMounted(() => {
   onUi("shelves:refresh", () => { void refreshShelves() })
   onUi("library:loaded", () => { void refreshShelves() })
+  window.addEventListener("wheel", onMenuWheel, { passive: true })
 })
+function onMenuWheel(): void {
+  closeMenu()
+}
+onUnmounted(() => { window.removeEventListener("wheel", onMenuWheel) })
+watch(() => props.hidden, (hidden) => { if (hidden) closeMenu() })
 defineExpose({ refreshShelves, pickScope })
 </script>

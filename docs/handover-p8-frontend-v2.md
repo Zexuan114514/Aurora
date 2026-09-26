@@ -2,6 +2,7 @@
 
 > **2026-09-26 / P8.21 更新**：找钩子采样告警已与实际有效钩子分层，翻译面板线程现显示真实条数 / 最新文本，
 > 点击线程可展开 Hcode 与最近原文；这些交互已由使用者实测通过。小窗口下的线程列表与翻译面板也已补滚动。
+> 分类页已补画廊 / Atelier 批量选中描边，以及封面左键导航、右键操作菜单。
 > P8.19 的五主题按钮已接入独立的 `*.buttons.skin.css`，打包图标链也已切到
 > 512×512 RGBA 源图 + 7 尺寸 ICO，并由打包脚本自动重建。
 > Vue 模板、深浅模式预览与使用说明在 [`theme-templates/`](theme-templates/README.md)。
@@ -53,12 +54,12 @@
 | P8.18 Atelier 观感 + 四条实测问题（反馈第 22–25 条） | `atelier.skin.css` / `atelier.tokens.css`、`shelf.skin.css`、`main.ts`、`overlay/OverlayApp.vue` + `overlay.css`、`visual.py`、`check_theme_contract.py` | ✅ 遮罩、详情页纸片、封面尺寸、深色滤镜、library refresh、悬浮窗按钮与 Atelier 浅色矩阵均已收口（**35 张，区分度 23.9**） |
 | P8.19 五主题按钮模板与独立按钮皮肤 | `frontend/src/styles/themes/*.buttons.skin.css`、五个 Vue 模板、`app.css`、`tools/build_exe.py`、`tools/make_icon.py` | ✅ 五套按钮状态齐全；源图 512×512 RGBA，ICO 含 7 个尺寸；用户已完成实机验证 |
 | P8.20 三条体验反馈（反馈第 26–28 条） | `ToolbarBar.vue`、`overlay/overlay.css`、`styles/layout.css`、`docs/frontend-ux-feedback.md` | ✅ 顶部栏只保留主题提示；悬浮窗按钮单行 + 主题底色；原生输入框补主题文字 / 背景色；v2 产物已重建 |
-| P8.21 少女之剑找钩子与线程诊断（反馈第 29–32 条） | `app/services/hooksearch.py`、`infra/vntext.py`、`VntextPanel.vue`、`styles/layout.css` | ✅ 采样失败改为阶段告警；有效 `UserHook` 出现后提示收敛；线程显示真实条数 / 最新文本，点击展开 Hcode 与最近 6 条原文；提示与详情已由使用者实测通过；小窗口下线程列表和面板均可滚动 |
+| P8.21 少女之剑、分类页与翻译面板（反馈第 29–35 条） | `app/services/hooksearch.py`、`infra/vntext.py`、`VntextPanel.vue`、`CategoriesView.vue`、`core/store.ts`、`core/shell.ts`、`styles/layout.css` | ✅ 找钩子分阶段告警、线程诊断与小窗口滚动；分类页补画廊 / Atelier 选中描边，左键回主页切换游戏，右键提供启动 / 详情 / 加入分类 / 移除；前端构建通过 |
 
 ## 2. 现在验证到哪一步
 
 **当前快照（P8.21，2026-09-26）**：翻译面板的钩子查找分阶段提示与线程详情已由使用者在少女之剑实测通过；
-新发现的小窗口内容裁切已通过限制线程列表高度、允许面板纵向滚动补修。滚动交互仍需使用者在小窗口下复核。
+小窗口内容裁切已补上双层滚动。分类页新增的选中描边、左键导航和右键菜单已完成代码与构建，待分类页真机复核。
 
 **历史快照（P8.20，2026-09-26）—— 主题按钮与图标链已由使用者实测**
 
