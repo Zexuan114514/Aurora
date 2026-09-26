@@ -628,8 +628,8 @@ class HookSearchService:
         """取「我们这条钩子码」的线程样例。
 
         走引擎的 `hook_sample_for`：它扫**全量**线程表。之前这里翻的是
-        `status()["threads"]`（只留前 12 条的界面投影），游戏里一旦有别的钩子在
-        刷屏，候选线程就被挤出前 12，验证必然失败（アマカノ３ 真机踩过）。
+        `status()["threads"]`（只留前 24 条的界面投影），游戏里一旦有别的钩子在
+        刷屏，候选线程就被挤出前 24，验证必然失败（アマカノ３ 真机踩过）。
         伪线程（剪贴板/控制台/默认）由引擎侧过滤。
         """
         reader = getattr(self._vn_engine, "hook_sample_for", None)
