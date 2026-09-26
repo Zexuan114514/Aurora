@@ -81,6 +81,7 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | [`11-availability-and-degradation.md`](11-availability-and-degradation.md) | availability-strategy-reviewer | 能力探测、降级矩阵、崩溃恢复 |
 | [`12-risk-register.md`](12-risk-register.md) | architecture-risk-assessor | 14 条风险登记与实验 |
 | [`13-roadmap.md`](13-roadmap.md) | （技能流程收口） | P0–P7 阶段、验收、回滚 |
+| [`p0-open-source.md`](p0-open-source.md) | （P0 开源化） | 许可证、产品页、版本资源、Release 工作流与首次发布流程 |
 | [`baseline.md`](baseline.md) | （P0 基线冻结） | 契约 / 夹具 / 探针清单 / 架构基线 / 离线检查与 CI |
 | [`p1-domain-migration.md`](p1-domain-migration.md) | （P1 交付记录） | 纯逻辑下沉 domain：映射表、金样本、验收证据 |
 | [`p2-data-v2.md`](p2-data-v2.md) | （P2 交付记录） | 数据分账 / 迁移 / 单写者：布局、迁移规则、验收证据 |

@@ -1,8 +1,8 @@
 {
   "name": "aurora-frontend",
   "private": true,
-  "version": "2.0.0",
-  "description": "Aurora 游戏启动器前端（Vue 3 + Element Plus + 四主题）",
+  "version": "1.0.0",
+  "description": "Aurora 游戏启动器前端私有子包（对外版本跟随仓库版本）",
   "type": "module",
   "scripts": {
     "dev": "vite",

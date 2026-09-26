@@ -33,6 +33,9 @@ tools/*-report.json
 checks-result.json
 _sandbox/
 
+# ---------- 对比与审查临时资料 ----------
+_compare/
+
 # ---------- 本地工具（架构技能包等，不进仓库） ----------
 .codex/
 

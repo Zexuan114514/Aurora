@@ -1,0 +1,81 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要发布的 Git tag，例如 v1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  PYTHONIOENCODING: utf-8
+  PYTHONUTF8: "1"
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: 检出源码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 校验 tag 与公开版本
+        run: |
+          $expected = "v" + ((Select-String -Path aurora/infra/store/paths.py -Pattern 'VERSION = "([^"]+)"').Matches[0].Groups[1].Value)
+          if ("${{ inputs.tag }}" -ne $expected) {
+            throw "tag ${{ inputs.tag }} 与仓库公开版本 $expected 不一致"
+          }
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 设置 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 构建前端产物
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: 离线检查门禁
+        run: python tools\checks\run_all.py --json checks-result.json
+
+      - name: Python 回归门禁
+        run: |
+          python -m pip install --disable-pip-version-check -r requirements-dev.txt
+          python -m pytest
+
+      - name: 打包 Aurora.exe
+        run: python tools\build_exe.py
+
+      - name: 生成校验和
+        run: |
+          $hash = (Get-FileHash Aurora.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  Aurora.exe" | Set-Content -Encoding ascii Aurora.exe.sha256
+
+      - name: 上传 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh release create $env:TAG Aurora.exe Aurora.exe.sha256 `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title "Aurora $env:TAG" `
+            --notes-file docs/releases/v1.0.0.md

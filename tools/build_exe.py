@@ -14,6 +14,7 @@ import pathlib as _pathlib
 import sys as _sys
 
 _sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent))
+_sys.path.insert(0, str(_pathlib.Path(__file__).resolve().parent.parent))
 from _common import setup_console  # noqa: E402
 
 setup_console()
@@ -23,6 +24,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from aurora.infra.store.paths import APP_NAME, VERSION
+
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "_build"
 VENV = BUILD / "venv"
@@ -31,6 +34,7 @@ STAGE = BUILD / "web-stage"
 ICON = ROOT / "gl" / "assets" / "aurora.ico"
 ICON_SOURCE = ROOT / "gl" / "assets" / "aurora-icon.png"
 TARGET = ROOT / "Aurora.exe"
+VERSION_FILE = ROOT / "tools" / "aurora-version.txt"
 
 #: 真正要打进 exe 的前端文件。用户素材（背景 / 自定义封面 / 图标）P5 起不进 web 目录，
 #: 由 aurora/infra/webserver.py 按 /assets/ 直接服务 data/ 下的原图。
@@ -139,6 +143,8 @@ def dry_run() -> int:
         problems.append(f"缺少图标源文件：{ICON_SOURCE.relative_to(ROOT)}")
     if not ICON.is_file():
         problems.append(f"缺少图标：{ICON.relative_to(ROOT)}（先跑 python tools\\make_icon.py）")
+    if not VERSION_FILE.is_file():
+        problems.append(f"缺少 Windows 版本资源：{VERSION_FILE.relative_to(ROOT)}")
     rules = ROOT / "aurora" / "rules" / "engines"
     if not any(rules.glob("*.json")):
         problems.append("缺少内置引擎规则包：aurora/rules/engines/*.json")
@@ -160,6 +166,7 @@ def dry_run() -> int:
     print(f"  图标：{ICON.relative_to(ROOT)}")
     print(f"  规则包：aurora/rules/engines（{len(list(rules.glob('*.json')))} 个）")
     print(f"  动态声明：winrt {len(WINRT_MODULES)} 个模块 + webview 两个平台后端")
+    print(f"  版本资源：{APP_NAME} {VERSION}（{VERSION_FILE.relative_to(ROOT)}）")
     return 0
 
 
@@ -179,6 +186,7 @@ def build(python: Path) -> int:
         str(python), "-m", "PyInstaller",
         "--noconfirm", "--clean", "--onefile", "--windowed", "--name", "Aurora",
         "--icon", str(ICON),
+        "--version-file", str(VERSION_FILE),
         "--add-data", f"{web};gl/web",
         "--add-data", f"{ROOT / 'gl' / 'assets'};gl/assets",
         # P6：引擎规则包（内置）随包分发，供 aurora/infra/rules.py 加载
