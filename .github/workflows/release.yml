@@ -56,6 +56,9 @@ jobs:
       - name: 离线检查门禁
         run: python tools\checks\run_all.py --json checks-result.json
 
+      - name: 安装运行时依赖
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
       - name: Python 回归门禁
         run: |
           python -m pip install --disable-pip-version-check -r requirements-dev.txt
@@ -63,6 +66,23 @@ jobs:
 
       - name: 打包 Aurora.exe
         run: python tools\build_exe.py
+
+      - name: Aurora.exe 启动冒烟检查
+        run: |
+          $process = Start-Process -FilePath (Resolve-Path Aurora.exe) -WorkingDirectory (Get-Location) -PassThru
+          Start-Sleep -Seconds 12
+          if ($process.HasExited) {
+            if (Test-Path data\logs\aurora.log) { Get-Content data\logs\aurora.log -Tail 120 }
+            throw "Aurora.exe 在启动冒烟检查期间退出，发布包不可用"
+          }
+          Stop-Process -Id $process.Id -Force
+          if (Test-Path data\logs\aurora.log) {
+            $log = Get-Content data\logs\aurora.log -Raw
+            if ($log -match 'Failed to resolve Python.Runtime|Could not create temporary directory|gui=.* failed') {
+              Get-Content data\logs\aurora.log -Tail 120
+              throw "Aurora.exe 启动日志包含 GUI/运行时错误"
+            }
+          }
 
       - name: 生成校验和
         run: |

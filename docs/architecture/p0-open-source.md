@@ -11,6 +11,7 @@
 - README 明确游戏内翻译是 Aurora 置顶悬浮窗，中文不会直接写入游戏原生文本框。
 - 前端 `package.json` / lockfile 跟随公开版本 `1.0.0`；`SCHEMA_VERSION` 和 P8.x 继续作为内部标记。
 - PyInstaller 打包使用 `tools/aurora-version.txt` 注入 `FileVersion`、`ProductVersion`、`ProductName`、`CompanyName`。
+- 打包器会检查 `pywebview` 与 WinRT 运行依赖；便携版单文件解包目录固定在程序目录的 `data\\_runtime`，避免受限的系统 `%TEMP%` 导致启动时请求管理员权限。若部署到 `Program Files` 等受保护目录，应使用用户可写的安装目录。
 - `.github/workflows/release.yml` 支持手动输入 tag；先构建前端，再跑 `run_all.py` 与 pytest，随后打包并上传 `Aurora.exe` 和 SHA-256 校验文件。
 - Gal Launcher 参考截图在 `docs/THIRD-PARTY-ASSETS.md` 单独标明用途和 MIT 排除边界。
 
@@ -21,7 +22,7 @@
 3. 工作流会检查 tag 与公开版本一致，构建并执行发布门禁。
 4. Release 页面应包含 `Aurora.exe`、`Aurora.exe.sha256` 和 [v1.0.0 Release Notes](../releases/v1.0.0.md)。
 
-Windows 程序未签名，Release Notes 必须保留“未知发布者”提示。外部工具 Textractor、Locale Emulator 等由用户自行安装，不由 Aurora 下载或打包。
+Windows 程序目前未签名，Release Notes 必须保留“未知发布者”提示；SmartScreen 的长期消除需要稳定的代码签名身份和累积的发布信誉。外部工具 Textractor、Locale Emulator 等由用户自行安装，不由 Aurora 下载或打包。
 
 ## 本地核对
 

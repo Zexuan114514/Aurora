@@ -35,6 +35,10 @@ ICON = ROOT / "gl" / "assets" / "aurora.ico"
 ICON_SOURCE = ROOT / "gl" / "assets" / "aurora-icon.png"
 TARGET = ROOT / "Aurora.exe"
 VERSION_FILE = ROOT / "tools" / "aurora-version.txt"
+# 单文件 bootloader 默认解包到 %TEMP%。部分安全策略会禁止从该目录加载 DLL；
+# Aurora 的便携目录本来就需要可写，因此把解包目录放到程序目录的 data/ 下。
+# 这也避免把用户素材或临时文件写入系统目录；若把程序放入 Program Files，需改用用户目录安装。
+RUNTIME_TMPDIR = r"data\_runtime"
 
 #: 真正要打进 exe 的前端文件。用户素材（背景 / 自定义封面 / 图标）P5 起不进 web 目录，
 #: 由 aurora/infra/webserver.py 按 /assets/ 直接服务 data/ 下的原图。
@@ -55,6 +59,10 @@ WINRT_MODULES = (
     "winrt.windows.foundation.collections",
 )
 
+# 这些模块是运行时真正需要的依赖。只检查 PyInstaller/Pillow 会导致 CI 在
+# 缺少 pywebview / WinRT 时仍然生成一个看似成功、实际缺件的 exe。
+RUNTIME_MODULES = ("webview", "winrt.windows.media.ocr")
+
 # 这些包在 Anaconda 里常被间接扫到，但本项目完全用不上，排除掉能显著减小体积/避免 hook 报错
 EXCLUDES = [
     "numpy", "pandas", "matplotlib", "scipy", "PyQt5", "PySide2", "PySide6",
@@ -68,7 +76,9 @@ def python_with_pyinstaller() -> Path | None:
     for candidate in (Path(sys.executable), VENV / "Scripts" / "python.exe"):
         if not candidate.exists():
             continue
-        probe = subprocess.run([str(candidate), "-c", "import PyInstaller, PIL"],
+        probe_code = "import PyInstaller, PIL; " + "; ".join(
+            f"import {name}" for name in RUNTIME_MODULES)
+        probe = subprocess.run([str(candidate), "-c", probe_code],
                                capture_output=True)
         if probe.returncode == 0:
             return candidate
@@ -84,7 +94,8 @@ def ensure_builder() -> Path:
                    check=True)
     python = VENV / "Scripts" / "python.exe"
     subprocess.run([str(python), "-m", "pip", "install", "--quiet",
-                    "--upgrade", "pip", "pyinstaller", "pillow"], check=True)
+                    "--upgrade", "pip", "pyinstaller", "pillow",
+                    "-r", str(ROOT / "requirements.txt")], check=True)
     return python
 
 
@@ -166,6 +177,7 @@ def dry_run() -> int:
     print(f"  图标：{ICON.relative_to(ROOT)}")
     print(f"  规则包：aurora/rules/engines（{len(list(rules.glob('*.json')))} 个）")
     print(f"  动态声明：winrt {len(WINRT_MODULES)} 个模块 + webview 两个平台后端")
+    print(f"  解包目录：{RUNTIME_TMPDIR}（应用数据目录）")
     print(f"  版本资源：{APP_NAME} {VERSION}（{VERSION_FILE.relative_to(ROOT)}）")
     return 0
 
@@ -187,11 +199,16 @@ def build(python: Path) -> int:
         "--noconfirm", "--clean", "--onefile", "--windowed", "--name", "Aurora",
         "--icon", str(ICON),
         "--version-file", str(VERSION_FILE),
+        "--runtime-tmpdir", RUNTIME_TMPDIR,
         "--add-data", f"{web};gl/web",
         "--add-data", f"{ROOT / 'gl' / 'assets'};gl/assets",
         # P6：引擎规则包（内置）随包分发，供 aurora/infra/rules.py 加载
         "--add-data", f"{ROOT / 'aurora' / 'rules'};aurora/rules",
         "--collect-data", "webview",
+        # pywebview 的 Windows 后端经 pythonnet 加载 .NET；PyInstaller 默认只带
+        # Python.Runtime.dll，缺少 deps.json 时会在冻结程序里报 Loader.Initialize。
+        "--collect-all", "pythonnet",
+        "--collect-all", "clr_loader",
         "--hidden-import", "webview.platforms.winforms",
         "--hidden-import", "webview.platforms.edgechromium",
         "--distpath", str(DIST), "--workpath", str(BUILD / "build"),
