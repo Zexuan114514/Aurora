@@ -71,10 +71,12 @@
 ## 公开的「欢迎认领」issue（2026-09-27）
 
 按「现象 → 期望结果 → 从哪个文件开始 → 验收清单 → 合并后署名」的格式发在 GitHub 上，
-把 backlog 变成别人能直接接的任务：
+把 backlog 变成别人能直接接的任务（#4 / #5 取自开源化 P3 的功能对齐清单）：
 
 | # | 任务 | 起点 |
 | --- | --- | --- |
 | [#1](https://github.com/Zexuan114514/Aurora/issues/1) | 手柄导航（Gamepad API，纯前端） | `frontend/src/core/shell.ts` / `bus.ts` |
 | [#2](https://github.com/Zexuan114514/Aurora/issues/2) | 沉浸式全屏 + 窗口状态恢复 | `main.py` / `aurora/ui/bridge/window.py` / `aurora/platform/winapi.py` |
 | [#3](https://github.com/Zexuan114514/Aurora/issues/3) | 存档管理（目录快捷方式 + 备份/恢复） | `aurora/platform/proctree.py` / `aurora/ui/bridge/library.py` |
+| [#4](https://github.com/Zexuan114514/Aurora/issues/4) | 书架：跨分类总览（P3） | `frontend/src/views/CategoriesView.vue` / `frontend/src/features/hall/` |
+| [#5](https://github.com/Zexuan114514/Aurora/issues/5) | 批量导入启发式：解压目录里选对主 exe（P3） | `aurora/app/services/library.py` 的 `import_dropped` |
