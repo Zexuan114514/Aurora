@@ -210,6 +210,43 @@ def build_hook_code(row: dict, module: str = "") -> str:
     return f"H{mode}{page}{sign}{abs(offset):X}@{int(row['rva']):X}:{module}"
 
 
+def rule_id(name: str, engine: str, size: int) -> str:
+    """规则包的稳定 id：引擎名 + exe 名 + 字节数（同一条规则永远同名）。"""
+    def slug(text: str) -> str:
+        return "".join(ch if ch.isalnum() else "-" for ch in str(text).lower()).strip("-")
+
+    stem = str(name).rsplit(".", 1)[0]
+    return f"{slug(engine) or 'unknown'}-{slug(stem) or 'rule'}-{int(size)}"
+
+
+_HOOK_CODE_RE = re.compile(
+    r"^H(?P<mode>[A-Za-z]+?)(?:(?P<codepage>\d+)#)?"
+    r"(?P<offset>[+-]?[0-9A-Fa-f]+)@(?P<rva>[0-9A-Fa-f]+)(?::(?P<module>.+))?$")
+
+
+def parse_hook_code(text: str) -> dict | None:
+    """把 Textractor H-code 拆成规则包字段；拆不出来返回 None。
+
+    `H<模式>[<编码>#]<data_offset>@<RVA>[:<模块文件名>]` —— 例：
+    `HQ-4@A22E:AdvHD_crack.exe`、`HS65001#-6C@1B1F70:Amakano3.exe`。
+    """
+    body = re.sub(r"\s+", "", str(text or ""))
+    match = _HOOK_CODE_RE.match(body)
+    if not match:
+        return None
+    mode = match.group("mode").upper()
+    if mode[:1] not in HOOK_CODE_MODES:
+        return None
+    codepage = match.group("codepage")
+    return {
+        "mode": mode[:1],
+        "offset": int(match.group("offset"), 16),
+        "rva": int(match.group("rva"), 16),
+        "module": match.group("module") or "",
+        "codepage": int(codepage) if codepage else None,
+    }
+
+
 def hook_code_matches(configured: str, actual: str) -> bool:
     """某条线程的钩子码是不是我们指定的那一条。
 

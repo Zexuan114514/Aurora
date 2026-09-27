@@ -20,6 +20,17 @@ Aurora 是一个面向 Windows 的本地游戏启动器：导入游戏后，自�
 
 游戏内翻译目前是**置顶悬浮窗**：译文显示在游戏画面上方的独立小窗里，默认鼠标穿透，可用 `Ctrl+Alt+T` 切换。Aurora 尚未把中文直接渲染进游戏自身文本框，也不承诺实现原生汉化效果。Textractor、Locale Emulator 等外部软件需要用户自行安装，Aurora 不打包、不下载它们。
 
+## 参与贡献
+
+**交一条引擎实测规则**是最容易上手的一条路，不用写代码：在一款游戏里跑通翻译后，用
+**设置 → 关于 → 导出我的引擎规则**生成规则包（含 exe 文件名 / 字节数 / CRC32 / H-code 与投稿说明），
+再按[「引擎实测规则」表单](https://github.com/Zexuan114514/Aurora/issues/new?template=engine-rule.yml)提交。
+规则入库后，同款游戏的下一个人会自动带出这条码。
+
+想写资料源 / 翻译引擎插件看 [docs/plugins.md](docs/plugins.md)（放进 `data/plugins/` 即可，不用改主仓库）；
+改核心代码先读 [CONTRIBUTING.md](CONTRIBUTING.md)（三条路径 + 三个必须知道的坑），
+插件与安全的边界写在 [SECURITY.md](SECURITY.md)。
+
 ## 文档入口
 
 - [完整使用手册](docs/manual/README.md)：导入、匹配、分类、翻译、转区、设置和常见问题。
@@ -45,3 +56,9 @@ npm run build
 ## 许可证
 
 Aurora 自有代码和文档按 [MIT License](LICENSE) 发布。第三方软件、商标、截图、图片和用户自行安装的外部工具不因该许可证获得再许可；具体边界见 [第三方参考素材说明](docs/THIRD-PARTY-ASSETS.md)。
+
+## 贡献者
+
+按第一次并入的版本记录（规则与代码都算）：
+
+- 虚位以待 —— 交一条[引擎实测规则](https://github.com/Zexuan114514/Aurora/issues/new?template=engine-rule.yml)就是第一条。

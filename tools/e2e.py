@@ -720,6 +720,22 @@ def main() -> int:
                  and len(diag_zips) == 1 and diag_zips[0].stat().st_size > 0,
                  f"{len(diag_zips)} 个 zip / {(diag_hint or '')[:60]}")
 
+            # 3.8e 关于页 → 导出我的引擎规则（开源化 P1）：规则包 + 投稿说明一起落盘
+            window.evaluate_js("document.getElementById('btnExportRules').click()")
+            rules_hint = ""
+            for _ in range(12):
+                time.sleep(1.0)
+                rules_hint = probe(window,
+                    "return document.getElementById('rulesHint').textContent;")
+                if isinstance(rules_hint, str) and "已导出" in rules_hint:
+                    break
+            rule_dir = TEST_DATA / "rules" / "export"
+            rule_json = sorted(rule_dir.glob("*.json"))
+            rule_md = sorted(rule_dir.glob("*.md"))
+            step("关于页能导出引擎规则（规则包 + 投稿说明落盘）",
+                 "已导出" in (rules_hint or "") and len(rule_json) == 1 and len(rule_md) == 1,
+                 f"{len(rule_json)} json / {len(rule_md)} md / {(rules_hint or '')[:60]}")
+
             # 3.9 网络页：控件读到状态，测试按钮能出结果
             window.evaluate_js(
                 "document.querySelector('#setNav .set-tab[data-pane=net]').click()")

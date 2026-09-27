@@ -15,10 +15,10 @@
   "channels": {
     "main": {
       "js_api": "gl.api.Api",
-      "method_count": 159,
-      "public_method_count": 114,
+      "method_count": 160,
+      "public_method_count": 115,
       "internal_method_count": 45,
-      "frontend_call_count": 103,
+      "frontend_call_count": 104,
       "excluded_members": [
         "__init__"
       ],
@@ -1024,6 +1024,14 @@
         },
         {
           "name": "export_diagnostics",
+          "params": [],
+          "returns": "dict",
+          "kind": "command",
+          "internal": false,
+          "called_by_frontend": true
+        },
+        {
+          "name": "export_engine_rules",
           "params": [],
           "returns": "dict",
           "kind": "command",

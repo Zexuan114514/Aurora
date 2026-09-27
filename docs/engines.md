@@ -84,6 +84,21 @@ OCR 取当前台词 → 在内存里定位它的缓冲区（精确匹配；查�
    - 译文是否跟当前文本对得上。
 3. 反馈给我四样即可：**游戏名、面板显示的引擎名、线程列表（名字 + 样例）、出问题句子的前后原文**。
 
+### 把跑通的码交回来（设置 → 关于 → 导出我的引擎规则）
+
+规则包按 `(exe 文件名, 字节数, CRC32)` 三元组匹配，配上 H-code 与清洗档位，所以**贡献一条规则不需要写 Python**。
+实测跑通后点「设置 → 关于 → **导出我的引擎规则**」，`data\rules\export\` 下会生成两个文件：
+
+| 文件 | 用途 |
+| --- | --- |
+| `Aurora-engine-rules-<时间戳>.json` | 规则包本体（schema 与内置包一致，维护者可原样合并；格式见 [契约](architecture/contracts/data-schema-v2.md)与 `aurora/infra/rules.py` 的校验） |
+| `Aurora-engine-rules-<时间戳>.md` | 按 issue 表单栏目排好的投稿说明，直接复制粘贴 |
+
+数据来源是本机实测：游戏库里保存过的 hook 码（钩子查找器验证通过才写进去），加上你自己放在
+`data/rules/engines/*.json` 的规则包；导出时会读一次游戏 exe 算指纹，读不到或 H-code 解析不了的条目会列在说明文件末尾，
+不会静默丢。然后把内容提交到[「引擎实测规则」issue 表单](https://github.com/Zexuan114514/Aurora/issues/new?template=engine-rule.yml)，
+维护者核对后并入内置规则包 —— 同款游戏（同指纹）之后会自动带出这条码。
+
 手边工具：
 
 | 脚本 | 用途 |

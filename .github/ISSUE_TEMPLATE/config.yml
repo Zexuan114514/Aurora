@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 使用手册与常见问题
+    url: https://github.com/Zexuan114514/Aurora/blob/main/docs/manual/README.md
+    about: 导入、匹配、分类、翻译、转区、设置都有；常见问题优先看这里
+  - name: 贡献指南（引擎规则 / 插件 / 核心代码）
+    url: https://github.com/Zexuan114514/Aurora/blob/main/CONTRIBUTING.md
+    about: 三条贡献路径，以及三个必须先知道的坑
+  - name: 安全问题与插件信任模型
+    url: https://github.com/Zexuan114514/Aurora/blob/main/SECURITY.md
+    about: 插件与 Aurora 同进程同权限运行；安全边界写在这里

@@ -31,6 +31,7 @@ from aurora.app.services.translators import TranslatorRegistry
 from aurora.app.services.vntext import VnTextService
 from aurora.app.services.settings import SettingsService
 from aurora.app.services.plugins import PluginsService
+from aurora.app.services.rule_export import RuleExportService
 from aurora.domain import session_rules
 from aurora.infra.tasks import TaskRunner
 
@@ -66,6 +67,9 @@ class Api(WindowBridgeMixin, ShellBridgeMixin, SettingsBridgeMixin, LibraryBridg
         self._diagnostics = DiagnosticsService(
             library=self._library, plugins_service=self._plugins_service,
             sources=self._sources, logger=config.log, version=config.VERSION)
+        #: 开源化 P1：导出本机实测的引擎规则包（设置 → 关于）
+        self._rule_export = RuleExportService(
+            library=self._library, root=Path(config.DATA_DIR), logger=config.log)
         self._library_service = LibraryService(self._library, self._pm,
                                              auto_search_async=lambda gid: self._metadata._auto_search_async(gid),
                                              apply_window_icon=self.apply_window_icon)

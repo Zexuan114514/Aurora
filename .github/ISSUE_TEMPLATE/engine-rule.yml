@@ -1,0 +1,124 @@
+name: 引擎实测规则（不用写代码）
+description: 交一条在本机跑通的 H-code / 引擎适配，让同款游戏的下一个人不用再折腾
+title: "[引擎规则] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        这个表单的栏目对应 `aurora/rules/engines/*.json` 的字段，**不用写代码**：填完维护者会把它并进内置规则包，
+        之后同款游戏（同一个 exe 指纹）会自动带出这条码。
+
+        最省事的做法：Aurora → 设置 → 关于 → **导出我的引擎规则**，
+        它会生成一份规则包 JSON 和一份照着本表单排好的说明，直接粘贴过来即可。
+  - type: input
+    id: game
+    attributes:
+      label: 游戏名
+      description: 中文名 / 原名写一个就行，两个都写更好
+      placeholder: アマカノ３（甜蜜女友 3）
+    validations:
+      required: true
+  - type: dropdown
+    id: engine
+    attributes:
+      label: 引擎
+      description: 面板里显示的引擎名；拿不准就选「不确定」，在备注里写观察到的东西
+      options:
+        - "不确定"
+        - "TVP/KIRIKIRI"
+        - "WillPlus"
+        - "BGI/Ethornell"
+        - "Artemis/Emote"
+        - "Siglus"
+        - "Leaf"
+        - "Escu:de"
+        - "CatSystem2/Ares"
+        - "Majiro"
+        - "Malie"
+        - "YU-RIS"
+        - "RUGP"
+        - "NeXAS"
+        - "Nitroplus"
+        - "AliceSoft"
+        - "Eushully"
+        - "Renpy"
+        - "NScripter"
+        - "其它（在备注里写）"
+    validations:
+      required: true
+  - type: input
+    id: exe_name
+    attributes:
+      label: exe 文件名
+      description: 游戏主 exe 的文件名（只要文件名，不要完整路径）
+      placeholder: Amakano3.exe
+    validations:
+      required: true
+  - type: input
+    id: exe_size
+    attributes:
+      label: 字节数
+      description: 右键 exe → 属性里的「大小」（精确到字节）；导出文件里也有这一项
+      placeholder: "5170176"
+    validations:
+      required: true
+  - type: input
+    id: crc32
+    attributes:
+      label: CRC32
+      description: 形如 0xA1FF529B；「导出我的引擎规则」生成的 JSON 里直接抄
+      placeholder: "0xA1FF529B"
+    validations:
+      required: true
+  - type: input
+    id: hook_code
+    attributes:
+      label: H-code
+      description: 形如 HQ-4@A22E:AdvHD_crack.exe。地址必须是模块内 RVA，不要写绝对地址
+      placeholder: "HS65001#-6C@1B1F70:Amakano3.exe"
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: 原文样例
+      description: 从游戏里复制一到两句原文；能附上对应译文更好
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: locale
+    attributes:
+      label: 需要转区启动吗
+      options:
+        - "不需要"
+        - "需要（Locale Emulator）"
+        - "不确定"
+    validations:
+      required: true
+  - type: dropdown
+    id: mojibake
+    attributes:
+      label: 有没有缺字 / 乱码
+      options:
+        - "没有，文本干净"
+        - "有缺字"
+        - "有乱码"
+        - "分不清"
+    validations:
+      required: true
+  - type: textarea
+    id: rule_pack
+    attributes:
+      label: 规则包 JSON（可选）
+      description: 「导出我的引擎规则」生成的那份 JSON；内容多的话当附件传
+      render: json
+    validations:
+      required: false
+  - type: textarea
+    id: notes
+    attributes:
+      label: 其它信息
+      description: 这条码是怎么来的（Textractor 自带钩子 / Aurora 的钩子查找器 / LunaTranslator 日志…）、试过但没用的码、截图或日志
+    validations:
+      required: false

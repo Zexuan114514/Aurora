@@ -31,6 +31,7 @@ CHECKS = (
     "check_theme_contract",
     "check_frontend_surface",
     "check_settings_keys",
+    "check_github_templates",
 )
 
 

@@ -1,0 +1,36 @@
+name: 功能想法
+description: 想要的能力、体验改进，或愿意自己动手接的活
+title: "[想法] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 想解决什么问题
+      description: 描述场景比描述方案更有用：你现在是怎么凑合的？
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: 设想的做法
+      description: 有具体想法就写；没有也可以只写期望的效果
+    validations:
+      required: false
+  - type: dropdown
+    id: willing
+    attributes:
+      label: 你愿意自己动手吗
+      description: 愿意接的话，维护者会把「从哪开始、怎么验收」写清楚，并在 README 里署名
+      options:
+        - "只是提个想法"
+        - "想自己试着做，需要指路"
+        - "我可以直接提 PR"
+    validations:
+      required: true
+  - type: textarea
+    id: extras
+    attributes:
+      label: 补充
+      description: 参考实现、截图、同类软件的做法……
+    validations:
+      required: false

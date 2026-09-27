@@ -381,8 +381,10 @@
             <el-button id="btnExport" class="btn glass-btn" @click="exportLibrary">导出游戏库</el-button>
             <el-button id="btnImportLib" class="btn glass-btn" @click="importLibrary">导入游戏库</el-button>
             <el-button id="btnDiagnostics" class="btn glass-btn" @click="exportDiagnostics">导出诊断包</el-button>
+            <el-button id="btnExportRules" class="btn glass-btn" @click="exportEngineRules">导出我的引擎规则</el-button>
           </div>
           <p id="diagHint" class="set-note">出问题时把诊断包发给维护者，里面是脱敏后的日志与配置。</p>
+          <p id="rulesHint" class="set-note">规则会导出到 data\rules\export\：一份规则包 JSON + 一份照着 issue 表单写的说明。</p>
         </div>
       </div>
     </div>
@@ -759,6 +761,22 @@ async function exportDiagnostics(): Promise<void> {
   const node = document.getElementById("diagHint")
   if (node) node.textContent = `已导出（${(res.bytes / 1024).toFixed(1)} KB）：${res.path}`
   toast("诊断包已导出，出问题时把这个 zip 发给维护者")
+}
+
+async function exportEngineRules(): Promise<void> {
+  const res = await call("export_engine_rules")
+  if (!res || !res.ok) {
+    toast("导出引擎规则失败：" + ((res && res.error) || "未知错误"))
+    return
+  }
+  const node = document.getElementById("rulesHint")
+  const skipped = (res.skipped || []).length
+  if (node) {
+    node.textContent = `已导出 ${res.rules} 条规则${skipped ? `（${skipped} 条没整理好，见说明文件）` : ""}：${res.path}`
+  }
+  toast(res.rules
+    ? "规则包已导出，把它贴到 GitHub 的「引擎实测规则」表单即可"
+    : "还没攒下实测 hook 码：先在翻译面板用「找不到文本？开始侦测」跑出一条")
 }
 
 async function refreshAll(): Promise<void> {

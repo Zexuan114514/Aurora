@@ -24,6 +24,7 @@ CHECKS = (
     "check_architecture_baseline",
     "check_layers",
     "check_startup",
+    "check_github_templates",
 )
 
 

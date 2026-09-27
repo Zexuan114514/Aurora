@@ -37,12 +37,8 @@ END = "<!-- /generated:engine-rules -->"
 
 
 def _rule_id(row: dict) -> str:
-    """稳定 id：引擎名小写 + exe 名 + 字节数（同一条规则永远同名）。"""
-    engine = str(row.get("engine") or "unknown").lower()
-    engine = "".join(ch if ch.isalnum() else "-" for ch in engine).strip("-")
-    name = str(row["name"]).rsplit(".", 1)[0].lower()
-    name = "".join(ch if ch.isalnum() else "-" for ch in name).strip("-")
-    return f"{engine}-{name}-{int(row['size'])}"
+    """稳定 id（实现归 domain，见 ADR-0008）：引擎名 + exe 名 + 字节数。"""
+    return engine_rules.rule_id(row["name"], str(row.get("engine") or "unknown"), row["size"])
 
 
 def build_package() -> dict:
