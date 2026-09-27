@@ -95,7 +95,7 @@ Python 进程负责游戏库与元数据、启动与游玩时长记账、以及*
 | [`contracts/plugin-api-v1.md`](contracts/plugin-api-v1.md) | service-decomposition-advisor | 插件与引擎规则包契约 |
 | [`contracts/data-schema-v2.md`](contracts/data-schema-v2.md) | integration-boundary-mapper | 数据 v2 schema、迁移与回滚 |
 | [`contracts/frontend-surface.json`](contracts/frontend-surface.json) | runtime-view-writer | v2 冻结测试面快照（101 个 DOM id / `__aurora` 四键 / 14 事件主题） |
-| [`../adr/`](../adr/README.md) | adr-writer | 14 条架构决策记录 |
+| [`../adr/`](../adr/README.md) | adr-writer | 15 条架构决策记录 |
 
 ## 阅读顺序
 

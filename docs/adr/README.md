@@ -20,6 +20,7 @@
 | [ADR-0012](ADR-0012-packaging-manifest.md) | 打包清单单一来源 | 已接受 |
 | [ADR-0013](ADR-0013-frontend-build-chain-and-themes.md) | 前端构建链（Vue + Element Plus）与主题系统（现为五套） | 已接受（第 3 条「新旧并行」已被 ADR-0014 取代） |
 | [ADR-0014](ADR-0014-drop-v1-frontend.md) | 删除 v1 前端（无构建 ES 模块） | 已接受 |
+| [ADR-0015](ADR-0015-theme-is-skin-layout-stays-orthogonal.md) | 主题＝皮肤，布局保持正交（不采用一主题一布局） | 已接受 |
 
 相关文档：架构总览 [`../architecture/README.md`](../architecture/README.md)，
 落地路线 [`../architecture/13-roadmap.md`](../architecture/13-roadmap.md)。
