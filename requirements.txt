@@ -3,18 +3,19 @@
 #
 # pywebview 在 Windows 上使用 Edge WebView2 内核（Win11 自带运行时；
 # Win10 若未安装，程序会自动回退到 Qt 内核）。
-pywebview>=5.0
+pywebview==6.2.1
+pythonnet==3.1.0
 
 # 游戏内翻译：Windows 自带 OCR（Windows.Media.Ocr）。
 # 按命名空间拆分的官方投影包，每个只有几十 KB，比整包 winsdk（约 12 MB）小得多。
-winrt-runtime>=3.0
-winrt-Windows.Media.Ocr>=3.0
-winrt-Windows.Graphics.Imaging>=3.0
-winrt-Windows.Globalization>=3.0
-winrt-Windows.Storage.Streams>=3.0
-winrt-Windows.Storage>=3.0
-winrt-Windows.Foundation>=3.0
-winrt-Windows.Foundation.Collections>=3.0
+winrt-runtime==3.2.1
+winrt-Windows.Media.Ocr==3.2.1
+winrt-Windows.Graphics.Imaging==3.2.1
+winrt-Windows.Globalization==3.2.1
+winrt-Windows.Storage.Streams==3.2.1
+winrt-Windows.Storage==3.2.1
+winrt-Windows.Foundation==3.2.1
+winrt-Windows.Foundation.Collections==3.2.1
 
 # Pillow 用于打包时生成图标以及 tools/ 下的截图分析，见 requirements-dev.txt；
 # build_exe.py 也会在专用构建环境中自动安装。

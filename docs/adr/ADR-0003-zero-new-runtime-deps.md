@@ -26,6 +26,14 @@
 选择 **1**。开发期允许 `pytest`（放进 `requirements-dev.txt`，不进发布包）；运行时代码禁止新增第三方依赖，
 需要的能力用标准库实现（`concurrent.futures` / `queue` / `threading` / `http.server` / `json` / `ast` / `importlib`）。
 
+### 依赖清单的固定版本
+
+`requirements.txt` 把实测过的运行环境固定下来：`pywebview==6.2.1`、`pythonnet==3.1.0`、
+`winrt-*==3.2.1`。其中 **pythonnet 不是新增依赖** —— pywebview 在 Windows 上自身要求它
+（`Requires-Dist: pythonnet; sys_platform == "win32"`）；显式列出只为让本地、CI 和发布包用同一种运行环境，
+`tools/build_exe.py` 在开始打包前会断言这两个版本，版本不符就直接报错而不是产出一个可疑的 exe。
+`tools/checks/check_dependencies.py` 的 requirements 白名单相应放行 `pythonnet`，其余新增依赖仍会被拦下。
+
 ## 后果
 
 - ✅ 打包体积、启动路径、许可与安全面保持可控。

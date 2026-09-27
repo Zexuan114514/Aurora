@@ -2,7 +2,7 @@
 
 公开版本按 `aurora/infra/store/paths.py` 中的 `VERSION` 管理。数据 `SCHEMA_VERSION`、前端私有子包版本和 P8.x 内部里程碑不属于对外版本号。
 
-## [1.0.0] - 首个公开版本（待发布）
+## [1.0.0] - 2026-09-27
 
 详见 [v1.0.0 Release Notes](docs/releases/v1.0.0.md)。
 
@@ -18,5 +18,6 @@
 
 ### 下载与更新
 
-- Release 发布后从 [GitHub Releases](https://github.com/Zexuan114514/Aurora/releases) 下载 `Aurora.exe`。
+- 从 [GitHub Releases](https://github.com/Zexuan114514/Aurora/releases/tag/v1.0.0) 下载 `Aurora.exe`
+  与同名 `.sha256` 校验文件。
 - Windows 程序未签名，可能出现“未知发布者”提示；更新前请核对 SHA-256。

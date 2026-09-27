@@ -76,8 +76,13 @@ def python_with_pyinstaller() -> Path | None:
     for candidate in (Path(sys.executable), VENV / "Scripts" / "python.exe"):
         if not candidate.exists():
             continue
-        probe_code = "import PyInstaller, PIL; " + "; ".join(
-            f"import {name}" for name in RUNTIME_MODULES)
+        probe_code = (
+            "import importlib.metadata as _metadata; "
+            "assert _metadata.version('pywebview') == '6.2.1'; "
+            "assert _metadata.version('pythonnet') == '3.1.0'; "
+            "import PyInstaller, PIL; "
+            + "; ".join(f"import {name}" for name in RUNTIME_MODULES)
+        )
         probe = subprocess.run([str(candidate), "-c", probe_code],
                                capture_output=True)
         if probe.returncode == 0:

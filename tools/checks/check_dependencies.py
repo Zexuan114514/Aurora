@@ -14,6 +14,11 @@ from common import ROOT, Result, imports_of, main, python_files
 
 ALLOWED_RUNTIME = {"webview", "winrt"}
 ALLOWED_LOCAL = {"gl", "aurora"}
+#: requirements.txt 允许出现的包名（winrt 投影包按前缀放行）。
+#: pythonnet 不是新增依赖：pywebview 在 Windows 上自己要求它
+#: （`Requires-Dist: pythonnet; sys_platform == "win32"`），列出来只是为了把
+#: 实测过的版本固定下来，让本地与 CI 打包出同一种运行环境。
+ALLOWED_REQUIREMENTS = {"pywebview", "pythonnet"}
 #: 可选运行时依赖：缺失时必须降级而不是崩（当前 PIL 只在存 PNG / 转 .ico 时用）
 OPTIONAL_RUNTIME = {
     "PIL": "screencap 存 PNG 供框选、winapi 把图片转 .ico；缺 Pillow 时功能降级",
@@ -86,7 +91,7 @@ def check() -> Result:
             continue
         name = re.split(r"[<>=!~\[; ]", text, maxsplit=1)[0].strip().lower()
         pinned.append(name)
-        if not (name == "pywebview" or name.startswith("winrt")):
+        if not (name in ALLOWED_REQUIREMENTS or name.startswith("winrt")):
             result.fail(f"requirements.txt 出现白名单外的依赖：{text}")
     if pinned:
         result.note(f"requirements.txt：{', '.join(pinned)}")

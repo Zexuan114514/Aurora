@@ -38,6 +38,7 @@ _compare/
 
 # ---------- 本地工具（架构技能包等，不进仓库） ----------
 .codex/
+.workbuddy-ai/
 
 # ---------- 前端构建（Node） ----------
 frontend/node_modules/

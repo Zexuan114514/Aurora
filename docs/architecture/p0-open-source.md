@@ -12,6 +12,7 @@
 - 前端 `package.json` / lockfile 跟随公开版本 `1.0.0`；`SCHEMA_VERSION` 和 P8.x 继续作为内部标记。
 - PyInstaller 打包使用 `tools/aurora-version.txt` 注入 `FileVersion`、`ProductVersion`、`ProductName`、`CompanyName`。
 - 打包器会检查 `pywebview` 与 WinRT 运行依赖；便携版单文件解包目录固定在程序目录的 `data\\_runtime`，避免受限的系统 `%TEMP%` 导致启动时请求管理员权限。若部署到 `Program Files` 等受保护目录，应使用用户可写的安装目录。
+- `requirements.txt` 固定 `pywebview==6.2.1`、`pythonnet==3.1.0`、`winrt-*==3.2.1`；打包器在开始前断言前两个版本，依赖守卫放行 `pythonnet`（它是 pywebview 在 Windows 上的传递依赖，不是新增依赖，见 [ADR-0003](../adr/ADR-0003-zero-new-runtime-deps.md)）。
 - `.github/workflows/release.yml` 支持手动输入 tag；先构建前端，再跑 `run_all.py` 与 pytest，随后打包并上传 `Aurora.exe` 和 SHA-256 校验文件。
 - Gal Launcher 参考截图在 `docs/THIRD-PARTY-ASSETS.md` 单独标明用途和 MIT 排除边界。
 
@@ -21,6 +22,12 @@
 2. 打开 GitHub Actions → `release` → `Run workflow`，输入 `v1.0.0`。
 3. 工作流会检查 tag 与公开版本一致，构建并执行发布门禁。
 4. Release 页面应包含 `Aurora.exe`、`Aurora.exe.sha256` 和 [v1.0.0 Release Notes](../releases/v1.0.0.md)。
+
+## 首次发布记录（2026-09-27）
+
+- tag `v1.0.0` 指向 `0d88db0`；发布资产由 `release` 工作流在 `main` 上构建，上传后先保持草稿，人工核对再公开。
+- 资产：`Aurora.exe`（23,508,246 字节）+ `Aurora.exe.sha256`。核对结果：SHA-256 与校验文件一致；PE 版本资源 `FileVersion` / `ProductVersion` = `1.0.0`、`ProductName` = `Aurora 游戏启动器`、`CompanyName` = `Aurora Project`。
+- 工作流内置启动冒烟检查：打包后真启动 exe，12 秒内退出或日志命中运行时错误即判定发布失败。
 
 Windows 程序目前未签名，Release Notes 必须保留“未知发布者”提示；SmartScreen 的长期消除需要稳定的代码签名身份和累积的发布信誉。外部工具 Textractor、Locale Emulator 等由用户自行安装，不由 Aurora 下载或打包。
 
