@@ -22,7 +22,7 @@ Aurora 是一个 **Windows 单机 galgame 启动器**：管游戏库、抓元数
 | 运行形态 | 源码 `python main.py`；发布 `Aurora.exe`（PyInstaller 单文件，约 24.5 MB） |
 | 开发环境 | Windows + Python 3.13（本机是 Anaconda）；`webview`(pywebview) + `winrt-*` 是仅有的运行时依赖 |
 | 用户数据 | 与本机绑定，**不进仓库**：`data/`（库、设置、素材、缓存、日志） |
-| 测试现状 | `pytest` 全绿、`tools/checks/run_all.py` **14/14**、`tools/e2e.py` **101/101**、`tools/contrast.py` **40/40**、`tools/visual.py` 主题矩阵 **35/35（偏差 0）** |
+| 测试现状 | `pytest` 全绿（133）、`tools/checks/run_all.py` **15/15**、`tools/e2e.py` **102/102（0 skipped，2026-09-27 真机复跑）**、`tools/contrast.py` **40/40**、`tools/visual.py` 主题矩阵 **35/35（偏差 0）** |
 | 主题 / 图标 | 五套主题（极光 / 画廊 / 放映厅 / 收藏架 / Atelier）× 深浅；512×512 RGBA 源图生成含 7 尺寸的 `aurora.ico`，打包脚本自动重建并刷新 Explorer 缓存 |
 | 真机矩阵 | DRACU RIOT（KiriKiriZ）/ 少女之剑（WillPlus+专用码）/ アマカノ３（Artemis）/ 白色相簿2（Leaf）… 见 [`engines.md`](engines.md) |
 | 远端 | `origin = https://Zexuan114514@github.com/Zexuan114514/Aurora.git`（URL 里带用户名，否则 GCM 会卡住） |

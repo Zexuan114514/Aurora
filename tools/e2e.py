@@ -1478,7 +1478,8 @@ def main() -> int:
               return JSON.stringify({
                 open: p.classList.contains('open'),
                 visible: cs.opacity !== '0' && cs.pointerEvents !== 'none' && rect.height > 10,
-                threads: document.querySelectorAll('#vnThreads .vn-thread').length,
+                // 线程卡片在 P8.21 从 .vn-thread 改名为 .vn-thread-row（.vn-thread 现在只用于找钩子候选列表）
+                threads: document.querySelectorAll('#vnThreads .vn-thread-row').length,
                 state: document.getElementById('vnState').textContent});
             """)
             step("翻译面板可见且显示运行状态与线程",

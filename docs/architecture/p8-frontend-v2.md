@@ -18,8 +18,13 @@
 
 Atelier 已从示例小样变成正式第五套应用主题；五套按钮皮肤均已接入 `app.css`，并沿用原有
 DOM、id 与事件。当前可引用的验收数字是：主题矩阵 **35/35**（偏差 0，区分度 23.9）、
-`contrast.py` **40/40**、`e2e.py` **101/101**、`run_all.py` **14/14**。文中较早的
-四套、25 张、32 点数字属于当时的阶段记录，保留用于追溯。
+`contrast.py` **40/40**；`e2e.py` / `run_all.py` 的数字随后续阶段继续增长，**当前值以
+`tools/checks/tools-manifest.json` 为准**。
+
+> ⚠️ 历史口径：下文出现的「四套」「25 张」「32 点」「skin ≤80 行」以及各阶段的
+> `e2e` / `run_all` 计数，都是**当时那一轮的记录**，保留用于追溯。当前值是
+> **五套 / 35 张 / 40 点 / skin ≤200 行**（`tools/baselines/theme-baseline.json` 与
+> `tools/checks/tools-manifest.json` 是权威来源）。
 P8.20 另收口三条体验反馈：顶部栏只保留主题提示，悬浮窗按钮按文案自适应并铺满主题底色，
 游戏内翻译及共享表单的原生输入框补齐主题文字 / 背景 / 占位符 / 焦点态；v2 双入口产物已重建。
 P8.21 继续收口少女之剑实测：采样法无候选现在作为阶段告警发送，后续有效 `UserHook` 线程会把提示收敛为成功；
@@ -138,14 +143,15 @@ frontend/                     Vite 工程（Node 只在开发 / 构建期）
                               + tokens.css（语义令牌 + 契约标记）+ layout.css（v1 迁移）
                               + themes/*.tokens.css + themes/*.skin.css + element.css（--el-* 桥接）
 gl/web/v2/                    构建产物（入库）：index.html / overlay.html / bundle/ / build-info.json
-tools/baselines/              主题截图指纹（theme-baseline.json，25 张；PNG 本体在 _sandbox/ 不入库）
+tools/baselines/              主题截图指纹（theme-baseline.json，35 张；PNG 本体在 _sandbox/ 不入库）
 ```
 
 ## 主题系统
 
 - 唯一真相：`src/styles/tokens.css` 里 `@contract` 标记的 `:root`（27 个语义令牌）。
 - 每套主题两个文件：`*.tokens.css`（深 + 浅两个块，必须补齐全部令牌）+
-  `*.skin.css`（≤80 行、选择器必须限定在自己的 `[data-style="…"]` 下，只放结构性签名）。
+  `*.skin.css`（≤200 行〔P8.16 前是 80，见下文「契约放宽」〕、选择器必须限定在自己的
+  `[data-style="…"]` 下，只放结构性签名）。
 - 根属性：`<html data-style="aurora|gallery|screening|shelf" data-theme="dark|light" data-palette="…">`。
   `data-theme` 保留 v1 语义（dark / light）—— e2e 的浅色判据读的就是它；风格走 `data-style`。
 - Element Plus 通过 `--el-*` 变量桥接语义令牌（`src/styles/element.css`），五套主题自动跟随。
@@ -166,7 +172,7 @@ tools/baselines/              主题截图指纹（theme-baseline.json，25 张�
 那次录出来的 5 张整列是错的）。录基线时切不过去的那套主题直接跳过、不写进基线，
 汇总里会点名 —— 宁可少一行，也不要一行假的。
 
-重录基线（改了界面之后要跑，顺手人眼过一遍 `_sandbox/theme-shots/` 里的 25 张）：
+重录基线（改了界面之后要跑，顺手人眼过一遍 `_sandbox/theme-shots/` 里的 35 张）：
 
 ```powershell
 $env:VISUAL_UPDATE_THEME_BASELINE="1"; python tools\visual.py

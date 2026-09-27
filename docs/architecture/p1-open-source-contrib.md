@@ -60,7 +60,9 @@
   id 与内置包一致、导出包通过规则校验、坏码 / 丢 exe 进 skipped、内置重复标注）。
 - `cd frontend && npm run build`：产物入库 `gl/web/v2/`（构建指纹由 `check_frontend_build.py` 守）。
 - 装配冒烟：以临时数据目录构造 `Api()` 并调用 `export_engine_rules()`，两个文件正常落盘、schema 正确。
-- `tools/e2e.py` 新增「关于页能导出引擎规则」一步（真机全量复跑属发布前动作，未在本轮执行）。
+- `tools/e2e.py` 新增「关于页能导出引擎规则」一步，并修正一处过期选择器
+  （`#vnThreads .vn-thread` → `.vn-thread-row`，P8.21 改版后卡片改了类名）；
+  真机全量复跑 **102/102 通过（0 skipped）**。
 
 ## 下一步
 

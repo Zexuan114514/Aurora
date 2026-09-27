@@ -4,9 +4,9 @@
   "app_version": "1.0.0",
   "python": "3.13",
   "bridge": {
-    "public_methods": 109,
-    "internal_methods": 42,
-    "frontend_call_points": 103,
+    "public_methods": 115,
+    "internal_methods": 45,
+    "frontend_call_points": 104,
     "overlay_methods": 4,
     "event_topics": 14,
     "overlay_actions": 8,
@@ -252,6 +252,10 @@
     {
       "path": "aurora/app/services/diagnostics.py",
       "lines": 218
+    },
+    {
+      "path": "aurora/app/services/rule_export.py",
+      "lines": 241
     },
     {
       "path": "gl/config.py",
@@ -1944,6 +1948,21 @@
           "to": "aurora/infra/vntext.py COLD_START_GRACE=30s 宽限期（只挡不像台词的行）"
         }
       ]
+    },
+    {
+      "phase": "开源化 P0/P1",
+      "date": "2026-09-27",
+      "note": "P0：MIT 许可证 + README 产品页（手册下沉 docs/manual）+ PE 版本资源 + release 工作流（门禁 → 真打包 → 上传 → 人工核对草稿）与首次发布 v1.0.0；P1：贡献通道 —— 新增 aurora/app/services/rule_export.py（设置 → 关于 →「导出我的引擎规则」：本机实测 hook 码 → 规则包 JSON + 投稿说明）、.github issue/PR 模板（问题反馈强制附诊断包、引擎规则表单对齐 hooks.json 字段）、CONTRIBUTING / SECURITY / CODE_OF_CONDUCT，以及第 15 项离线检查 check_github_templates.py；run_all 14 → 15、pytest 127 → 133、桥接方法 151 → 160（115 公开）、前端调用点 103 → 104、前端测试面 99 → 101 个 DOM id。",
+      "moves": [
+        {
+          "from": "陌生人打开仓库：没有许可证、没有 Release、README 594 行",
+          "to": "LICENSE(MIT) + Release v1.0.0（Aurora.exe + SHA-256）+ README 产品页与翻译边界声明"
+        },
+        {
+          "from": "想贡献只能写 Python",
+          "to": "「引擎实测规则」issue 表单 + 「导出我的引擎规则」+ data/rules/engines 用户覆盖"
+        }
+      ]
     }
   ],
   "modules_added_in_p2": [
@@ -2032,5 +2051,8 @@
   ],
   "modules_added_in_p3_9h": [
     "aurora/infra/dialogs.py"
+  ],
+  "modules_added_in_open_source_p1": [
+    "aurora/app/services/rule_export.py"
   ]
 }
