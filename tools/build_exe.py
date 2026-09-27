@@ -19,6 +19,7 @@ from _common import setup_console  # noqa: E402
 
 setup_console()
 
+import os
 import shutil
 import subprocess
 import sys
@@ -63,6 +64,13 @@ WINRT_MODULES = (
 # 缺少 pywebview / WinRT 时仍然生成一个看似成功、实际缺件的 exe。
 RUNTIME_MODULES = ("webview", "winrt.windows.media.ocr")
 
+#: 打包环境必须满足的版本。pywebview 的 Windows 后端经 pythonnet 调 .NET，
+#: 而 pythonnet 3.1.0 要求 clr_loader>=0.3.1：宿主环境里混进旧版 clr_loader
+#: （Anaconda 自带 0.2.7.post0）时，exe 照样打得出来，却在启动时报
+#: `Failed to resolve Python.Runtime.Loader.Initialize`。所以探针不只看版本号，
+#: 还要真的 `import clr` 走一遍 .NET 初始化。
+PINNED_PACKAGES = {"pywebview": "6.2.1", "pythonnet": "3.1.0"}
+
 # 这些包在 Anaconda 里常被间接扫到，但本项目完全用不上，排除掉能显著减小体积/避免 hook 报错
 EXCLUDES = [
     "numpy", "pandas", "matplotlib", "scipy", "PyQt5", "PySide2", "PySide6",
@@ -71,36 +79,117 @@ EXCLUDES = [
 ]
 
 
+def probe_code() -> str:
+    """候选解释器的探针：固定版本 + 真加载 .NET + 运行时要用的模块。"""
+    versions = "; ".join(
+        f"assert _metadata.version({name!r}) == {version!r}"
+        for name, version in PINNED_PACKAGES.items())
+    imports = "".join(f"; import {name}" for name in RUNTIME_MODULES)
+    return ("import importlib.metadata as _metadata; " + versions
+            + "; import clr"          # 真正初始化 .NET，挡住 pythonnet / clr_loader 版本不匹配
+            + "; import PyInstaller, PIL" + imports)
+
+
+def probe(candidate: Path) -> tuple[bool, str]:
+    """跑探针，返回 (是否可用, 失败摘要)。"""
+    proc = subprocess.run([str(candidate), "-c", probe_code()],
+                          capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
+    if proc.returncode == 0:
+        return True, ""
+    lines = [line.strip() for line in (proc.stderr or proc.stdout or "").splitlines()
+             if line.strip()]
+    return False, (lines[-1] if lines else f"退出码 {proc.returncode}")
+
+
+def describe(python: Path) -> str:
+    """打包日志里记下这套环境到底装了什么，方便事后追。"""
+    code = ("import importlib.metadata as _m; "
+            "print(' / '.join(f'{p} {_m.version(p)}' for p in "
+            "('pywebview', 'pythonnet', 'clr_loader')))")
+    proc = subprocess.run([str(python), "-c", code], capture_output=True,
+                          text=True, encoding="utf-8", errors="replace")
+    return proc.stdout.strip() if proc.returncode == 0 else "版本未知"
+
+
 def python_with_pyinstaller() -> Path | None:
-    """返回一个能用 PyInstaller 和 Pillow 的 python 解释器。"""
+    """返回第一个通过探针的解释器（本机解释器优先，其次 _build\\venv）。"""
     for candidate in (Path(sys.executable), VENV / "Scripts" / "python.exe"):
-        if not candidate.exists():
-            continue
-        probe_code = (
-            "import importlib.metadata as _metadata; "
-            "assert _metadata.version('pywebview') == '6.2.1'; "
-            "assert _metadata.version('pythonnet') == '3.1.0'; "
-            "import PyInstaller, PIL; "
-            + "; ".join(f"import {name}" for name in RUNTIME_MODULES)
-        )
-        probe = subprocess.run([str(candidate), "-c", probe_code],
-                               capture_output=True)
-        if probe.returncode == 0:
+        if candidate.exists() and probe(candidate)[0]:
             return candidate
     return None
+
+
+def pip_install(python: Path, *requirements: str) -> None:
+    """装依赖时把 pip 的缓存和临时目录都钉死在 _build 下。
+
+    两个实测坑：
+      * 本机 pip 缓存涨到 2 GB 后，读缓存这一步会空转 CPU 十几分钟（直接联网
+        反而二十秒装完），而且 pip 的构建隔离子进程不继承 `--no-cache-dir`，
+        必须用环境变量传下去；
+      * 某些环境里 pip 会把 pip-build-env-*/pip-unpack-* 建在当前工作目录，
+        把仓库根目录搞脏。
+    """
+    tmp = BUILD / "tmp"
+    tmp.mkdir(parents=True, exist_ok=True)
+    env = {**os.environ,
+           "PIP_NO_CACHE_DIR": "1",
+           "PIP_DISABLE_PIP_VERSION_CHECK": "1",
+           "TMPDIR": str(tmp), "TEMP": str(tmp), "TMP": str(tmp)}
+    subprocess.run([str(python), "-m", "pip", "install", "--quiet",
+                    "--disable-pip-version-check", "--no-cache-dir",
+                    *requirements], check=True, env=env)
+
+
+def install_builder_deps(python: Path) -> None:
+    """补齐打包依赖。
+
+    不用 `--upgrade`：在带 system-site-packages 的环境里，它会把整个
+    Anaconda site-packages 拖进解析，几分钟都跑不完。`clr_loader>=0.3.1`
+    必须显式点名 —— pythonnet 已经装好时，pip 不会再回头检查它的依赖。
+    """
+    if subprocess.run([str(python), "-c", "import PyInstaller, PIL"],
+                      capture_output=True).returncode != 0:
+        pip_install(python, "pyinstaller", "pillow")
+    pip_install(python, "-r", str(ROOT / "requirements.txt"), "clr_loader>=0.3.1")
+
+
+def recreate_venv() -> Path:
+    """重建构建用 venv。
+
+    刻意不加 `--system-site-packages`：宿主环境（例如 Anaconda 里的
+    `clr_loader 0.2.7`）会被继承进来，正是 pythonnet 加载失败的老来源。
+    """
+    if VENV.parent != BUILD or ROOT not in VENV.parents:     # 只允许删 _build\venv
+        raise SystemExit(f"拒绝重建意外路径：{VENV}")
+    shutil.rmtree(VENV, ignore_errors=True)
+    subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
+    return VENV / "Scripts" / "python.exe"
 
 
 def ensure_builder() -> Path:
     found = python_with_pyinstaller()
     if found:
+        print(f"打包环境：{found}\n  {describe(found)}")
         return found
-    print("未找到完整打包依赖，正在 _build\\venv 中安装 PyInstaller 与 Pillow ...")
-    subprocess.run([sys.executable, "-m", "venv", "--system-site-packages", str(VENV)],
-                   check=True)
+
+    for candidate in (Path(sys.executable), VENV / "Scripts" / "python.exe"):
+        if candidate.exists():
+            print(f"候选解释器不可用：{candidate}\n  {probe(candidate)[1]}")
+
     python = VENV / "Scripts" / "python.exe"
-    subprocess.run([str(python), "-m", "pip", "install", "--quiet",
-                    "--upgrade", "pip", "pyinstaller", "pillow",
-                    "-r", str(ROOT / "requirements.txt")], check=True)
+    if python.exists():
+        # 旧环境一旦被宿主 site-packages 污染，pip 的解析会在整套 Anaconda 上
+        # 空转（实测 CPU 打满十几分钟还没结束）。这种情况直接重建更省事。
+        print("现有 _build\\venv 未通过探针，重建隔离环境 ...")
+    else:
+        print("正在创建 _build\\venv（隔离环境）并安装打包依赖 ...")
+    python = recreate_venv()
+    install_builder_deps(python)
+    ok, reason = probe(python)
+    if not ok:
+        raise SystemExit(f"打包环境不可用，已停止打包：{reason}")
+    print(f"打包环境：{python}\n  {describe(python)}")
     return python
 
 

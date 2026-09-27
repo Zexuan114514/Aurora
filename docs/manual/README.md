@@ -517,6 +517,18 @@ URL 里的账密抹掉）、日志尾部（每个文件最多 256 KB）。**不�
 **双击「启动 Aurora.bat」没反应或闪退？**
 先双击 **`调试启动.bat`**，它会保留控制台并打印错误。日志也写在 `data\aurora.log`。
 
+**启动时报 `Failed to resolve Python.Runtime.Loader.Initialize`？**
+这是 Windows 挡住了解包出来的 .NET 运行时（`pythonnet\runtime\Python.Runtime.dll`），不是 Aurora 自己的逻辑出错。
+同一个 exe 换个目录就能用，通常说明问题出在**放它的那个目录**。已知三种来源：
+
+- **目录带低完整性标签**：CLR 拒绝从低完整性文件加载程序集，而普通的文件读取仍然正常，所以现象很迷惑。
+  对目录树执行一次 `icacls "目录" /setintegritylevel (OI)(CI)Medium /T` 即可恢复（此后新建的文件不会再继承 Low）。
+- **杀毒软件拦截**：PyInstaller 单文件版容易被启发式误报（如 `Trojan:Win32/Wacatac.B!ml`），
+  被拦下的解包 DLL 会表现为「访问被拒绝」。确认文件来自本仓库 Release 且 SHA-256 对得上之后，把程序目录加进排除项。
+- **自建打包环境版本不匹配**：`pythonnet 3.1.0` 要求 `clr_loader>=0.3.1`；
+  用宿主环境里自带的旧版（例如 Anaconda 的 `0.2.7`）打包，exe 能生成、一启动就报这个错。
+  `python tools\build_exe.py` 现在会在打包前断言版本并真正 `import clr`，不通过就拒绝打包。
+
 **搜不到游戏信息？**
 点「更多 → 重新搜索游戏信息」，或直接在候选面板里输入别的写法：
 - 中文搜不到时试日文原名（`千恋万花` → `千恋＊万花`、`魔女的夜宴` → `サノバウィッチ`）
